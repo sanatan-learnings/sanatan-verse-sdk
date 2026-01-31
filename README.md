@@ -49,6 +49,13 @@ verse-audio --help  # Coming soon
 verse-images --help  # Coming soon
 ```
 
+#### Deploy Cloudflare Worker
+```bash
+# Run from your project root (where wrangler.toml is located)
+cd /path/to/your/project
+verse-deploy
+```
+
 ### Python API (For Custom Scripts)
 
 You can also import and use the SDK in your Python code:
