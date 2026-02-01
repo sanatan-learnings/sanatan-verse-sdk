@@ -56,6 +56,67 @@ if os.getenv("OPENAI_API_KEY"):
     openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
+def fetch_chapter_names(chapter: int) -> tuple[Optional[str], Optional[str]]:
+    """Fetch chapter names (English and Hindi) from GPT-4."""
+    print(f"\n{'='*60}")
+    print("FETCHING CHAPTER NAMES FROM GPT-4")
+    print(f"{'='*60}\n")
+
+    if not openai_client:
+        print("Error: OPENAI_API_KEY not set")
+        return None, None
+
+    print(f"Fetching chapter names for Chapter {chapter}...")
+
+    prompt = f"""What is the name of Chapter {chapter} of the Bhagavad Gita?
+
+Provide ONLY:
+1. English name (e.g., "Karma Yoga")
+2. Hindi name in Devanagari (e.g., "कर्म योग")
+
+Format your response as:
+English: [name]
+Hindi: [name in Devanagari]"""
+
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a Bhagavad Gita scholar. Provide accurate chapter names."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=100
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        # Parse response
+        english_name = None
+        hindi_name = None
+
+        for line in content.split('\n'):
+            line = line.strip()
+            if line.startswith('English:'):
+                english_name = line.replace('English:', '').strip()
+            elif line.startswith('Hindi:'):
+                hindi_name = line.replace('Hindi:', '').strip()
+
+        if english_name and hindi_name:
+            print(f"\n✓ Fetched chapter names:")
+            print(f"  English: {english_name}")
+            print(f"  Hindi: {hindi_name}")
+            print()
+            return english_name, hindi_name
+        else:
+            print("✗ Could not parse chapter names from response")
+            return None, None
+
+    except Exception as e:
+        print(f"✗ Error fetching chapter names: {e}")
+        return None, None
+
+
 def fetch_sanskrit_text(chapter: Optional[int], verse: int) -> Optional[str]:
     """Fetch Sanskrit text from GPT-4 for the specified verse."""
     print(f"\n{'='*60}")
@@ -461,37 +522,40 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Generate everything - Sanskrit fetched automatically from GPT-4
-  verse-generate --chapter 2 --verse 47 --all \\
-    --chapter-name-en "Sankhya Yoga" \\
-    --chapter-name-hi "सांख्य योग"
+  # Simplest usage - everything auto-fetched from GPT-4
+  verse-generate --chapter 1 --verse 3 --all
 
-  # Generate everything with custom Sanskrit text
-  verse-generate --chapter 2 --verse 47 --all \\
-    --sanskrit "कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।..." \\
-    --chapter-name-en "Sankhya Yoga"
+  # Generate everything for Chapter 2, Verse 47
+  verse-generate --chapter 2 --verse 47 --all
 
-  # Generate only image prompt (Sanskrit fetched automatically)
+  # Generate with custom Sanskrit text (chapter names still auto-fetched)
+  verse-generate --chapter 2 --verse 47 --all \\
+    --sanskrit "कर्मण्येवाधिकारस्ते मा फलेषु कदाचन।..."
+
+  # Generate only image prompt
   verse-generate --chapter 3 --verse 10 --prompt
 
-  # Generate text content with chapter names
-  verse-generate --chapter 3 --verse 10 --text \\
-    --chapter-name-en "Karma Yoga" \\
-    --chapter-name-hi "कर्म योग"
+  # Generate only text content
+  verse-generate --chapter 3 --verse 10 --text
 
   # Generate only image and audio (requires existing scene description and verse file)
   verse-generate --chapter 2 --verse 47 --image --audio
+
+  # Override auto-fetched chapter names (optional)
+  verse-generate --chapter 3 --verse 10 --all \\
+    --chapter-name-en "Karma Yoga" \\
+    --chapter-name-hi "कर्म योग"
 
   # For texts without chapters (Hanuman Chalisa) - provide Sanskrit
   verse-generate --verse 15 --all --sanskrit "..." --theme modern-minimalist
 
 Environment Variables:
-  OPENAI_API_KEY      - Required for text/prompt/image generation and Sanskrit fetching
+  OPENAI_API_KEY      - Required for auto-fetching and AI generation
   ELEVENLABS_API_KEY  - Required for audio generation
 
 Note:
-  If --sanskrit is not provided, it will be automatically fetched from GPT-4 using
-  the chapter and verse numbers. This requires OPENAI_API_KEY to be set.
+  Sanskrit text and chapter names are automatically fetched from GPT-4 if not provided.
+  All you need is --chapter and --verse numbers!
         """
     )
 
@@ -547,13 +611,13 @@ Note:
     parser.add_argument(
         "--chapter-name-en",
         type=str,
-        help="Chapter name in English (e.g., 'Karma Yoga')",
+        help="Chapter name in English (optional - will be fetched from GPT-4 if not provided)",
         metavar="NAME"
     )
     parser.add_argument(
         "--chapter-name-hi",
         type=str,
-        help="Chapter name in Hindi (e.g., 'कर्म योग')",
+        help="Chapter name in Hindi (optional - will be fetched from GPT-4 if not provided)",
         metavar="NAME"
     )
 
@@ -625,6 +689,23 @@ Note:
             sys.exit(1)
         # Update args for display
         args.sanskrit = sanskrit_text
+
+    # Fetch chapter names if needed but not provided
+    chapter_name_en = args.chapter_name_en
+    chapter_name_hi = args.chapter_name_hi
+    if args.chapter and (generate_text_flag or generate_prompt_flag):
+        if not chapter_name_en or not chapter_name_hi:
+            print("Chapter names not provided. Fetching from GPT-4...")
+            fetched_en, fetched_hi = fetch_chapter_names(args.chapter)
+            if fetched_en and fetched_hi:
+                chapter_name_en = chapter_name_en or fetched_en
+                chapter_name_hi = chapter_name_hi or fetched_hi
+                # Update args
+                args.chapter_name_en = chapter_name_en
+                args.chapter_name_hi = chapter_name_hi
+            else:
+                print("\n⚠ Warning: Could not fetch chapter names from GPT-4")
+                print("Continuing without chapter names...")
 
     # Track success
     results = {
