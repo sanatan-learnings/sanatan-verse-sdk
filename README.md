@@ -31,12 +31,24 @@ verse-generate --verse 15 --all
 ```
 
 That's it! The `--all` flag generates **all content automatically**:
-- ✅ Fetches verse text from GPT-4
-- ✅ Fetches chapter names from GPT-4 (if applicable)
-- ✅ Generates translations and commentary
-- ✅ Creates scene description for artwork
-- ✅ Generates DALL-E 3 image
-- ✅ Produces audio pronunciation files (full + slow speeds)
+
+**Text Content (Verse File)**:
+- ✅ Sanskrit/Devanagari text (auto-fetched from GPT-4 if not provided)
+- ✅ Chapter names in English & Hindi (auto-fetched for chapter-based texts)
+- ✅ Transliteration (IAST format with diacritics)
+- ✅ Word-by-word meanings (Sanskrit word, romanization, English & Hindi meanings)
+- ✅ Literal translation (English & Hindi)
+- ✅ Interpretive meaning (2-3 paragraphs explaining spiritual significance, English & Hindi)
+- ✅ Story/context (2-3 paragraphs explaining narrative context, English & Hindi)
+- ✅ Practical application (specific daily life examples, English & Hindi)
+
+**Visual Content**:
+- ✅ Scene description for artwork (saved to `prompts/image_prompts.md`)
+- ✅ DALL-E 3 generated image (saved to `images/{theme}/`)
+
+**Audio Content**:
+- ✅ Full-speed pronunciation (saved to `audio/{verse}_full.mp3`)
+- ✅ Slow-speed pronunciation (saved to `audio/{verse}_slow.mp3`)
 
 ## Installation
 
@@ -64,11 +76,20 @@ pip install -e .
 
 ### verse-generate
 
-Unified command for complete verse generation. The `--all` flag generates **everything in one command**:
-- ✅ Text content (translations, commentary, meanings)
-- ✅ Scene description (for image generation)
-- ✅ Image (DALL-E 3 artwork)
-- ✅ Audio (full + slow speed pronunciations)
+Unified command for complete verse generation. The `--all` flag generates **everything in one command** with full automation - no manual formatting needed!
+
+**What gets generated:**
+- ✅ Complete verse file with parsed YAML frontmatter
+- ✅ All text fields (transliteration, word meanings, translations, interpretations)
+- ✅ Scene description for artwork
+- ✅ DALL-E 3 generated image
+- ✅ Full-speed and slow-speed audio pronunciations
+
+**Key Features:**
+- 🤖 Sanskrit text auto-fetched from GPT-4 if not provided
+- 🤖 Chapter names auto-fetched for chapter-based texts
+- ✅ All content properly parsed and merged into verse file frontmatter
+- ✅ Ready to use immediately - no manual editing required
 
 ```bash
 # Generate everything in one command (recommended)
