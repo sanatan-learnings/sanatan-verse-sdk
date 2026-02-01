@@ -27,6 +27,7 @@ Requirements:
 
 import os
 import sys
+import re
 import argparse
 import subprocess
 import yaml
@@ -469,17 +470,37 @@ def generate_text(chapter: Optional[int], verse: int, sanskrit: str, chapter_nam
     # Create GPT-4 prompt for comprehensive verse analysis
     system_prompt = """You are an expert scholar of the Bhagavad Gita with deep knowledge of Sanskrit, Hindu philosophy, and spiritual teachings. Your task is to create comprehensive, accurate, and accessible content for a Bhagavad Gita verse.
 
-Generate content in a structured YAML-like format that will be easy to parse. Include:
-1. Transliteration (IAST format)
-2. Word-by-word meanings (Sanskrit word, roman transliteration, English and Hindi meanings)
-3. Literal translation (English and Hindi)
-4. Interpretive meaning (2-3 paragraphs explaining the deeper spiritual significance - English and Hindi)
-5. Story/context (2-3 paragraphs explaining the narrative context - English and Hindi)
-6. Practical application (specific examples in daily life - English and Hindi)
+You MUST respond with ONLY valid YAML (no markdown, no code blocks, no extra text). The YAML should have this exact structure:
 
-Be accurate, insightful, and accessible to modern readers."""
+transliteration: "IAST transliteration here"
+word_meanings:
+  - word: "Sanskrit word"
+    roman: "romanization"
+    meaning:
+      en: "English meaning"
+      hi: "Hindi meaning"
+literal_translation:
+  en: "English literal translation"
+  hi: "Hindi literal translation"
+interpretive_meaning:
+  en: |
+    2-3 paragraphs in English explaining spiritual significance
+  hi: |
+    2-3 paragraphs in Hindi explaining spiritual significance
+story:
+  en: |
+    2-3 paragraphs in English explaining narrative context
+  hi: |
+    2-3 paragraphs in Hindi explaining narrative context
+practical_application:
+  en: |
+    Specific examples for daily life in English
+  hi: |
+    Specific examples for daily life in Hindi
 
-    user_prompt = f"""Generate comprehensive content for this Bhagavad Gita verse:
+Be accurate, insightful, and accessible to modern readers. Output ONLY the YAML structure above."""
+
+    user_prompt = f"""Generate content for this verse:
 
 Chapter: {chapter if chapter else 'N/A'}
 Verse: {verse}
@@ -488,15 +509,7 @@ Verse: {verse}
 Sanskrit (Devanagari):
 {sanskrit}
 
-Please provide:
-1. Transliteration (IAST format with diacritics)
-2. Word meanings (list each significant word with roman, English, and Hindi meanings)
-3. Literal translation (English and Hindi)
-4. Interpretive meaning (English and Hindi) - 2-3 paragraphs explaining the spiritual significance
-5. Story/context (English and Hindi) - 2-3 paragraphs explaining the narrative context
-6. Practical application (English and Hindi) - specific examples for daily life
-
-Format your response as clear sections I can parse."""
+Respond with ONLY the YAML structure (no markdown, no code blocks)."""
 
     try:
         response = openai_client.chat.completions.create(
@@ -512,9 +525,20 @@ Format your response as clear sections I can parse."""
         generated_content = response.choices[0].message.content.strip()
         print(f"\n✓ Generated content ({len(generated_content)} characters)")
 
-        # Parse the generated content and create the markdown file
-        # For now, create a template that includes the generated content
-        # In production, you'd parse this more carefully
+        # Parse the YAML response
+        import yaml
+        try:
+            # Remove markdown code blocks if present
+            if generated_content.startswith('```'):
+                generated_content = re.sub(r'^```(?:yaml)?\n', '', generated_content)
+                generated_content = re.sub(r'\n```$', '', generated_content)
+
+            parsed_data = yaml.safe_load(generated_content)
+            print("✓ Successfully parsed YAML response")
+        except Exception as e:
+            print(f"⚠ Warning: Could not parse YAML response: {e}")
+            print("Saving raw content for manual review...")
+            parsed_data = None
 
         # Get previous/next verse paths
         if chapter:
@@ -528,45 +552,63 @@ Format your response as clear sections I can parse."""
             title_en = f"Verse {verse}"
             title_hi = f"श्लोक {verse}"
 
-        # Create frontmatter
-        frontmatter = f"""---
-layout: verse
-title_en: "{title_en}"
-title_hi: "{title_hi}"
-chapter: {chapter if chapter else ''}
-verse_number: {verse}
-previous_verse: {prev_verse_path}
-next_verse: {next_verse_path}
-"""
+        # Build frontmatter dictionary
+        frontmatter_dict = {
+            'layout': 'verse',
+            'title_en': title_en,
+            'title_hi': title_hi,
+            'verse_number': verse,
+            'previous_verse': prev_verse_path,
+            'next_verse': next_verse_path,
+        }
+
+        if chapter:
+            frontmatter_dict['chapter'] = chapter
 
         if chapter and chapter_name_en:
-            frontmatter += f"""chapter_info:
-  number: {chapter}
-  name_en: "{chapter_name_en}"
-  name_hi: "{chapter_name_hi or ''}"
-"""
+            frontmatter_dict['chapter_info'] = {
+                'number': chapter,
+                'name_en': chapter_name_en,
+                'name_hi': chapter_name_hi or ''
+            }
 
-        frontmatter += f"""image: /images/modern-minimalist/{image_filename}
-audio_full: /audio/{filename_base}_full.mp3
-audio_slow: /audio/{filename_base}_slow.mp3
+        frontmatter_dict['image'] = f"/images/modern-minimalist/{image_filename}"
+        frontmatter_dict['audio_full'] = f"/audio/{filename_base}_full.mp3"
+        frontmatter_dict['audio_slow'] = f"/audio/{filename_base}_slow.mp3"
+        frontmatter_dict['devanagari'] = sanskrit
 
-devanagari: |
-  {sanskrit}
+        # Merge parsed content into frontmatter
+        if parsed_data:
+            if 'transliteration' in parsed_data:
+                frontmatter_dict['transliteration'] = parsed_data['transliteration']
+            if 'word_meanings' in parsed_data:
+                frontmatter_dict['word_meanings'] = parsed_data['word_meanings']
+            if 'literal_translation' in parsed_data:
+                frontmatter_dict['literal_translation'] = parsed_data['literal_translation']
+            if 'interpretive_meaning' in parsed_data:
+                frontmatter_dict['interpretive_meaning'] = parsed_data['interpretive_meaning']
+            if 'story' in parsed_data:
+                frontmatter_dict['story'] = parsed_data['story']
+            if 'practical_application' in parsed_data:
+                frontmatter_dict['practical_application'] = parsed_data['practical_application']
 
-# TODO: Parse and format the AI-generated content below
-# Generated content:
-"""
+        # Convert to YAML and write
+        yaml_content = yaml.dump(frontmatter_dict, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        full_content = f"---\n{yaml_content}---\n"
 
-        full_content = frontmatter + "\n" + generated_content + "\n---\n"
+        # If parsing failed, append raw content for manual review
+        if not parsed_data:
+            full_content += f"\n<!-- TODO: Parse and format the AI-generated content below -->\n```yaml\n{generated_content}\n```\n"
 
         # Write to file
         with open(verse_file, 'w', encoding='utf-8') as f:
             f.write(full_content)
 
         print(f"\n✓ Created verse file: {verse_file}")
-        print(f"\n⚠️  NOTE: The AI-generated content is included as comments.")
-        print(f"   Please review and format it properly into the verse structure.")
-        print(f"   See existing verse files for the expected format.")
+        if parsed_data:
+            print("✓ Content successfully parsed and merged into frontmatter")
+        else:
+            print("⚠ Content saved as comment for manual review")
 
         return True
 
