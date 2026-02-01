@@ -7,7 +7,7 @@ setup(
     name="verse-content-sdk",
     version="0.1.0",
     author="Sanatan Learnings",
-    author_email="",
+    author_email="arun.gupta@gmail.com",
     description="SDK for generating rich multimedia content for verse-based texts",
     long_description=long_description,
     long_description_content_type="text/markdown",

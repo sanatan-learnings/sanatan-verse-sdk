@@ -22,12 +22,17 @@ export OPENAI_API_KEY=sk-...
 export ELEVENLABS_API_KEY=...
 
 # Generate EVERYTHING with one command
+
+# For chapter-based texts (Bhagavad Gita)
 verse-generate --chapter 2 --verse 47 --all
+
+# For non-chapter texts (Hanuman Chalisa)
+verse-generate --verse 15 --all
 ```
 
 That's it! The `--all` flag generates **all content automatically**:
 - ✅ Fetches verse text from GPT-4
-- ✅ Fetches chapter names from GPT-4
+- ✅ Fetches chapter names from GPT-4 (if applicable)
 - ✅ Generates translations and commentary
 - ✅ Creates scene description for artwork
 - ✅ Generates DALL-E 3 image
@@ -176,6 +181,8 @@ your-project/
 
 The `--all` flag generates complete multimedia content:
 
+**For chapter-based texts (Bhagavad Gita):**
+
 ```bash
 # Generate text + scene description + image + audio in one command
 verse-generate --chapter 5 --verse 10 --all
@@ -185,12 +192,30 @@ ls _verses/chapter_05_verse_10.md                    # Text content
 ls docs/image-prompts.md                             # Scene description (appended)
 ls images/modern-minimalist/chapter-05-verse-10.png  # Image
 ls audio/chapter_05_verse_10_*.mp3                   # Audio files (full + slow)
+```
 
-# Generate embeddings for search
+**For non-chapter texts (Hanuman Chalisa):**
+
+```bash
+# Generate complete verse content
+verse-generate --verse 7 --all
+
+# Review all generated files
+ls _verses/verse_07.md                    # Text content
+ls docs/image-prompts.md                  # Scene description (appended)
+ls images/modern-minimalist/verse-07.png  # Image
+ls audio/verse_07_*.mp3                   # Audio files (full + slow)
+```
+
+**Generate embeddings for search:**
+
+```bash
 verse-embeddings --verses-dir _verses --output data/embeddings.json
 ```
 
 ### Regenerate Specific Components
+
+**Bhagavad Gita:**
 
 ```bash
 # Regenerate just the image
@@ -200,17 +225,42 @@ verse-generate --chapter 2 --verse 47 --image
 verse-generate --chapter 2 --verse 47 --audio
 ```
 
-### Multiple Verses
+**Hanuman Chalisa:**
 
 ```bash
-# Generate verses 1-10 of Chapter 1
+# Regenerate just the text
+verse-generate --verse 12 --text
+
+# Regenerate just the image
+verse-generate --verse 12 --image
+
+# Regenerate just the audio
+verse-generate --verse 12 --audio
+```
+
+### Multiple Verses
+
+**Bhagavad Gita (verses 1-10 of Chapter 1):**
+
+```bash
 for i in {1..10}; do
   verse-generate --chapter 1 --verse $i --all
   sleep 5  # Rate limiting
 done
 ```
 
+**Hanuman Chalisa (verses 1-40, complete text):**
+
+```bash
+for i in {1..40}; do
+  verse-generate --verse $i --all
+  sleep 5  # Rate limiting
+done
+```
+
 ## Documentation
+
+### User Guides
 
 - **[Main Documentation](docs/README.md)** - Overview and quick start
 - **[verse-generate](docs/commands/verse-generate.md)** - Complete verse generation
@@ -218,6 +268,10 @@ done
 - **[verse-audio](docs/commands/verse-audio.md)** - Audio generation
 - **[verse-embeddings](docs/commands/verse-embeddings.md)** - Embeddings generation
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues
+
+### For Maintainers
+
+- **[Publishing to PyPI](docs/publishing.md)** - How to publish new releases
 
 ## Example Projects
 
