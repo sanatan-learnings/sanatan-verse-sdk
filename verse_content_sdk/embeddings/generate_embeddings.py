@@ -130,6 +130,24 @@ def extract_yaml_frontmatter(file_path):
     return yaml.safe_load(yaml_content)
 
 
+def load_collections_config(collections_file):
+    """Load collections configuration from YAML file."""
+    if not collections_file.exists():
+        print(f"Error: Collections file not found: {collections_file}")
+        sys.exit(1)
+
+    with open(collections_file, 'r', encoding='utf-8') as f:
+        return yaml.safe_load(f)
+
+
+def get_enabled_collections(collections_config):
+    """Filter and return only enabled collections."""
+    return {
+        key: info for key, info in collections_config.items()
+        if info.get('enabled', False)
+    }
+
+
 def build_document(verse_data, lang='en'):
     """
     Build a rich semantic document from verse data.
@@ -192,6 +210,11 @@ def build_document(verse_data, lang='en'):
     return "\n\n".join(parts)
 
 
+def extract_permalink_from_frontmatter(verse_data):
+    """Extract permalink from verse frontmatter if available."""
+    return verse_data.get('permalink', None)
+
+
 def generate_verse_url(verse_data):
     """Generate URL path for verse page."""
     verse_num = verse_data.get('verse_number', 0)
@@ -216,8 +239,16 @@ def generate_verse_url(verse_data):
     return f'/verses/verse_{verse_num:02d}/'
 
 
-def process_verse_file(file_path, embed_func, client_or_model, config):
-    """Process a single verse file and return metadata + embeddings."""
+def process_verse_file(file_path, embed_func, client_or_model, config, collection_metadata=None):
+    """Process a single verse file and return metadata + embeddings.
+
+    Args:
+        file_path: Path to the verse markdown file
+        embed_func: Embedding generation function
+        client_or_model: API client or local model instance
+        config: Provider configuration dict
+        collection_metadata: Optional dict with 'key' and 'name' for multi-collection mode
+    """
     print(f"Processing {file_path.name}...")
 
     verse_data = extract_yaml_frontmatter(file_path)
@@ -256,27 +287,40 @@ def process_verse_file(file_path, embed_func, client_or_model, config):
         print(f"  Warning: Failed to get embeddings for {file_path.name}")
         return None
 
+    # Determine URL: use permalink from frontmatter if available, otherwise generate
+    permalink = extract_permalink_from_frontmatter(verse_data)
+    verse_url = permalink if permalink else generate_verse_url(verse_data)
+
+    # Prepare base metadata
+    base_metadata = {
+        'devanagari': verse_data.get('devanagari', ''),
+        'transliteration': verse_data.get('transliteration', ''),
+    }
+
+    # Add collection metadata if in multi-collection mode
+    if collection_metadata:
+        base_metadata['collection_key'] = collection_metadata['key']
+        base_metadata['collection_name'] = collection_metadata['name']
+
     # Prepare result structure
     result = {
         'en': {
             'verse_number': verse_num,
             'title': verse_data.get('title_en', ''),
-            'url': generate_verse_url(verse_data),
+            'url': verse_url,
             'embedding': emb_en,
             'metadata': {
-                'devanagari': verse_data.get('devanagari', ''),
-                'transliteration': verse_data.get('transliteration', ''),
+                **base_metadata,
                 'literal_translation': verse_data.get('literal_translation', {}).get('en', '')
             }
         },
         'hi': {
             'verse_number': verse_num,
             'title': verse_data.get('title_hi', ''),
-            'url': generate_verse_url(verse_data),
+            'url': verse_url,
             'embedding': emb_hi,
             'metadata': {
-                'devanagari': verse_data.get('devanagari', ''),
-                'transliteration': verse_data.get('transliteration', ''),
+                **base_metadata,
                 'literal_translation': verse_data.get('literal_translation', {}).get('hi', '')
             }
         }
@@ -285,57 +329,8 @@ def process_verse_file(file_path, embed_func, client_or_model, config):
     return result
 
 
-def main():
-    """Main execution flow."""
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(
-        description='Generate embeddings for Hanuman Chalisa verses',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python generate_embeddings.py --provider openai       # Use OpenAI API
-  python generate_embeddings.py --provider huggingface  # Use local HuggingFace model
-  python generate_embeddings.py                        # Use default from .env
-        """
-    )
-    parser.add_argument(
-        '--provider',
-        choices=['openai', 'huggingface'],
-        default=os.getenv('EMBEDDING_PROVIDER', 'openai'),
-        help='Embedding provider to use (default: from EMBEDDING_PROVIDER env var or "openai")'
-    )
-    parser.add_argument(
-        '--verses-dir',
-        type=Path,
-        default=Path.cwd() / "_verses",
-        help='Directory containing verse markdown files (default: ./_verses)'
-    )
-    parser.add_argument(
-        '--output',
-        type=Path,
-        default=Path.cwd() / "data" / "embeddings.json",
-        help='Output file path (default: ./data/embeddings.json)'
-    )
-
-    args = parser.parse_args()
-    provider_name = args.provider
-    verses_dir = args.verses_dir
-    output_file = args.output
-
-    print("=" * 70)
-    print("Verse Embeddings Generator")
-    print("=" * 70)
-
-    # Initialize provider
-    embed_func, client_or_model, config = initialize_provider(provider_name)
-
-    print(f"Provider: {provider_name}")
-    print(f"Model: {config['model']}")
-    print(f"Dimensions: {config['dimensions']}")
-    print(f"Verses directory: {verses_dir}")
-    print(f"Output file: {output_file}")
-    print()
-
+def process_single_collection(verses_dir, embed_func, client_or_model, config):
+    """Process verses from a single directory (backward compatibility mode)."""
     # Check verses directory
     if not verses_dir.exists():
         print(f"Error: Verses directory not found: {verses_dir}")
@@ -361,6 +356,161 @@ Examples:
     verses_en.sort(key=lambda v: int(v['verse_number']) if isinstance(v['verse_number'], (int, str)) and str(v['verse_number']).isdigit() else 999)
     verses_hi.sort(key=lambda v: int(v['verse_number']) if isinstance(v['verse_number'], (int, str)) and str(v['verse_number']).isdigit() else 999)
 
+    return verses_en, verses_hi
+
+
+def process_multi_collection(collections_file, base_verses_dir, embed_func, client_or_model, config):
+    """Process verses from multiple collections."""
+    # Load collections configuration
+    collections_config = load_collections_config(collections_file)
+    enabled_collections = get_enabled_collections(collections_config)
+
+    if not enabled_collections:
+        print("Error: No enabled collections found in collections file")
+        sys.exit(1)
+
+    print(f"Found {len(enabled_collections)} enabled collection(s):")
+    for key, info in enabled_collections.items():
+        print(f"  - {key}: {info.get('name_en', key)}")
+    print()
+
+    # Process each collection
+    all_verses_en = []
+    all_verses_hi = []
+
+    for coll_key, coll_info in enabled_collections.items():
+        print("=" * 70)
+        print(f"Processing collection: {coll_key}")
+        print("=" * 70)
+
+        # Get collection subdirectory
+        subdirectory = coll_info.get('subdirectory', coll_key)
+        verses_dir = base_verses_dir / subdirectory
+
+        if not verses_dir.exists():
+            print(f"Warning: Verses directory not found: {verses_dir}")
+            print(f"Skipping collection: {coll_key}")
+            print()
+            continue
+
+        # Find verse files
+        verse_files = sorted(verses_dir.glob("*.md"))
+        print(f"Found {len(verse_files)} verse files in {subdirectory}/")
+        print()
+
+        # Prepare collection metadata
+        collection_metadata = {
+            'key': coll_key,
+            'name': coll_info.get('name_en', coll_key)
+        }
+
+        # Process verses
+        for verse_file in verse_files:
+            result = process_verse_file(
+                verse_file, embed_func, client_or_model, config,
+                collection_metadata=collection_metadata
+            )
+            if result:
+                all_verses_en.append(result['en'])
+                all_verses_hi.append(result['hi'])
+            print()
+
+        print(f"Completed collection: {coll_key}")
+        print()
+
+    return all_verses_en, all_verses_hi
+
+
+def main():
+    """Main execution flow."""
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description='Generate embeddings for verse-based texts',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Single collection mode (backward compatible)
+  python generate_embeddings.py --provider openai
+  python generate_embeddings.py --verses-dir ./_verses --output ./data/embeddings.json
+
+  # Multi-collection mode
+  python generate_embeddings.py --multi-collection --collections-file ./_data/collections.yml
+  python generate_embeddings.py --multi-collection --collections-file ./collections.yml --provider huggingface
+        """
+    )
+    parser.add_argument(
+        '--provider',
+        choices=['openai', 'huggingface'],
+        default=os.getenv('EMBEDDING_PROVIDER', 'openai'),
+        help='Embedding provider to use (default: from EMBEDDING_PROVIDER env var or "openai")'
+    )
+    parser.add_argument(
+        '--verses-dir',
+        type=Path,
+        default=Path.cwd() / "_verses",
+        help='Directory containing verse markdown files (default: ./_verses)'
+    )
+    parser.add_argument(
+        '--output',
+        type=Path,
+        default=Path.cwd() / "data" / "embeddings.json",
+        help='Output file path (default: ./data/embeddings.json)'
+    )
+    parser.add_argument(
+        '--multi-collection',
+        action='store_true',
+        help='Enable multi-collection mode'
+    )
+    parser.add_argument(
+        '--collections-file',
+        type=Path,
+        help='Path to collections.yml file (required for multi-collection mode)'
+    )
+
+    args = parser.parse_args()
+    provider_name = args.provider
+    verses_dir = args.verses_dir
+    output_file = args.output
+    multi_collection = args.multi_collection
+    collections_file = args.collections_file
+
+    # Validate arguments
+    if multi_collection and not collections_file:
+        print("Error: --collections-file is required when using --multi-collection")
+        sys.exit(1)
+
+    print("=" * 70)
+    print("Verse Embeddings Generator")
+    print("=" * 70)
+
+    # Initialize provider
+    embed_func, client_or_model, config = initialize_provider(provider_name)
+
+    print(f"Provider: {provider_name}")
+    print(f"Model: {config['model']}")
+    print(f"Dimensions: {config['dimensions']}")
+
+    if multi_collection:
+        print(f"Mode: Multi-collection")
+        print(f"Collections file: {collections_file}")
+        print(f"Base verses directory: {verses_dir}")
+    else:
+        print(f"Mode: Single collection")
+        print(f"Verses directory: {verses_dir}")
+
+    print(f"Output file: {output_file}")
+    print()
+
+    # Process verses
+    if multi_collection:
+        verses_en, verses_hi = process_multi_collection(
+            collections_file, verses_dir, embed_func, client_or_model, config
+        )
+    else:
+        verses_en, verses_hi = process_single_collection(
+            verses_dir, embed_func, client_or_model, config
+        )
+
     # Build output structure
     output = {
         'model': config['model'],
@@ -372,6 +522,9 @@ Examples:
             'hi': verses_hi
         }
     }
+
+    # Ensure output directory exists
+    output_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Write to file
     print(f"Writing embeddings to {output_file}...")
