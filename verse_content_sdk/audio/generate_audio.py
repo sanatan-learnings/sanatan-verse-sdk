@@ -53,8 +53,6 @@ load_dotenv()
 # Use current working directory (where the user runs the command)
 # This allows the SDK to work with any project structure
 PROJECT_DIR = Path.cwd()
-VERSES_DIR = PROJECT_DIR / "_verses"
-AUDIO_DIR = PROJECT_DIR / "audio"
 
 # Voice settings
 DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel voice (female, clear)
@@ -67,13 +65,14 @@ SLOW_SPEED_SIMILARITY = 0.8
 class AudioGenerator:
     """Generate audio files using Eleven Labs API."""
 
-    def __init__(self, api_key: str, voice_id: str = DEFAULT_VOICE_ID):
+    def __init__(self, api_key: str, voice_id: str = DEFAULT_VOICE_ID, collection: str = None):
         """
         Initialize the audio generator.
 
         Args:
             api_key: Eleven Labs API key
             voice_id: Voice ID to use for generation
+            collection: Collection key (e.g., 'hanuman-chalisa', 'sundar-kaand')
         """
         # Initialize client with correct environment for data residency
         if "_residency_eu" in api_key:
@@ -89,20 +88,43 @@ class AudioGenerator:
             print("✓ Using global production environment")
 
         self.voice_id = voice_id
+        self.collection = collection
+
+        # Set collection-specific directories
+        if collection:
+            self.verses_dir = PROJECT_DIR / "_verses" / collection
+            self.audio_dir = PROJECT_DIR / "audio" / collection
+        else:
+            self.verses_dir = PROJECT_DIR / "_verses"
+            self.audio_dir = PROJECT_DIR / "audio"
 
         # Create audio directory if it doesn't exist
-        AUDIO_DIR.mkdir(exist_ok=True)
+        self.audio_dir.mkdir(parents=True, exist_ok=True)
 
-    def parse_verse_files(self) -> Dict[str, str]:
+    def parse_verse_files(self, specific_verse: Optional[str] = None) -> Dict[str, str]:
         """
         Parse all verse files and extract Devanagari text.
+
+        Args:
+            specific_verse: Optional verse stem to generate only (e.g., 'verse_01')
 
         Returns:
             Dictionary mapping filename to Devanagari text
         """
         verses = {}
 
-        verse_files = sorted(VERSES_DIR.glob("*.md"))
+        if not self.verses_dir.exists():
+            print(f"Error: Verses directory not found: {self.verses_dir}")
+            return verses
+
+        verse_files = sorted(self.verses_dir.glob("*.md"))
+
+        # Filter to specific verse if requested
+        if specific_verse:
+            verse_files = [f for f in verse_files if f.stem == specific_verse]
+            if not verse_files:
+                print(f"Error: Verse '{specific_verse}' not found in {self.verses_dir}")
+                return verses
 
         for verse_file in verse_files:
             content = verse_file.read_text(encoding='utf-8')
@@ -129,7 +151,7 @@ class AudioGenerator:
 
                 verses[base_name] = devanagari
 
-        print(f"✓ Parsed {len(verses)} verses from {VERSES_DIR}")
+        print(f"✓ Parsed {len(verses)} verses from {self.verses_dir}")
         return verses
 
     def generate_audio(
@@ -172,6 +194,9 @@ class AudioGenerator:
                     model_id="eleven_multilingual_v2",  # Supports Hindi
                     voice_settings=voice_settings
                 )
+
+                # Ensure parent directory exists
+                output_path.parent.mkdir(parents=True, exist_ok=True)
 
                 # Save to temporary file first
                 temp_path = output_path.with_suffix('.temp.mp3') if speed == "slow" else output_path
@@ -260,7 +285,7 @@ class AudioGenerator:
             shutil.copy(input_path, output_path)
             return True
 
-    def generate_all(self, start_from: Optional[str] = None, only_file: Optional[str] = None, regenerate_files: Optional[list] = None):
+    def generate_all(self, start_from: Optional[str] = None, only_file: Optional[str] = None, regenerate_files: Optional[list] = None, specific_verse: Optional[str] = None):
         """
         Generate all audio files for all verses.
 
@@ -268,11 +293,12 @@ class AudioGenerator:
             start_from: Optional filename to resume from (e.g., 'verse_15_full.mp3')
             only_file: Optional single filename to generate (e.g., 'doha_01_full.mp3')
             regenerate_files: Optional list of filenames to regenerate
+            specific_verse: Optional verse stem to generate only (e.g., 'verse_01')
         """
-        verses = self.parse_verse_files()
+        verses = self.parse_verse_files(specific_verse=specific_verse)
 
         if not verses:
-            print("Error: No verses found in _verses/ directory")
+            print(f"Error: No verses found in {self.verses_dir}")
             return
 
         # Handle --regenerate option: delete specified files
@@ -311,7 +337,7 @@ class AudioGenerator:
             # Generate both full and slow versions
             for speed in ["full", "slow"]:
                 filename = f"{base_name}_{speed}.mp3"
-                output_path = AUDIO_DIR / filename
+                output_path = self.audio_dir / filename
 
                 # If --only is specified, skip files that don't match
                 if only_file and filename != only_file:
@@ -359,16 +385,63 @@ class AudioGenerator:
         print(f"  Generated: {generated}/{total_files}")
         print(f"  Skipped:   {skipped}/{total_files} (already existed)")
         print(f"  Failed:    {failed}/{total_files}")
-        print(f"\nAudio files saved to: {AUDIO_DIR}")
+        print(f"\nAudio files saved to: {self.audio_dir}")
 
         if failed > 0:
             print(f"\n⚠ {failed} files failed to generate. You can regenerate them by deleting and running again.")
 
 
+def validate_collection(collection: str, project_dir: Path = PROJECT_DIR) -> bool:
+    """Validate that collection exists."""
+    verses_dir = project_dir / "_verses" / collection
+    if not verses_dir.exists():
+        print(f"✗ Error: Collection directory not found: {verses_dir}")
+        print(f"\nAvailable collections:")
+        list_collections()
+        return False
+
+    # Check if there are any verse files
+    verse_files = list(verses_dir.glob("*.md"))
+    if not verse_files:
+        print(f"✗ Error: No verse files found in {verses_dir}")
+        return False
+
+    return True
+
+
+def list_collections(project_dir: Path = PROJECT_DIR):
+    """List available collections."""
+    verses_base = project_dir / "_verses"
+    if not verses_base.exists():
+        print("No _verses directory found")
+        return
+
+    collections = [d for d in verses_base.iterdir() if d.is_dir()]
+    if not collections:
+        print("No collections found in _verses/")
+        return
+
+    print("\nAvailable collections:")
+    for coll_dir in sorted(collections):
+        verse_count = len(list(coll_dir.glob("*.md")))
+        print(f"  ✓ {coll_dir.name:35s} ({verse_count} verses)")
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Generate audio pronunciations for Hanuman Chalisa verses"
+        description="Generate audio pronunciations for verse collections"
+    )
+    parser.add_argument(
+        "--collection",
+        required=False,  # Not required if --list-collections is used
+        help="Collection key (e.g., hanuman-chalisa, sundar-kaand, sankat-mochan-hanumanashtak)",
+        metavar="KEY"
+    )
+    parser.add_argument(
+        "--verse",
+        help="Generate audio for specific verse only (e.g., verse_01, chaupai_03)",
+        metavar="VERSE"
     )
     parser.add_argument(
         "--start-from",
@@ -396,8 +469,22 @@ def main():
         action="store_true",
         help="Force regenerate ALL audio files (deletes all existing MP3s with confirmation)"
     )
+    parser.add_argument(
+        "--list-collections",
+        action="store_true",
+        help="List available collections and exit"
+    )
 
     args = parser.parse_args()
+
+    # Handle --list-collections
+    if args.list_collections:
+        list_collections()
+        sys.exit(0)
+
+    # Validate required collection parameter
+    if not args.collection:
+        parser.error("--collection is required")
 
     # Check for API key
     api_key = os.getenv("ELEVENLABS_API_KEY")
@@ -407,6 +494,10 @@ def main():
         print("  1. export ELEVENLABS_API_KEY='your-key-here'")
         print("  2. Create .env file with: ELEVENLABS_API_KEY=your-key-here")
         print("\nGet your API key from: https://elevenlabs.io/app/settings/api-keys")
+        sys.exit(1)
+
+    # Validate collection
+    if not validate_collection(args.collection):
         sys.exit(1)
 
     # Check for conflicting options
@@ -422,13 +513,14 @@ def main():
 
     # Handle --force option
     if args.force:
-        if AUDIO_DIR.exists():
-            audio_files = list(AUDIO_DIR.glob("*.mp3"))
+        audio_dir = PROJECT_DIR / "audio" / args.collection
+        if audio_dir.exists():
+            audio_files = list(audio_dir.glob("*.mp3"))
             if audio_files:
                 print(f"\n⚠️  WARNING: Force regeneration will delete {len(audio_files)} existing audio files!")
-                print(f"Directory: {AUDIO_DIR}")
+                print(f"Directory: {audio_dir}")
                 print()
-                response = input("Are you sure you want to delete and regenerate ALL audio files? (y/n): ")
+                response = input(f"Are you sure you want to delete and regenerate ALL audio files for '{args.collection}'? (y/n): ")
 
                 if response.lower() in ['y', 'yes']:
                     print()
@@ -453,14 +545,19 @@ def main():
     if args.regenerate:
         regenerate_files = [f.strip() for f in args.regenerate.split(',')]
 
-    # Initialize generator
-    generator = AudioGenerator(api_key=api_key, voice_id=args.voice_id)
+    # Initialize generator with collection
+    generator = AudioGenerator(
+        api_key=api_key,
+        voice_id=args.voice_id,
+        collection=args.collection
+    )
 
     # Generate audio files
     generator.generate_all(
         start_from=args.start_from,
         only_file=args.only,
-        regenerate_files=regenerate_files
+        regenerate_files=regenerate_files,
+        specific_verse=args.verse
     )
 
 

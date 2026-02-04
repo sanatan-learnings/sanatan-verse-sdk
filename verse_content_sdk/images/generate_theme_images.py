@@ -39,10 +39,10 @@ except ImportError:
 # Configuration
 # Use current working directory (where the user runs the command)
 # This allows the SDK to work with any project structure
-DOCS_DIR = Path.cwd() / "docs"
-IMAGES_DIR = Path.cwd() / "images"
+PROJECT_DIR = Path.cwd()
+DOCS_DIR = PROJECT_DIR / "docs"
+IMAGES_DIR = PROJECT_DIR / "images"
 THEMES_DIR = DOCS_DIR / "themes"
-PROMPTS_FILE = DOCS_DIR / "image-prompts.md"
 
 # DALL-E 3 Configuration
 DALLE_MODEL = "dall-e-3"
@@ -54,18 +54,20 @@ IMAGE_STYLE = "natural"  # Options: natural, vivid
 class ImageGenerator:
     """Generate images using DALL-E 3 API."""
 
-    def __init__(self, api_key: str, theme_name: str, style_modifier: str = "", theme_config: Optional[Dict] = None):
+    def __init__(self, api_key: str, collection: str, theme: str, style_modifier: str = "", theme_config: Optional[Dict] = None):
         """
         Initialize the image generator.
 
         Args:
             api_key: OpenAI API key
-            theme_name: Name of the theme (e.g., 'traditional-art')
+            collection: Collection key (e.g., 'hanuman-chalisa', 'sundar-kaand')
+            theme: Theme name (e.g., 'modern-minimalist', 'kids-friendly')
             style_modifier: Additional style description to append to base prompts
             theme_config: Optional theme configuration from YAML file
         """
         self.client = OpenAI(api_key=api_key)
-        self.theme_name = theme_name
+        self.collection = collection
+        self.theme = theme
         self.theme_config = theme_config or {}
 
         # Get style modifier from theme config or parameter
@@ -74,11 +76,14 @@ class ImageGenerator:
             style_modifier = generation.get('style_modifier', '').strip()
 
         self.style_modifier = style_modifier
-        self.output_dir = IMAGES_DIR / theme_name
+
+        # Set collection-specific paths
+        self.prompts_file = DOCS_DIR / "image-prompts" / f"{collection}.md"
+        self.output_dir = IMAGES_DIR / collection / theme
 
         # Create output directory
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        print(f"✓ Output directory created: {self.output_dir}")
+        print(f"✓ Output directory: {self.output_dir}")
 
     def parse_prompts_file(self) -> Dict[str, str]:
         """
@@ -87,10 +92,10 @@ class ImageGenerator:
         Returns:
             Dictionary mapping filename to scene description text
         """
-        if not PROMPTS_FILE.exists():
-            raise FileNotFoundError(f"Prompts file not found: {PROMPTS_FILE}")
+        if not self.prompts_file.exists():
+            raise FileNotFoundError(f"Prompts file not found: {self.prompts_file}")
 
-        with open(PROMPTS_FILE, 'r', encoding='utf-8') as f:
+        with open(self.prompts_file, 'r', encoding='utf-8') as f:
             content = f.read()
 
         prompts = {}
@@ -307,12 +312,45 @@ class ImageGenerator:
             print(f"4. Commit and push to GitHub")
 
 
-def load_theme_config(theme_name: str) -> Optional[Dict]:
+def validate_collection(collection: str, project_dir: Path = PROJECT_DIR) -> bool:
+    """Validate that collection exists."""
+    verses_dir = project_dir / "_verses" / collection
+    if not verses_dir.exists():
+        print(f"✗ Error: Collection directory not found: {verses_dir}")
+        print(f"\nAvailable collections:")
+        list_collections()
+        return False
+
+    return True
+
+
+def list_collections(project_dir: Path = PROJECT_DIR):
+    """List available collections."""
+    verses_base = project_dir / "_verses"
+    if not verses_base.exists():
+        print("No _verses directory found")
+        return
+
+    collections = [d for d in verses_base.iterdir() if d.is_dir()]
+    if not collections:
+        print("No collections found in _verses/")
+        return
+
+    print("\nAvailable collections:")
+    for coll_dir in sorted(collections):
+        verse_count = len(list(coll_dir.glob("*.md")))
+        themes_dir = THEMES_DIR / coll_dir.name
+        theme_count = len(list(themes_dir.glob("*.yml"))) if themes_dir.exists() else 0
+        print(f"  ✓ {coll_dir.name:35s} ({verse_count} verses, {theme_count} themes)")
+
+
+def load_theme_config(collection: str, theme: str) -> Optional[Dict]:
     """
     Load theme configuration from YAML file if it exists.
 
     Args:
-        theme_name: Name of the theme
+        collection: Collection key
+        theme: Theme name
 
     Returns:
         Theme configuration dict or None if not found
@@ -320,8 +358,9 @@ def load_theme_config(theme_name: str) -> Optional[Dict]:
     if not yaml:
         return None
 
-    theme_file = THEMES_DIR / f"{theme_name}.yml"
+    theme_file = THEMES_DIR / collection / f"{theme}.yml"
     if not theme_file.exists():
+        print(f"⚠ Warning: Theme file not found: {theme_file}")
         return None
 
     try:
@@ -380,15 +419,33 @@ Cost Estimate:
     )
 
     parser.add_argument(
-        '--theme-name',
-        required=True,
-        help='Name of the theme (e.g., traditional-art, watercolor)'
+        '--collection',
+        required=False,  # Not required if --list-collections
+        help='Collection key (e.g., hanuman-chalisa, sundar-kaand, sankat-mochan-hanumanashtak)'
+    )
+
+    parser.add_argument(
+        '--theme',
+        required=False,  # Not required if --list-collections
+        help='Theme name (e.g., modern-minimalist, kids-friendly, traditional)'
+    )
+
+    parser.add_argument(
+        '--verse',
+        default=None,
+        help='Generate image for specific verse only (e.g., verse_01, chaupai_03)'
     )
 
     parser.add_argument(
         '--style',
         default='',
-        help='Style modifier to append to base prompts'
+        help='Style modifier to override theme YAML style'
+    )
+
+    parser.add_argument(
+        '--list-collections',
+        action='store_true',
+        help='List available collections and exit'
     )
 
     parser.add_argument(
@@ -437,6 +494,17 @@ Cost Estimate:
 
     args = parser.parse_args()
 
+    # Handle --list-collections
+    if args.list_collections:
+        list_collections()
+        sys.exit(0)
+
+    # Validate required parameters
+    if not args.collection:
+        parser.error("--collection is required")
+    if not args.theme:
+        parser.error("--theme is required")
+
     # Get API key
     api_key = args.api_key or os.environ.get('OPENAI_API_KEY')
     if not api_key:
@@ -446,7 +514,11 @@ Cost Estimate:
         print("  2. OPENAI_API_KEY environment variable")
         print("\nExample:")
         print("  export OPENAI_API_KEY='your-api-key-here'")
-        print("  python scripts/generate_theme_images.py --theme-name my-theme")
+        print("  verse-images --collection hanuman-chalisa --theme modern-minimalist")
+        sys.exit(1)
+
+    # Validate collection
+    if not validate_collection(args.collection):
         sys.exit(1)
 
     # Check for conflicting options
@@ -462,13 +534,13 @@ Cost Estimate:
     IMAGE_STYLE = args.style_type
 
     # Validate theme name
-    if not re.match(r'^[a-z0-9-]+$', args.theme_name):
+    if not re.match(r'^[a-z0-9-]+$', args.theme):
         print("Error: Theme name must contain only lowercase letters, numbers, and hyphens")
         sys.exit(1)
 
     # Handle --force option
     if args.force:
-        images_dir = IMAGES_DIR / args.theme_name
+        images_dir = IMAGES_DIR / args.collection / args.theme
         if images_dir.exists():
             image_files = list(images_dir.glob("*.png"))
             if image_files:
@@ -497,7 +569,7 @@ Cost Estimate:
 
     # Handle --regenerate option
     if args.regenerate:
-        images_dir = IMAGES_DIR / args.theme_name
+        images_dir = IMAGES_DIR / args.collection / args.theme
         if not images_dir.exists():
             print(f"Error: Theme directory not found: {images_dir}")
             sys.exit(1)
@@ -522,7 +594,7 @@ Cost Estimate:
         print()
 
     # Try to load theme configuration
-    theme_config = load_theme_config(args.theme_name)
+    theme_config = load_theme_config(args.collection, args.theme)
 
     # Apply theme config defaults if available and not overridden
     if theme_config and not args.style:
@@ -544,8 +616,8 @@ Cost Estimate:
 
     # Create generator and run
     try:
-        generator = ImageGenerator(api_key, args.theme_name, args.style, theme_config)
-        generator.generate_all_images(start_from=args.start_from)
+        generator = ImageGenerator(api_key, args.collection, args.theme, args.style, theme_config)
+        generator.generate_all_images(start_from=args.start_from, specific_verse=args.verse)
     except KeyboardInterrupt:
         print("\n\n⚠ Generation interrupted by user")
         print("You can resume by running the script with --start-from flag")
