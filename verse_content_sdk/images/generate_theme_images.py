@@ -150,7 +150,7 @@ class ImageGenerator:
         if closing_match:
             prompts['closing-doha.png'] = closing_match.group(1).strip()
 
-        print(f"✓ Parsed {len(prompts)} scene descriptions from {PROMPTS_FILE.name}")
+        print(f"✓ Parsed {len(prompts)} scene descriptions from {self.prompts_file.name}")
         return prompts
 
     def build_full_prompt(self, scene_description: str) -> str:
@@ -277,7 +277,7 @@ class ImageGenerator:
                 print(f"⚠ Warning: {start_from} not found, starting from beginning")
 
         print(f"\n{'='*60}")
-        print(f"Generating {len(ordered_files)} images for theme: {self.theme_name}")
+        print(f"Generating {len(ordered_files)} images for theme: {self.theme}")
         print(f"Output directory: {self.output_dir}")
         print(f"Style modifier: {self.style_modifier or '(none)'}")
         print(f"{'='*60}\n")
@@ -617,7 +617,7 @@ Cost Estimate:
     # Create generator and run
     try:
         generator = ImageGenerator(api_key, args.collection, args.theme, args.style, theme_config)
-        generator.generate_all_images(start_from=args.start_from, specific_verse=args.verse)
+        generator.generate_all_images(start_from=args.start_from)
     except KeyboardInterrupt:
         print("\n\n⚠ Generation interrupted by user")
         print("You can resume by running the script with --start-from flag")
