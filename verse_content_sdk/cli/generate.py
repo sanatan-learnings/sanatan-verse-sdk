@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """
-Collection-aware verse content generator - orchestrates image and audio generation for verses.
+Collection-aware verse content generator - complete orchestration of all verse content.
 
-This command simplifies the generation of media for a specific verse by calling
-verse-images and verse-audio with the correct collection-aware parameters.
+This command is the one-stop solution for generating all content for a verse:
+- Fetch traditional Devanagari text from authoritative sources (optional)
+- Generate AI image with DALL-E 3
+- Generate audio pronunciation with ElevenLabs (full + slow speed)
+- Update vector embeddings for semantic search
 
 Usage:
-    # Generate image and audio for Hanuman Chalisa verse 15
-    verse-generate --collection hanuman-chalisa --verse 15 --all --theme modern-minimalist
+    # Generate everything for a verse
+    verse-generate --collection hanuman-chalisa --verse 15 --all --theme modern-minimalist --update-embeddings
+
+    # Fetch text, then generate image and audio
+    verse-generate --collection sundar-kaand --verse 3 --fetch-text --all --theme modern-minimalist
 
     # Generate only image
     verse-generate --collection sundar-kaand --verse 3 --image --theme modern-minimalist
@@ -16,7 +22,7 @@ Usage:
     verse-generate --collection sankat-mochan-hanumanashtak --verse 5 --audio
 
 Requirements:
-    - OPENAI_API_KEY environment variable (for image generation)
+    - OPENAI_API_KEY environment variable (for image generation and embeddings)
     - ELEVENLABS_API_KEY environment variable (for audio generation)
 """
 
@@ -26,6 +32,7 @@ import argparse
 import subprocess
 import yaml
 import shutil
+import json
 from pathlib import Path
 from typing import Optional
 
@@ -189,6 +196,85 @@ def generate_audio(collection: str, verse: int) -> bool:
         return False
 
 
+def fetch_verse_text(collection: str, verse_id: str) -> Optional[dict]:
+    """Fetch traditional Devanagari text for the verse."""
+    print(f"\n{'='*60}")
+    print("FETCHING VERSE TEXT")
+    print(f"{'='*60}\n")
+
+    print(f"✓ Collection: {collection}")
+    print(f"✓ Verse ID: {verse_id}")
+
+    # Run verse-fetch-text command
+    verse_fetch_cmd = find_command("verse-fetch-text")
+    cmd = [
+        verse_fetch_cmd,
+        "--collection", collection,
+        "--verse", verse_id,
+        "--format", "json"
+    ]
+
+    print(f"\nRunning: {' '.join(cmd)}\n")
+
+    try:
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        print(f"✓ Verse text fetched successfully")
+
+        # Parse and return the JSON result
+        data = json.loads(result.stdout)
+        if data.get('success'):
+            print(f"\nDevanagari text:")
+            print(f"  {data.get('devanagari', 'N/A')}\n")
+            return data
+        else:
+            print(f"✗ Fetch failed: {data.get('error', 'Unknown error')}")
+            return None
+    except subprocess.CalledProcessError as e:
+        print(f"\n✗ Error fetching verse text: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"\n✗ Error parsing response: {e}")
+        return None
+
+
+def update_embeddings(collection: str) -> bool:
+    """Update vector embeddings for the collection."""
+    print(f"\n{'='*60}")
+    print("UPDATING EMBEDDINGS")
+    print(f"{'='*60}\n")
+
+    print(f"✓ Collection: {collection}")
+
+    # Check if collections.yml exists
+    collections_file = Path.cwd() / "_data" / "collections.yml"
+    if not collections_file.exists():
+        print(f"✗ Error: collections.yml not found at {collections_file}")
+        return False
+
+    # Run verse-embeddings command
+    verse_embeddings_cmd = find_command("verse-embeddings")
+
+    # Use multi-collection mode to update all collections
+    cmd = [
+        verse_embeddings_cmd,
+        "--multi-collection",
+        "--collections-file", str(collections_file),
+        "--verses-dir", "_verses",
+        "--output", "data/embeddings.json"
+    ]
+
+    print(f"\nRunning: {' '.join(cmd)}\n")
+
+    try:
+        result = subprocess.run(cmd, check=True)
+        print(f"\n✓ Embeddings updated successfully")
+        print(f"✓ Output: data/embeddings.json")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"\n✗ Error updating embeddings: {e}")
+        return False
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -196,8 +282,18 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Complete workflow: fetch text, generate media, update embeddings
+  verse-generate --collection sundar-kaand --verse 5 --verse-id chaupai_05 \\
+    --fetch-text --all --theme modern-minimalist --update-embeddings
+
   # Generate both image and audio
   verse-generate --collection hanuman-chalisa --verse 15 --all --theme modern-minimalist
+
+  # Generate everything with embeddings update
+  verse-generate --collection sundar-kaand --verse 3 --all --update-embeddings
+
+  # Fetch text only (useful for previewing before generation)
+  verse-generate --collection sundar-kaand --verse 5 --verse-id chaupai_05 --fetch-text
 
   # Generate only image
   verse-generate --collection sundar-kaand --verse 3 --image --theme modern-minimalist
@@ -209,7 +305,7 @@ Examples:
   verse-generate --list-collections
 
 Environment Variables:
-  OPENAI_API_KEY      - Required for image generation
+  OPENAI_API_KEY      - Required for image generation and embeddings
   ELEVENLABS_API_KEY  - Required for audio generation
         """
     )
@@ -252,12 +348,32 @@ Environment Variables:
         help="Generate audio pronunciation"
     )
 
+    # Additional operations
+    parser.add_argument(
+        "--fetch-text",
+        action="store_true",
+        help="Fetch traditional Devanagari text from authoritative sources (before generation)"
+    )
+    parser.add_argument(
+        "--update-embeddings",
+        action="store_true",
+        help="Update vector embeddings for semantic search (after generation)"
+    )
+
     # Theme for image generation
     parser.add_argument(
         "--theme",
         default="modern-minimalist",
         help="Theme name for image generation (default: modern-minimalist)",
         metavar="NAME"
+    )
+
+    # Verse ID override (for non-numeric verse identifiers)
+    parser.add_argument(
+        "--verse-id",
+        type=str,
+        help="Override verse identifier (e.g., chaupai_05, doha_01). If not specified, uses verse_{N:02d}",
+        metavar="ID"
     )
 
     args = parser.parse_args()
@@ -281,9 +397,14 @@ Environment Variables:
     if not validate_collection(args.collection):
         sys.exit(1)
 
+    # Determine verse ID
+    verse_id = args.verse_id if args.verse_id else f"verse_{args.verse:02d}"
+
     # Determine what to generate
     generate_image_flag = args.all or args.image
     generate_audio_flag = args.all or args.audio
+    fetch_text_flag = args.fetch_text
+    update_embeddings_flag = args.update_embeddings
 
     # Display header
     print("\n" + "="*60)
@@ -292,20 +413,25 @@ Environment Variables:
 
     print(f"\nCollection: {args.collection}")
     print(f"Verse: {args.verse}")
+    print(f"Verse ID: {verse_id}")
     if generate_image_flag:
         print(f"Theme: {args.theme}")
 
-    print("\nGenerating:")
+    print("\nOperations:")
+    if fetch_text_flag:
+        print("  ✓ Fetch verse text")
     if generate_image_flag:
-        print("  ✓ Image")
+        print("  ✓ Generate image")
     if generate_audio_flag:
-        print("  ✓ Audio")
+        print("  ✓ Generate audio")
+    if update_embeddings_flag:
+        print("  ✓ Update embeddings")
     print()
 
     # Check API keys
-    if generate_image_flag:
+    if generate_image_flag or update_embeddings_flag:
         if not os.getenv("OPENAI_API_KEY"):
-            print("✗ Error: OPENAI_API_KEY not set (required for image generation)")
+            print("✗ Error: OPENAI_API_KEY not set (required for image generation and embeddings)")
             print("Set it in .env file or environment")
             sys.exit(1)
 
@@ -317,17 +443,30 @@ Environment Variables:
 
     # Track success
     results = {
+        'fetch_text': None,
         'image': None,
-        'audio': None
+        'audio': None,
+        'embeddings': None
     }
 
-    # Generate content (image first, then audio)
+    # Generate content in order: fetch → image → audio → embeddings
     try:
+        # Step 1: Fetch verse text (optional)
+        if fetch_text_flag:
+            text_data = fetch_verse_text(args.collection, verse_id)
+            results['fetch_text'] = text_data is not None
+
+        # Step 2: Generate image
         if generate_image_flag:
             results['image'] = generate_image(args.collection, args.verse, args.theme)
 
+        # Step 3: Generate audio
         if generate_audio_flag:
             results['audio'] = generate_audio(args.collection, args.verse)
+
+        # Step 4: Update embeddings
+        if update_embeddings_flag:
+            results['embeddings'] = update_embeddings(args.collection)
 
     except KeyboardInterrupt:
         print("\n\n⚠ Generation interrupted by user")
@@ -343,6 +482,10 @@ Environment Variables:
     print("GENERATION SUMMARY")
     print(f"{'='*60}\n")
 
+    if fetch_text_flag:
+        status = "✓" if results['fetch_text'] else "✗"
+        print(f"{status} Fetch text: {'Success' if results['fetch_text'] else 'Failed'}")
+
     if generate_image_flag:
         status = "✓" if results['image'] else "✗"
         print(f"{status} Image: {'Success' if results['image'] else 'Failed'}")
@@ -350,6 +493,10 @@ Environment Variables:
     if generate_audio_flag:
         status = "✓" if results['audio'] else "✗"
         print(f"{status} Audio: {'Success' if results['audio'] else 'Failed'}")
+
+    if update_embeddings_flag:
+        status = "✓" if results['embeddings'] else "✗"
+        print(f"{status} Embeddings: {'Success' if results['embeddings'] else 'Failed'}")
 
     print()
 
