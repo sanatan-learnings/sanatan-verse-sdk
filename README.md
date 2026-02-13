@@ -24,15 +24,15 @@ export ELEVENLABS_API_KEY=...
 # List available collections
 verse-generate --list-collections
 
-# Generate image and audio for a verse
-verse-generate --collection hanuman-chalisa --verse 15 --all --theme modern-minimalist
+# Generate image and audio for a verse (simplest form)
+verse-generate --collection hanuman-chalisa --verse 15
 
-# Or generate specific components
-verse-generate --collection sundar-kaand --verse 3 --image --theme modern-minimalist
+# Or generate specific components only
+verse-generate --collection sundar-kaand --verse 3 --image
 verse-generate --collection sankat-mochan-hanumanashtak --verse 5 --audio
 ```
 
-The `--all` flag generates:
+By default, the command generates:
 - ✅ DALL-E 3 generated image (saved to `images/{collection}/{theme}/`)
 - ✅ Full-speed pronunciation (saved to `audio/{collection}/{verse}_full.mp3`)
 - ✅ Slow-speed pronunciation (saved to `audio/{collection}/{verse}_slow.mp3`)
@@ -53,7 +53,8 @@ pip install -e .
 
 ## Commands
 
-- **[verse-generate](docs/commands/verse-generate.md)** - Orchestrate image and audio generation for specific verses
+- **[verse-generate](docs/commands/verse-generate.md)** - Complete orchestrator for verse content (text fetching, multimedia generation, embeddings)
+- **[verse-fetch-text](docs/commands/verse-fetch-text.md)** - Fetch traditional Devanagari text from authoritative sources
 - **[verse-images](docs/commands/verse-images.md)** - Generate images using DALL-E 3
 - **[verse-audio](docs/commands/verse-audio.md)** - Generate audio pronunciations using ElevenLabs
 - **[verse-embeddings](docs/commands/verse-embeddings.md)** - Generate vector embeddings for semantic search ([multi-collection guide](docs/multi-collection.md))
@@ -156,8 +157,14 @@ Generate media for multiple verses:
 
 ```bash
 for i in {1..10}; do
-  verse-generate --collection hanuman-chalisa --verse $i --all --theme modern-minimalist
+  verse-generate --collection hanuman-chalisa --verse $i
   sleep 5  # Rate limiting
+done
+
+# With custom theme
+for i in {1..10}; do
+  verse-generate --collection hanuman-chalisa --verse $i --theme kids-friendly
+  sleep 5
 done
 ```
 

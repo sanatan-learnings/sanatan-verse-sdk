@@ -325,25 +325,24 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Simplest form - generates everything with default theme (modern-minimalist)
+  verse-generate --collection hanuman-chalisa --verse 15
+
   # Complete workflow: fetch text, generate media, update embeddings
-  # (verse ID auto-detected from existing files)
   verse-generate --collection sundar-kaand --verse 5 \\
-    --fetch-text --all --theme modern-minimalist --update-embeddings
+    --fetch-text --update-embeddings
 
-  # Generate both image and audio (verse ID inferred automatically)
-  verse-generate --collection hanuman-chalisa --verse 15 --all --theme modern-minimalist
-
-  # Generate everything with embeddings update
-  verse-generate --collection sundar-kaand --verse 3 --all --update-embeddings
+  # With custom theme
+  verse-generate --collection hanuman-chalisa --verse 15 --theme kids-friendly
 
   # Fetch text only (useful for previewing before generation)
   verse-generate --collection sundar-kaand --verse 5 --fetch-text
 
   # Override auto-detected verse ID (only needed for ambiguous cases)
-  verse-generate --collection sundar-kaand --verse 5 --verse-id chaupai_05 --all
+  verse-generate --collection sundar-kaand --verse 5 --verse-id chaupai_05
 
   # Generate only image
-  verse-generate --collection sundar-kaand --verse 3 --image --theme modern-minimalist
+  verse-generate --collection sundar-kaand --verse 3 --image
 
   # Generate only audio
   verse-generate --collection sankat-mochan-hanumanashtak --verse 5 --audio
@@ -352,6 +351,8 @@ Examples:
   verse-generate --list-collections
 
 Note:
+  - Generates both image and audio by default (use --image or --audio for specific components)
+  - Theme defaults to "modern-minimalist" (use --theme to change)
   - Verse ID is automatically detected from existing verse files
   - Use --verse-id only when multiple files match (e.g., chaupai_05 and doha_05)
   - For new verses, defaults to verse_{N:02d}
@@ -387,17 +388,17 @@ Environment Variables:
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Generate both image and audio"
+        help="Generate both image and audio (default if no flags specified)"
     )
     parser.add_argument(
         "--image",
         action="store_true",
-        help="Generate image"
+        help="Generate image only"
     )
     parser.add_argument(
         "--audio",
         action="store_true",
-        help="Generate audio pronunciation"
+        help="Generate audio pronunciation only"
     )
 
     # Additional operations
@@ -441,9 +442,9 @@ Environment Variables:
     if not args.verse:
         parser.error("--verse is required")
 
-    # Validate options
+    # Default to --all if no generation flags specified
     if not any([args.all, args.image, args.audio]):
-        parser.error("Please specify at least one of: --all, --image, --audio")
+        args.all = True
 
     # Validate collection
     if not validate_collection(args.collection):

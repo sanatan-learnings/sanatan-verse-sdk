@@ -28,9 +28,9 @@ Verse files can either already exist in your collection, or you can use `--fetch
 
 ### Optional
 
-- `--all` - Generate both image and audio
-- `--image` - Generate only image
-- `--audio` - Generate only audio
+- `--all` - Generate both image and audio (this is the default behavior if no flags specified)
+- `--image` - Generate image only
+- `--audio` - Generate audio only
 - `--fetch-text` - Fetch traditional Devanagari text from authoritative sources (before generation)
 - `--update-embeddings` - Update vector embeddings for semantic search (after generation)
 - `--theme NAME` - Image theme name (default: modern-minimalist)
@@ -45,34 +45,41 @@ Verse files can either already exist in your collection, or you can use `--fetch
 verse-generate --list-collections
 ```
 
-### Complete Workflow (Recommended)
+### Simplest Form (Recommended)
+
+Generate everything with default theme when verse files already exist:
+
+```bash
+verse-generate --collection hanuman-chalisa --verse 15
+```
+
+This automatically generates:
+- DALL-E 3 image (using modern-minimalist theme)
+- Full-speed audio pronunciation
+- Slow-speed audio pronunciation (0.75x)
+
+### Complete Workflow
 
 Generate everything including text fetching and embeddings:
 
 ```bash
-verse-generate --collection sundar-kaand --verse 5 \
-  --fetch-text --all --theme modern-minimalist --update-embeddings
+verse-generate --collection sundar-kaand --verse 5 --fetch-text --update-embeddings
 ```
 
 This automatically:
 1. Fetches traditional Devanagari text from authoritative sources
-2. Generates DALL-E 3 image
+2. Generates DALL-E 3 image (modern-minimalist theme)
 3. Generates full-speed audio pronunciation
 4. Generates slow-speed audio pronunciation (0.75x)
 5. Updates vector embeddings for semantic search
 
-### Generate Everything (Without Text Fetching)
+### Custom Theme
 
-When verse files already exist:
+Use a different theme:
 
 ```bash
-verse-generate --collection hanuman-chalisa --verse 15 --all --theme modern-minimalist
+verse-generate --collection hanuman-chalisa --verse 15 --theme kids-friendly
 ```
-
-This automatically generates:
-- DALL-E 3 image
-- Full-speed audio pronunciation
-- Slow-speed audio pronunciation (0.75x)
 
 ### Generate Specific Components
 
@@ -91,13 +98,13 @@ verse-generate --collection hanuman-chalisa --verse 20 --all --theme kids-friend
 
 ```bash
 # Hanuman Chalisa
-verse-generate --collection hanuman-chalisa --verse 12 --all
+verse-generate --collection hanuman-chalisa --verse 12
 
-# Sundar Kaand (using custom verse identifier)
-verse-generate --collection sundar-kaand --verse chaupai_03 --all
+# Sundar Kaand (verse ID auto-detected)
+verse-generate --collection sundar-kaand --verse 3
 
 # Sankat Mochan Hanumanashtak
-verse-generate --collection sankat-mochan-hanumanashtak --verse 7 --all
+verse-generate --collection sankat-mochan-hanumanashtak --verse 7
 ```
 
 ## Generated Files
@@ -119,8 +126,8 @@ When using `--all`, the command creates:
 # 1. List available collections
 verse-generate --list-collections
 
-# 2. Generate everything for a verse
-verse-generate --collection hanuman-chalisa --verse 15 --all --theme modern-minimalist
+# 2. Generate everything for a verse (uses default modern-minimalist theme)
+verse-generate --collection hanuman-chalisa --verse 15
 
 # 3. Review generated files
 open images/hanuman-chalisa/modern-minimalist/verse-15.png
@@ -144,8 +151,11 @@ This only fetches and displays the traditional Devanagari text without generatin
 ### Regenerate Specific Components
 
 ```bash
-# Regenerate just the image
-verse-generate --collection hanuman-chalisa --verse 15 --image --theme modern-minimalist
+# Regenerate just the image (with default theme)
+verse-generate --collection hanuman-chalisa --verse 15 --image
+
+# Regenerate just the image with custom theme
+verse-generate --collection hanuman-chalisa --verse 15 --image --theme kids-friendly
 
 # Regenerate just the audio
 verse-generate --collection hanuman-chalisa --verse 15 --audio
@@ -161,6 +171,9 @@ verse-generate --collection hanuman-chalisa --verse 15 --audio
 
 ## Notes
 
+- **Default behavior**: Generates both image and audio with `modern-minimalist` theme (no flags needed)
+- Use `--image` or `--audio` to generate only specific components
+- Use `--theme` to change from the default `modern-minimalist` theme
 - Verse files can be fetched automatically using `--fetch-text` or must already exist in `_verses/<collection-key>/`
 - Verse ID is automatically detected from existing verse files (e.g., if `chaupai_05.md` exists, uses `chaupai_05`)
 - Use `--verse-id` to override auto-detection when multiple files match (e.g., both `chaupai_05.md` and `doha_05.md` exist)
