@@ -118,6 +118,49 @@ def list_collections(project_dir: Path = Path.cwd()):
     return enabled
 
 
+def infer_verse_id(collection: str, verse_number: int, project_dir: Path = Path.cwd()) -> Optional[str]:
+    """
+    Infer verse ID by scanning existing verse files in the collection.
+
+    Returns:
+        - The inferred verse_id if exactly one match found
+        - None if no matches or ambiguous (multiple matches)
+    """
+    verses_dir = project_dir / "_verses" / collection
+    if not verses_dir.exists():
+        return None
+
+    # Look for files matching the verse number
+    # Patterns: chaupai_05.md, doha_05.md, verse_05.md, verse-05.md, etc.
+    patterns = [
+        f"*_{verse_number:02d}.md",  # chaupai_05.md, doha_05.md
+        f"*{verse_number:02d}.md",   # verse05.md (no separator)
+        f"*-{verse_number:02d}.md",  # verse-05.md (dash separator)
+    ]
+
+    matches = []
+    for pattern in patterns:
+        matches.extend(verses_dir.glob(pattern))
+
+    # Remove duplicates
+    matches = list(set(matches))
+
+    if len(matches) == 1:
+        # Found exactly one match - extract verse_id from filename
+        verse_id = matches[0].stem  # Remove .md extension
+        return verse_id
+    elif len(matches) > 1:
+        # Multiple matches - ambiguous
+        print(f"\n⚠ Multiple verse files found for verse {verse_number}:")
+        for match in matches:
+            print(f"  - {match.name}")
+        print(f"\nPlease specify which one using --verse-id")
+        return None
+    else:
+        # No matches - this is a new verse, use default pattern
+        return f"verse_{verse_number:02d}"
+
+
 def generate_image(collection: str, verse: int, theme: str) -> bool:
     """Generate image for the specified verse."""
     print(f"\n{'='*60}")
@@ -283,17 +326,21 @@ def main():
         epilog="""
 Examples:
   # Complete workflow: fetch text, generate media, update embeddings
-  verse-generate --collection sundar-kaand --verse 5 --verse-id chaupai_05 \\
+  # (verse ID auto-detected from existing files)
+  verse-generate --collection sundar-kaand --verse 5 \\
     --fetch-text --all --theme modern-minimalist --update-embeddings
 
-  # Generate both image and audio
+  # Generate both image and audio (verse ID inferred automatically)
   verse-generate --collection hanuman-chalisa --verse 15 --all --theme modern-minimalist
 
   # Generate everything with embeddings update
   verse-generate --collection sundar-kaand --verse 3 --all --update-embeddings
 
   # Fetch text only (useful for previewing before generation)
-  verse-generate --collection sundar-kaand --verse 5 --verse-id chaupai_05 --fetch-text
+  verse-generate --collection sundar-kaand --verse 5 --fetch-text
+
+  # Override auto-detected verse ID (only needed for ambiguous cases)
+  verse-generate --collection sundar-kaand --verse 5 --verse-id chaupai_05 --all
 
   # Generate only image
   verse-generate --collection sundar-kaand --verse 3 --image --theme modern-minimalist
@@ -303,6 +350,11 @@ Examples:
 
   # List available collections
   verse-generate --list-collections
+
+Note:
+  - Verse ID is automatically detected from existing verse files
+  - Use --verse-id only when multiple files match (e.g., chaupai_05 and doha_05)
+  - For new verses, defaults to verse_{N:02d}
 
 Environment Variables:
   OPENAI_API_KEY      - Required for image generation and embeddings
@@ -372,7 +424,7 @@ Environment Variables:
     parser.add_argument(
         "--verse-id",
         type=str,
-        help="Override verse identifier (e.g., chaupai_05, doha_01). If not specified, uses verse_{N:02d}",
+        help="Override verse identifier (e.g., chaupai_05, doha_01). If not specified, auto-detects from existing files or defaults to verse_{N:02d}",
         metavar="ID"
     )
 
@@ -397,8 +449,22 @@ Environment Variables:
     if not validate_collection(args.collection):
         sys.exit(1)
 
-    # Determine verse ID
-    verse_id = args.verse_id if args.verse_id else f"verse_{args.verse:02d}"
+    # Determine verse ID (with smart inference)
+    if args.verse_id:
+        # User explicitly specified verse ID
+        verse_id = args.verse_id
+    else:
+        # Try to infer verse ID from existing files
+        inferred = infer_verse_id(args.collection, args.verse)
+        if inferred is None:
+            # Inference failed (multiple matches found)
+            sys.exit(1)
+        verse_id = inferred
+
+        # Show inference result if it's not the default
+        if verse_id != f"verse_{args.verse:02d}":
+            print(f"\n✓ Auto-detected verse ID: {verse_id}")
+            print(f"  (To override, use --verse-id)\n")
 
     # Determine what to generate
     generate_image_flag = args.all or args.image
