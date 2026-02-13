@@ -1,6 +1,6 @@
 # verse-generate
 
-Orchestrate image and audio generation for specific verses in a collection.
+Complete orchestration for verse content generation including text fetching, multimedia generation, and embeddings.
 
 ## Synopsis
 
@@ -10,12 +10,14 @@ verse-generate --collection COLLECTION --verse N [OPTIONS]
 
 ## Description
 
-The `verse-generate` command orchestrates the generation of multimedia content for specific verses. It can:
+The `verse-generate` command is a complete orchestrator for verse content generation. It can:
+- Fetch traditional Devanagari text from authoritative sources
 - Generate images using DALL-E 3
 - Generate audio pronunciations using ElevenLabs
-- Generate both image and audio in a single command
+- Update vector embeddings for semantic search
+- Execute the entire workflow in a single command
 
-This command requires that verse files already exist in your collection.
+Verse files can either already exist in your collection, or you can use `--fetch-text` to retrieve them automatically.
 
 ## Options
 
@@ -29,7 +31,10 @@ This command requires that verse files already exist in your collection.
 - `--all` - Generate both image and audio
 - `--image` - Generate only image
 - `--audio` - Generate only audio
+- `--fetch-text` - Fetch traditional Devanagari text from authoritative sources (before generation)
+- `--update-embeddings` - Update vector embeddings for semantic search (after generation)
 - `--theme NAME` - Image theme name (default: modern-minimalist)
+- `--verse-id ID` - Override verse identifier (e.g., chaupai_05, doha_01). Auto-detected if not specified
 - `--list-collections` - List all available collections
 
 ## Examples
@@ -40,9 +45,25 @@ This command requires that verse files already exist in your collection.
 verse-generate --list-collections
 ```
 
-### Generate Everything (Recommended)
+### Complete Workflow (Recommended)
 
-Generate both image and audio for a verse:
+Generate everything including text fetching and embeddings:
+
+```bash
+verse-generate --collection sundar-kaand --verse 5 \
+  --fetch-text --all --theme modern-minimalist --update-embeddings
+```
+
+This automatically:
+1. Fetches traditional Devanagari text from authoritative sources
+2. Generates DALL-E 3 image
+3. Generates full-speed audio pronunciation
+4. Generates slow-speed audio pronunciation (0.75x)
+5. Updates vector embeddings for semantic search
+
+### Generate Everything (Without Text Fetching)
+
+When verse files already exist:
 
 ```bash
 verse-generate --collection hanuman-chalisa --verse 15 --all --theme modern-minimalist
@@ -110,6 +131,16 @@ git add images/ audio/
 git commit -m "Add media for Hanuman Chalisa verse 15"
 ```
 
+### Fetch Text Only
+
+Preview verse text before generating multimedia:
+
+```bash
+verse-generate --collection sundar-kaand --verse 5 --fetch-text
+```
+
+This only fetches and displays the traditional Devanagari text without generating any media.
+
 ### Regenerate Specific Components
 
 ```bash
@@ -122,20 +153,28 @@ verse-generate --collection hanuman-chalisa --verse 15 --audio
 
 ## Requirements
 
+- **For --fetch-text**: Internet connection + supported collection (no API key needed)
 - **For --image**: `OPENAI_API_KEY` + scene description in `docs/image-prompts/<collection-key>.md` + theme config in `docs/themes/<collection-key>/<theme-name>.yml`
 - **For --audio**: `ELEVENLABS_API_KEY` + verse file with `devanagari:` field
+- **For --update-embeddings**: `OPENAI_API_KEY` for generating vector embeddings
 - Collection must be enabled in `_data/collections.yml`
 
 ## Notes
 
-- Verse files must already exist in `_verses/<collection-key>/`
-- Scene descriptions must exist in `docs/image-prompts/<collection-key>.md`
-- Theme configuration must exist in `docs/themes/<collection-key>/<theme-name>.yml`
+- Verse files can be fetched automatically using `--fetch-text` or must already exist in `_verses/<collection-key>/`
+- Verse ID is automatically detected from existing verse files (e.g., if `chaupai_05.md` exists, uses `chaupai_05`)
+- Use `--verse-id` to override auto-detection when multiple files match (e.g., both `chaupai_05.md` and `doha_05.md` exist)
+- For new verses without files, defaults to `verse_{N:02d}` format
+- Scene descriptions must exist in `docs/image-prompts/<collection-key>.md` for image generation
+- Theme configuration must exist in `docs/themes/<collection-key>/<theme-name>.yml` for image generation
 - Audio generation reads from the `devanagari:` field in verse files
 - Only enabled collections (in `collections.yml`) can be processed
+- `--update-embeddings` updates embeddings for all collections, not just the current one
 
 ## See Also
 
+- [verse-fetch-text](verse-fetch-text.md) - Fetch traditional verse text from authoritative sources
 - [verse-images](verse-images.md) - Image generation details
 - [verse-audio](verse-audio.md) - Audio generation details
+- [verse-embeddings](verse-embeddings.md) - Vector embeddings for semantic search
 - [Troubleshooting](../troubleshooting.md) - Common issues

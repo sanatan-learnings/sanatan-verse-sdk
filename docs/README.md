@@ -4,7 +4,8 @@ Detailed documentation for the verse-content-sdk commands and features.
 
 ## Command Reference
 
-- **[verse-generate](commands/verse-generate.md)** - Orchestrate image and audio generation for specific verses
+- **[verse-generate](commands/verse-generate.md)** - Complete orchestrator for verse content (text fetching, multimedia generation, embeddings)
+- **[verse-fetch-text](commands/verse-fetch-text.md)** - Fetch traditional Devanagari text from authoritative sources
 - **[verse-images](commands/verse-images.md)** - Generate images using DALL-E 3
 - **[verse-audio](commands/verse-audio.md)** - Generate audio pronunciations using ElevenLabs
 - **[verse-embeddings](commands/verse-embeddings.md)** - Generate vector embeddings for semantic search
