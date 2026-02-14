@@ -154,7 +154,10 @@ Format your response exactly as above with clear section headers."""
                 result["practical_applications"] = "\n".join(lines).strip()
             elif current_section and not any(keyword in section.upper() for keyword in ["1.", "2.", "3.", "4.", "5."]):
                 # Continue current section
-                result[current_section if current_section != "translation" else "translation"]["en" if current_section == "translation" else current_section] += "\n" + section
+                if current_section == "translation":
+                    result["translation"]["en"] += "\n" + section
+                else:
+                    result[current_section] += "\n" + section
 
         print(f"  ✓ Generated transliteration, meaning, translation, story, and practical applications", file=sys.stderr)
         return result
