@@ -20,7 +20,11 @@ Add to your shell config (`~/.zshrc` or `~/.bashrc`) to make permanent.
 **Solution 2**: Use full path
 
 ```bash
-/Users/arungupta/Library/Python/3.13/bin/verse-generate --chapter 1 --verse 5 --all
+# Find the installation path
+which verse-generate
+
+# Then use the full path
+/path/to/verse-generate --collection hanuman-chalisa --verse 5
 ```
 
 **Solution 3**: Reinstall
@@ -96,42 +100,43 @@ API key is incorrect or expired.
 
 ### "Error: Scene description not found"
 
-Trying to generate image but scene description doesn't exist.
+Trying to generate image but scene description file doesn't exist in `docs/image-prompts/<collection>.md`.
 
 **Solution**:
 
-```bash
-# Generate scene description first
-verse-generate --chapter 1 --verse 5 --prompt
+Create the scene description file:
 
+```bash
+# Create scene description file for your collection
+touch docs/image-prompts/hanuman-chalisa.md
+
+# Add scene descriptions for each verse
 # Then generate image
-verse-generate --chapter 1 --verse 5 --image
+verse-generate --collection hanuman-chalisa --verse 5 --image
 ```
 
-Or generate everything at once:
-
-```bash
-verse-generate --chapter 1 --verse 5 --all
-```
+Or use verse-generate with a collection that already has scene descriptions.
 
 ### "Error: Verse file not found"
 
-Trying to generate audio but verse file doesn't exist.
+Trying to generate audio but verse markdown file doesn't exist.
 
 **Solution**:
 
+Create the verse file first, or ensure the verse exists in your collection:
+
 ```bash
-# Generate verse file first
-verse-generate --chapter 1 --verse 5 --text
+# Check verse files exist
+ls _verses/hanuman-chalisa/
 
 # Then generate audio
-verse-generate --chapter 1 --verse 5 --audio
+verse-generate --collection hanuman-chalisa --verse 5 --audio
 ```
 
-Or generate everything at once:
+Or generate both image and audio at once (default behavior):
 
 ```bash
-verse-generate --chapter 1 --verse 5 --all
+verse-generate --collection hanuman-chalisa --verse 5
 ```
 
 ### "Error: No devanagari field found"
@@ -294,7 +299,7 @@ Commands expect project structure to exist.
 
 ```bash
 cd /path/to/your/project  # Project root with _verses/, docs/, etc.
-verse-generate --chapter 1 --verse 5 --all
+verse-generate --collection hanuman-chalisa --verse 5
 ```
 
 ### Missing .env file

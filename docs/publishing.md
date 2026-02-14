@@ -139,7 +139,8 @@ pip install -e .
 
 # Test all commands
 verse-generate --help
-verse-generate --chapter 1 --verse 1 --all
+verse-generate --list-collections
+verse-generate --collection hanuman-chalisa --verse 1
 ```
 
 ### 6. Clean Previous Builds
