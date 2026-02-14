@@ -198,14 +198,6 @@ done
 
 MIT License - See [LICENSE](LICENSE) file for details
 
-## Contributing
-
-Contributions welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
-- Development setup
-- Coding standards
-- Submitting pull requests
-- Community guidelines
-
 ## Support
 
 - [GitHub Issues](https://github.com/sanatan-learnings/verse-sdk/issues)
