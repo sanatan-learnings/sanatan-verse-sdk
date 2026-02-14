@@ -1,6 +1,6 @@
-# Contributing to verse-sdk
+# Contributing to Sanatan SDK
 
-Thank you for your interest in contributing to verse-sdk! This project helps generate rich multimedia content for spiritual text collections, and we welcome contributions from the community.
+Thank you for your interest in contributing to Sanatan SDK! This project helps generate rich multimedia content for spiritual text collections, and we welcome contributions from the community.
 
 ## Getting Started
 
@@ -15,8 +15,8 @@ Thank you for your interest in contributing to verse-sdk! This project helps gen
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/verse-sdk.git
-   cd verse-sdk
+   git clone https://github.com/YOUR_USERNAME/sanatan-sdk.git
+   cd sanatan-sdk
    ```
 
 2. **Create a virtual environment**
@@ -45,7 +45,7 @@ Thank you for your interest in contributing to verse-sdk! This project helps gen
 ## Project Structure
 
 ```
-verse-sdk/
+sanatan-sdk/
 ├── verse_sdk/
 │   ├── audio/           # Audio generation with ElevenLabs
 │   ├── cli/             # Command-line interface
@@ -127,7 +127,7 @@ if needed for context."
    ```
 
 2. **Create a Pull Request**
-   - Go to the [verse-sdk repository](https://github.com/sanatan-learnings/verse-sdk)
+   - Go to the [Sanatan SDK repository](https://github.com/sanatan-learnings/sanatan-sdk)
    - Click "New Pull Request"
    - Select your fork and branch
    - Fill in the PR template with:
@@ -146,7 +146,7 @@ if needed for context."
 We welcome various types of contributions:
 
 ### Bug Fixes
-- Report bugs via [GitHub Issues](https://github.com/sanatan-learnings/verse-sdk/issues)
+- Report bugs via [GitHub Issues](https://github.com/sanatan-learnings/sanatan-sdk/issues)
 - Include steps to reproduce
 - Provide system information (OS, Python version)
 
@@ -190,4 +190,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-Thank you for contributing to verse-sdk! 🙏
+Thank you for contributing to Sanatan SDK! 🙏

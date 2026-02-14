@@ -1,6 +1,6 @@
 # Usage Guide
 
-Comprehensive guide for using verse-sdk to generate multimedia content for spiritual text collections.
+Comprehensive guide for using sanatan-sdk to generate multimedia content for spiritual text collections.
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ mkdir -p audio
 mkdir -p data
 
 # Set up environment file
-cp /path/to/verse-sdk/.env.example .env
+cp /path/to/sanatan-sdk/.env.example .env
 # Or create manually - see Configuration section below
 ```
 

@@ -1,6 +1,6 @@
 # Development Guide
 
-This guide is for developers who want to contribute to verse-sdk or understand its internal structure.
+This guide is for developers who want to contribute to sanatan-sdk or understand its internal structure.
 
 ## Table of Contents
 
@@ -25,8 +25,8 @@ This guide is for developers who want to contribute to verse-sdk or understand i
 
 ```bash
 # Clone the repository
-git clone https://github.com/sanatan-learnings/verse-sdk.git
-cd verse-sdk
+git clone https://github.com/sanatan-learnings/sanatan-sdk.git
+cd sanatan-sdk
 
 # Create and activate virtual environment
 python -m venv .venv
@@ -41,8 +41,8 @@ pip install -e .
 Copy the example environment file and add your API keys:
 
 ```bash
-# In your project root (not in verse-sdk)
-cp /path/to/verse-sdk/.env.example .env
+# In your project root (not in sanatan-sdk)
+cp /path/to/sanatan-sdk/.env.example .env
 
 # Edit .env and add your actual API keys
 # Get keys from:
@@ -65,7 +65,7 @@ verse-deploy --help
 ## Project Structure
 
 ```
-verse-sdk/
+sanatan-sdk/
 ├── verse_sdk/                   # Main package
 │   ├── __init__.py
 │   ├── audio/                   # Audio generation module
@@ -193,7 +193,7 @@ verse-generate --collection hanuman-chalisa --verse 1
 
 Run the multi-collection test:
 ```bash
-cd verse-sdk
+cd sanatan-sdk
 python scripts/test_multi_collection.py
 ```
 

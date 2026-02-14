@@ -11,7 +11,7 @@ setup(
     description="SDK for generating rich multimedia content for verse-based texts",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/sanatan-learnings/verse-sdk",
+    url="https://github.com/sanatan-learnings/sanatan-sdk",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
