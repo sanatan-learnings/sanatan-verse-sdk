@@ -47,19 +47,22 @@ shloka_01:
     वन्देऽहं करुणाकरं रघुवरं भूपालचूड़ामणिम्
 
 # Chaupais (single-line verses)
+# Format 1: Dict with devanagari field (recommended for extensibility)
 chaupai_01:
   devanagari: "जामवंत के बचन सुहाए। सुनि हनुमंत हृदय अति भाए।।"
 
-chaupai_02:
-  devanagari: "तब लगि मोहि परिखेहु तुम्ह भाई। सहि दुख कंद मूल फल खाई।।"
+# Format 2: Simple string (more concise)
+chaupai_02: "तब लगि मोहि परिखेहु तुम्ह भाई। सहि दुख कंद मूल फल खाई।।"
 
 # Dohas
-doha_01:
-  devanagari: "सुनि बचन प्रेम सहित कपीसा। ग्यान जोग विराग निधान प्रतीसा।।"
+doha_01: "सुनि बचन प्रेम सहित कपीसा। ग्यान जोग विराग निधान प्रतीसा।।"
 ```
 
 **Key Points:**
-- Only `devanagari` field required - AI generates translations/meanings
+- Two formats supported:
+  1. **Dict format**: `chaupai_01: {devanagari: "text"}` (recommended - allows future fields)
+  2. **Simple string**: `chaupai_01: "text"` (concise - automatically wrapped)
+- Only canonical Devanagari text required - AI generates translations/meanings
 - Use `|` for multi-line verses (shlokas)
 - Use quotes `"..."` for single-line verses
 - `_meta` key is optional and ignored by SDK

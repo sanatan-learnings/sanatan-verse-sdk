@@ -179,12 +179,21 @@ def fetch_from_local_file(collection: str, verse_id: str, project_dir: Path = No
 
         verse_data = verses_data[verse_id]
 
-        # Validate required field
-        if 'devanagari' not in verse_data:
-            print(f"Warning: Verse {verse_id} in {verses_file} missing 'devanagari' field", file=sys.stderr)
+        # Handle two formats:
+        # 1. chaupai_01: "devanagari text" (string)
+        # 2. chaupai_01: {devanagari: "text", ...} (dict)
+        if isinstance(verse_data, str):
+            # Simple string format - wrap it in a dict
+            return {'devanagari': verse_data}
+        elif isinstance(verse_data, dict):
+            # Dict format - validate required field
+            if 'devanagari' not in verse_data:
+                print(f"Warning: Verse {verse_id} in {verses_file} missing 'devanagari' field", file=sys.stderr)
+                return None
+            return verse_data
+        else:
+            print(f"Warning: Verse {verse_id} in {verses_file} has invalid format (expected string or dict)", file=sys.stderr)
             return None
-
-        return verse_data
 
     except Exception as e:
         print(f"Error reading local verses file {verses_file}: {e}", file=sys.stderr)

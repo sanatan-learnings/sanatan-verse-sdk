@@ -32,8 +32,7 @@ You can opt-out of specific steps using `--no-fetch-text` or `--no-update-embedd
 - `--all` - Generate both image and audio (this is the default behavior if no flags specified)
 - `--image` - Generate image only
 - `--audio` - Generate audio only
-- `--regenerate-content` - Regenerate AI content (transliteration, meaning, translation, story) from canonical Devanagari text
-- `--no-fetch-text` - Skip fetching text from canonical sources (text fetching is enabled by default)
+- `--regenerate-content` - Regenerate AI content (transliteration, meaning, translation, story) from canonical Devanagari text in `data/verses/{collection}.yaml`
 - `--no-update-embeddings` - Skip updating embeddings (embeddings update is enabled by default)
 - `--theme NAME` - Image theme name (default: modern-minimalist)
 - `--verse-id ID` - Override verse identifier (e.g., chaupai_05, doha_01). Auto-detected if not specified
@@ -56,19 +55,10 @@ verse-generate --collection hanuman-chalisa --verse 15
 ```
 
 This automatically:
-1. Fetches traditional Devanagari text from authoritative sources
-2. Generates DALL-E 3 image (modern-minimalist theme)
-3. Generates full-speed audio pronunciation
-4. Generates slow-speed audio pronunciation (0.75x)
-5. Updates vector embeddings for semantic search
-
-### Skip Text Fetching
-
-When verse text already exists and you don't need to refetch:
-
-```bash
-verse-generate --collection sundar-kaand --verse 5 --no-fetch-text
-```
+1. Generates DALL-E 3 image (modern-minimalist theme)
+2. Generates full-speed audio pronunciation
+3. Generates slow-speed audio pronunciation (0.75x)
+4. Updates vector embeddings for semantic search
 
 ### Skip Embeddings Update
 
@@ -76,14 +66,6 @@ Faster generation, but search won't include this verse:
 
 ```bash
 verse-generate --collection hanuman-chalisa --verse 15 --no-update-embeddings
-```
-
-### Skip Both (Just Regenerate Media)
-
-When you only want to regenerate image/audio with existing text:
-
-```bash
-verse-generate --collection hanuman-chalisa --verse 15 --no-fetch-text --no-update-embeddings
 ```
 
 ### Custom Theme

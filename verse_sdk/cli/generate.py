@@ -535,14 +535,11 @@ Examples:
   # With custom theme
   verse-generate --collection hanuman-chalisa --verse 15 --theme kids-friendly
 
-  # Skip text fetching (when verse text already exists)
-  verse-generate --collection sundar-kaand --verse 5 --no-fetch-text
-
   # Skip embeddings update (faster, but search won't include this verse)
   verse-generate --collection hanuman-chalisa --verse 15 --no-update-embeddings
 
-  # Skip both (just regenerate media)
-  verse-generate --collection hanuman-chalisa --verse 15 --no-fetch-text --no-update-embeddings
+  # Just regenerate media (no embeddings update)
+  verse-generate --collection hanuman-chalisa --verse 15 --no-update-embeddings
 
   # Generate only image
   verse-generate --collection sundar-kaand --verse 3 --image
@@ -563,8 +560,9 @@ Examples:
   verse-generate --list-collections
 
 Note:
-  - Complete workflow by default: fetches text, generates image + audio, updates embeddings
-  - Use --no-fetch-text or --no-update-embeddings to opt-out of specific steps
+  - Complete workflow by default: generates image + audio, updates embeddings
+  - Use --regenerate-content to regenerate AI text content from canonical source
+  - Use --no-update-embeddings to skip embeddings (faster generation)
   - Theme defaults to "modern-minimalist" (use --theme to change)
   - Verse ID is automatically detected from existing verse files
   - Use --verse-id only when multiple files match (e.g., chaupai_05 and doha_05)
@@ -615,19 +613,6 @@ Environment Variables:
     )
 
     # Additional operations (enabled by default)
-    parser.add_argument(
-        "--fetch-text",
-        dest="fetch_text",
-        action="store_true",
-        default=True,
-        help="Fetch traditional Devanagari text from authoritative sources (default: enabled)"
-    )
-    parser.add_argument(
-        "--no-fetch-text",
-        dest="fetch_text",
-        action="store_false",
-        help="Skip fetching text from authoritative sources"
-    )
     parser.add_argument(
         "--update-embeddings",
         dest="update_embeddings",
@@ -706,7 +691,6 @@ Environment Variables:
     # Determine what to generate
     generate_image_flag = args.all or args.image
     generate_audio_flag = args.all or args.audio
-    fetch_text_flag = args.fetch_text
     update_embeddings_flag = args.update_embeddings
     regenerate_content_flag = args.regenerate_content
 
@@ -722,8 +706,6 @@ Environment Variables:
         print(f"Theme: {args.theme}")
 
     print("\nOperations:")
-    if fetch_text_flag:
-        print("  ✓ Fetch verse text")
     if regenerate_content_flag:
         print("  ✓ Regenerate AI content (transliteration, meaning, translation, story)")
     if generate_image_flag:
@@ -749,21 +731,15 @@ Environment Variables:
 
     # Track success
     results = {
-        'fetch_text': None,
         'regenerate_content': None,
         'image': None,
         'audio': None,
         'embeddings': None
     }
 
-    # Generate content in order: fetch → regenerate content → image → audio → embeddings
+    # Generate content in order: regenerate content → image → audio → embeddings
     try:
-        # Step 1: Fetch verse text (optional)
-        if fetch_text_flag:
-            text_data = fetch_verse_text(args.collection, verse_id)
-            results['fetch_text'] = text_data is not None
-
-        # Step 2: Regenerate AI content (optional)
+        # Step 1: Regenerate AI content (optional)
         if regenerate_content_flag:
             # Load canonical Devanagari from data/verses/{collection}.yaml
             from verse_sdk.fetch.fetch_verse_text import fetch_from_local_file
@@ -784,15 +760,15 @@ Environment Variables:
                 verse_file = Path.cwd() / "_verses" / args.collection / f"{verse_id}.md"
                 results['regenerate_content'] = update_verse_file_with_content(verse_file, generated_content)
 
-        # Step 3: Generate image
+        # Step 2: Generate image
         if generate_image_flag:
             results['image'] = generate_image(args.collection, args.verse, args.theme)
 
-        # Step 4: Generate audio
+        # Step 3: Generate audio
         if generate_audio_flag:
             results['audio'] = generate_audio(args.collection, args.verse)
 
-        # Step 5: Update embeddings
+        # Step 4: Update embeddings
         if update_embeddings_flag:
             results['embeddings'] = update_embeddings(args.collection)
 
@@ -809,10 +785,6 @@ Environment Variables:
     print(f"\n{'='*60}")
     print("GENERATION SUMMARY")
     print(f"{'='*60}\n")
-
-    if fetch_text_flag:
-        status = "✓" if results['fetch_text'] else "✗"
-        print(f"{status} Fetch text: {'Success' if results['fetch_text'] else 'Failed'}")
 
     if regenerate_content_flag:
         status = "✓" if results['regenerate_content'] else "✗"
