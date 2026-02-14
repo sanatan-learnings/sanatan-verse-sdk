@@ -1,4 +1,4 @@
-# verse-sdk - Python SDK for Spiritual Verse Collections
+# Sanatan SDK - Python SDK for Spiritual Verse Collections
 
 Complete toolkit for generating rich multimedia content for spiritual text collections (Hanuman Chalisa, Sundar Kaand, etc.)
 
@@ -16,7 +16,7 @@ Complete toolkit for generating rich multimedia content for spiritual text colle
 
 ```bash
 # Install
-pip install verse-sdk
+pip install sanatan-sdk
 
 # Set up API keys (in your project directory)
 cp .env.example .env
@@ -50,7 +50,7 @@ Opt-out flags (to skip specific steps):
 ## Installation
 
 ```bash
-pip install verse-sdk
+pip install sanatan-sdk
 ```
 
 ## Commands

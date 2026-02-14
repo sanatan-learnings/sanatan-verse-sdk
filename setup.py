@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="verse-content-sdk",
+    name="sanatan-sdk",
     version="0.4.0",
     author="Sanatan Learnings",
     author_email="arun.gupta@gmail.com",
