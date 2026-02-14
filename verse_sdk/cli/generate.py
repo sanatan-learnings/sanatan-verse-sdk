@@ -734,10 +734,10 @@ Examples:
   # Generate only audio
   verse-generate --collection sankat-mochan-hanumanashtak --verse 5 --audio
 
-  # Regenerate AI content from canonical source
+  # Regenerate AI content only (no multimedia)
   verse-generate --collection sundar-kaand --verse 3 --regenerate-content
 
-  # Regenerate content and multimedia
+  # Regenerate content AND multimedia
   verse-generate --collection sundar-kaand --verse 3 --regenerate-content --all
 
   # Override auto-detected verse ID (only needed for ambiguous cases)
@@ -748,7 +748,8 @@ Examples:
 
 Note:
   - Complete workflow by default: generates image + audio, updates embeddings
-  - Use --regenerate-content to regenerate AI text content from canonical source
+  - Use --regenerate-content ALONE to only regenerate text (no multimedia)
+  - Use --regenerate-content --all to regenerate text AND multimedia
   - Use --no-update-embeddings to skip embeddings (faster generation)
   - Theme defaults to "modern-minimalist" (use --theme to change)
   - Verse ID is automatically detected from existing verse files
@@ -851,7 +852,8 @@ Environment Variables:
         parser.error("--verse is required")
 
     # Default to --all if no generation flags specified
-    if not any([args.all, args.image, args.audio]):
+    # BUT: if only --regenerate-content is specified, don't generate multimedia
+    if not any([args.all, args.image, args.audio, args.regenerate_content]):
         args.all = True
 
     # Validate collection
