@@ -368,18 +368,134 @@ def infer_verse_id(collection: str, verse_number: int, project_dir: Path = Path.
         return f"verse_{verse_number:02d}"
 
 
+def generate_scene_description(devanagari_text: str, verse_id: str, collection: str) -> str:
+    """
+    Generate scene description from Devanagari text using GPT-4.
+
+    Args:
+        devanagari_text: The canonical Devanagari verse text
+        verse_id: Verse identifier (e.g., chaupai_05, verse_01)
+        collection: Collection key for context
+
+    Returns:
+        Scene description text
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("Error: OPENAI_API_KEY environment variable not set", file=sys.stderr)
+        sys.exit(1)
+
+    client = OpenAI(api_key=api_key)
+
+    prompt = f"""You are an expert in Sanskrit/Hindi spiritual texts and visual storytelling. Given this verse from {collection}:
+
+Devanagari: {devanagari_text}
+
+Create a detailed scene description for generating an image with DALL-E 3. The description should:
+
+1. Describe the key visual elements, characters, and setting
+2. Specify the mood, atmosphere, and lighting
+3. Include important symbolic elements if relevant
+4. Be specific about composition and focus
+5. Be 2-4 sentences, rich in visual detail but concise
+
+Provide ONLY the scene description, no additional text."""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are an expert in spiritual texts and visual storytelling, creating vivid scene descriptions for image generation."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7  # Slightly higher for creative descriptions
+        )
+
+        scene_description = response.choices[0].message.content.strip()
+        return scene_description
+
+    except Exception as e:
+        print(f"  ✗ Error generating scene description: {e}", file=sys.stderr)
+        return None
+
+
+def ensure_scene_description_exists(collection: str, verse_number: int, verse_id: str, devanagari_text: str) -> bool:
+    """
+    Ensure scene description exists for the verse. Creates file and/or adds scene if missing.
+
+    Args:
+        collection: Collection key
+        verse_number: Verse number (for ordering)
+        verse_id: Verse identifier (e.g., chaupai_05)
+        devanagari_text: Canonical Devanagari text for generating description
+
+    Returns:
+        True if scene description is available, False if failed
+    """
+    prompts_dir = Path.cwd() / "docs" / "image-prompts"
+    prompts_dir.mkdir(parents=True, exist_ok=True)
+
+    prompts_file = prompts_dir / f"{collection}.md"
+
+    # Create file if it doesn't exist
+    if not prompts_file.exists():
+        print(f"  → Creating scene descriptions file: {prompts_file.name}")
+        header = f"""# {collection.replace('-', ' ').title()} - Image Prompts
+
+Scene descriptions for generating images with DALL-E 3.
+
+---
+
+"""
+        with open(prompts_file, 'w', encoding='utf-8') as f:
+            f.write(header)
+        print(f"  ✓ Created {prompts_file.name}")
+
+    # Check if scene description exists for this verse
+    with open(prompts_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Look for this verse's scene description
+    import re
+    verse_pattern = rf'### Verse {verse_number}:.*?\*\*Scene Description\*\*:'
+
+    if re.search(verse_pattern, content, re.DOTALL):
+        print(f"  ✓ Scene description already exists for Verse {verse_number}")
+        return True
+
+    # Scene description doesn't exist - generate it
+    print(f"  → Generating scene description for Verse {verse_number}...")
+    scene_description = generate_scene_description(devanagari_text, verse_id, collection)
+
+    if not scene_description:
+        print(f"  ✗ Failed to generate scene description")
+        return False
+
+    # Append to file
+    verse_entry = f"""### Verse {verse_number}: {verse_id}
+
+**Scene Description**:
+{scene_description}
+
+---
+
+"""
+
+    with open(prompts_file, 'a', encoding='utf-8') as f:
+        f.write(verse_entry)
+
+    print(f"  ✓ Added scene description for Verse {verse_number} to {prompts_file.name}")
+    return True
+
+
 def generate_image(collection: str, verse: int, theme: str, verse_id: str = None) -> bool:
     """Generate image for the specified verse."""
     print(f"\n{'='*60}")
     print("GENERATING IMAGE")
     print(f"{'='*60}\n")
 
-    # Check if prompts file exists
+    # Prompts file will be created if needed by ensure_scene_description_exists
     prompts_file = Path.cwd() / "docs" / "image-prompts" / f"{collection}.md"
-    if not prompts_file.exists():
-        print(f"✗ Error: Prompts file not found: {prompts_file}")
-        print(f"Please create scene descriptions in {prompts_file} first")
-        return False
 
     # Use provided verse_id or default to verse_{N:02d}
     if not verse_id:
@@ -769,7 +885,33 @@ Environment Variables:
 
         # Step 2: Generate image
         if generate_image_flag:
-            results['image'] = generate_image(args.collection, args.verse, args.theme, verse_id)
+            # Ensure scene description exists before generating image
+            from verse_sdk.fetch.fetch_verse_text import fetch_from_local_file
+
+            print(f"\n{'='*60}")
+            print("PREPARING SCENE DESCRIPTION")
+            print(f"{'='*60}\n")
+
+            canonical_data = fetch_from_local_file(args.collection, verse_id)
+            if not canonical_data or not canonical_data.get('devanagari'):
+                print(f"  ✗ Error: No canonical Devanagari text found for {verse_id}", file=sys.stderr)
+                print(f"  Please create data/verses/{args.collection}.yaml with canonical text", file=sys.stderr)
+                print(f"  Cannot generate scene description without canonical text.", file=sys.stderr)
+                results['image'] = False
+            else:
+                # Ensure scene description exists (creates file/adds description if needed)
+                scene_ready = ensure_scene_description_exists(
+                    args.collection,
+                    args.verse,
+                    verse_id,
+                    canonical_data['devanagari']
+                )
+
+                if scene_ready:
+                    results['image'] = generate_image(args.collection, args.verse, args.theme, verse_id)
+                else:
+                    print(f"  ✗ Failed to prepare scene description", file=sys.stderr)
+                    results['image'] = False
 
         # Step 3: Generate audio
         if generate_audio_flag:
