@@ -38,11 +38,16 @@ pip install -e .
 
 ### Environment Configuration
 
-Create a `.env` file in your project root (not in verse-sdk):
+Copy the example environment file and add your API keys:
 
 ```bash
-OPENAI_API_KEY=sk-your_openai_key
-ELEVENLABS_API_KEY=your_elevenlabs_key
+# In your project root (not in verse-sdk)
+cp /path/to/verse-sdk/.env.example .env
+
+# Edit .env and add your actual API keys
+# Get keys from:
+# - OpenAI: https://platform.openai.com/api-keys
+# - ElevenLabs: https://elevenlabs.io/app/settings/api-keys
 ```
 
 ### Verify Installation

@@ -32,11 +32,9 @@ mkdir -p images
 mkdir -p audio
 mkdir -p data
 
-# Create .env file
-cat > .env << EOF
-OPENAI_API_KEY=sk-your_openai_key
-ELEVENLABS_API_KEY=your_elevenlabs_key
-EOF
+# Set up environment file
+cp /path/to/verse-sdk/.env.example .env
+# Or create manually - see Configuration section below
 ```
 
 ### Collections Configuration
@@ -147,15 +145,20 @@ I clean the mirror of my mind with the dust of the lotus feet of my Guru.
 
 ### Environment Variables
 
-Set required API keys in `.env`:
+Set required API keys in `.env` (copy from `.env.example`):
 
 ```bash
-# Required for image generation and embeddings
-OPENAI_API_KEY=sk-your_openai_key
+# Copy the example file
+cp .env.example .env
 
-# Required for audio generation
-ELEVENLABS_API_KEY=your_elevenlabs_key
+# Edit .env and add your keys:
+# OPENAI_API_KEY=sk-your_openai_key     # Required for images and embeddings
+# ELEVENLABS_API_KEY=your_elevenlabs_key # Required for audio
 ```
+
+Get your API keys:
+- OpenAI: https://platform.openai.com/api-keys
+- ElevenLabs: https://elevenlabs.io/app/settings/api-keys
 
 ### Theme Configuration
 

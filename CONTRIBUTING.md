@@ -32,10 +32,9 @@ Thank you for your interest in contributing to verse-sdk! This project helps gen
 
 4. **Set up environment variables**
    ```bash
-   cp .env.example .env  # If available
-   # Edit .env and add your API keys
-   export OPENAI_API_KEY=sk-...
-   export ELEVENLABS_API_KEY=...
+   # In your test project directory (not in verse-sdk)
+   cp /path/to/verse-sdk/.env.example .env
+   # Edit .env and add your actual API keys
    ```
 
 5. **Test your setup**
