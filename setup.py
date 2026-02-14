@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="sanatan-sdk",
-    version="0.10.0",
+    version="0.10.1",
     author="Sanatan Learnings",
     author_email="arun.gupta@gmail.com",
     description="SDK for generating rich multimedia content for verse-based texts",

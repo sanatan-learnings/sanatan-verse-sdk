@@ -451,19 +451,11 @@ Scene descriptions for generating images with DALL-E 3.
             f.write(header)
         print(f"  ✓ Created {prompts_file.name}")
 
-    # Check if scene description exists for this verse
+    # Read current content
     with open(prompts_file, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # Look for this verse's scene description
-    import re
-    verse_pattern = rf'### Verse {verse_number}:.*?\*\*Scene Description\*\*:'
-
-    if re.search(verse_pattern, content, re.DOTALL):
-        print(f"  ✓ Scene description already exists for Verse {verse_number}")
-        return True
-
-    # Scene description doesn't exist - generate it
+    # Generate new scene description
     print(f"  → Generating scene description for Verse {verse_number}...")
     scene_description = generate_scene_description(devanagari_text, verse_id, collection)
 
@@ -471,7 +463,7 @@ Scene descriptions for generating images with DALL-E 3.
         print(f"  ✗ Failed to generate scene description")
         return False
 
-    # Append to file
+    # Prepare new verse entry
     verse_entry = f"""### Verse {verse_number}: {verse_id}
 
 **Scene Description**:
@@ -481,10 +473,31 @@ Scene descriptions for generating images with DALL-E 3.
 
 """
 
-    with open(prompts_file, 'a', encoding='utf-8') as f:
-        f.write(verse_entry)
+    # Check if scene description already exists
+    import re
+    verse_pattern = rf'### Verse {verse_number}:.*?(?=\n---\n|\Z)'
 
-    print(f"  ✓ Added scene description for Verse {verse_number} to {prompts_file.name}")
+    if re.search(verse_pattern, content, re.DOTALL):
+        # Replace existing scene description
+        print(f"  → Replacing existing scene description for Verse {verse_number}...")
+        updated_content = re.sub(
+            verse_pattern,
+            verse_entry.rstrip('\n'),
+            content,
+            flags=re.DOTALL
+        )
+
+        with open(prompts_file, 'w', encoding='utf-8') as f:
+            f.write(updated_content)
+
+        print(f"  ✓ Updated scene description for Verse {verse_number} in {prompts_file.name}")
+    else:
+        # Append new scene description
+        with open(prompts_file, 'a', encoding='utf-8') as f:
+            f.write(verse_entry)
+
+        print(f"  ✓ Added scene description for Verse {verse_number} to {prompts_file.name}")
+
     return True
 
 
