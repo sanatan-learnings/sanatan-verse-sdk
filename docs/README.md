@@ -13,6 +13,7 @@ Detailed documentation for the verse-sdk commands and features.
 
 ## Guides
 
+- **[Usage Guide](usage.md)** - Project setup, workflows, batch processing, and best practices
 - **[Development Guide](development.md)** - Setup and contributing to verse-sdk
 - **[Multi-Collection Guide](multi-collection.md)** - Working with multiple verse collections
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
