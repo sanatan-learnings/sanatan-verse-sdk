@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="sanatan-sdk",
-    version="0.7.0",
+    version="0.7.1",
     author="Sanatan Learnings",
     author_email="arun.gupta@gmail.com",
     description="SDK for generating rich multimedia content for verse-based texts",
@@ -45,6 +45,7 @@ setup(
             'verse-deploy=verse_sdk.deployment.deploy:main',
             'verse-fetch-text=verse_sdk.fetch.fetch_verse_text:main',
             'verse-status=verse_sdk.cli.status:main',
+            'verse-sync=verse_sdk.cli.sync:main',
         ],
     },
 )
