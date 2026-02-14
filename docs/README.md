@@ -1,6 +1,6 @@
-# verse-content-sdk Documentation
+# verse-sdk Documentation
 
-Detailed documentation for the verse-content-sdk commands and features.
+Detailed documentation for the verse-sdk commands and features.
 
 ## Command Reference
 
@@ -19,5 +19,5 @@ Detailed documentation for the verse-content-sdk commands and features.
 ## Quick Links
 
 - [Main README](../README.md) - Installation, features, and getting started
-- [GitHub Repository](https://github.com/sanatan-learnings/verse-content-sdk)
+- [GitHub Repository](https://github.com/sanatan-learnings/verse-sdk)
 - [Example Project](https://github.com/sanatan-learnings/hanuman-chalisa)

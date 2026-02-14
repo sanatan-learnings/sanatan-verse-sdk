@@ -4,14 +4,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="verse-content-sdk",
+    name="verse-sdk",
     version="0.3.1",
     author="Sanatan Learnings",
     author_email="arun.gupta@gmail.com",
     description="SDK for generating rich multimedia content for verse-based texts",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/sanatan-learnings/verse-content-sdk",
+    url="https://github.com/sanatan-learnings/verse-sdk",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -38,12 +38,12 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'verse-generate=verse_content_sdk.cli.generate:main',
-            'verse-embeddings=verse_content_sdk.embeddings.generate_embeddings:main',
-            'verse-audio=verse_content_sdk.audio.generate_audio:main',
-            'verse-images=verse_content_sdk.images.generate_theme_images:main',
-            'verse-deploy=verse_content_sdk.deployment.deploy:main',
-            'verse-fetch-text=verse_content_sdk.fetch.fetch_verse_text:main',
+            'verse-generate=verse_sdk.cli.generate:main',
+            'verse-embeddings=verse_sdk.embeddings.generate_embeddings:main',
+            'verse-audio=verse_sdk.audio.generate_audio:main',
+            'verse-images=verse_sdk.images.generate_theme_images:main',
+            'verse-deploy=verse_sdk.deployment.deploy:main',
+            'verse-fetch-text=verse_sdk.fetch.fetch_verse_text:main',
         ],
     },
 )

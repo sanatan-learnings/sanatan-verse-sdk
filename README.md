@@ -1,4 +1,4 @@
-# verse-content-sdk
+# verse-sdk
 
 Python SDK for generating multimedia content for spiritual text collections (Hanuman Chalisa, Sundar Kaand, etc.)
 
@@ -15,7 +15,7 @@ Python SDK for generating multimedia content for spiritual text collections (Han
 
 ```bash
 # Install
-pip install verse-content-sdk
+pip install verse-sdk
 
 # Set up API keys
 export OPENAI_API_KEY=sk-...
@@ -40,14 +40,14 @@ By default, the command generates:
 ## Installation
 
 ```bash
-pip install verse-content-sdk
+pip install verse-sdk
 ```
 
 ### For Development
 
 ```bash
-git clone https://github.com/sanatan-learnings/verse-content-sdk.git
-cd verse-content-sdk
+git clone https://github.com/sanatan-learnings/verse-sdk.git
+cd verse-sdk
 pip install -e .
 ```
 
@@ -198,6 +198,6 @@ Contributions welcome! Please:
 
 ## Support
 
-- [GitHub Issues](https://github.com/sanatan-learnings/verse-content-sdk/issues)
+- [GitHub Issues](https://github.com/sanatan-learnings/verse-sdk/issues)
 - [Documentation](docs/README.md)
 - [Troubleshooting Guide](docs/troubleshooting.md)

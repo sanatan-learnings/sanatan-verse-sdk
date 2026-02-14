@@ -1,6 +1,6 @@
 # Publishing to PyPI
 
-This guide walks through publishing `verse-content-sdk` to the Python Package Index (PyPI).
+This guide walks through publishing `verse-sdk` to the Python Package Index (PyPI).
 
 ## Prerequisites
 
@@ -30,7 +30,7 @@ API tokens are more secure than passwords and recommended for publishing.
 
 1. Go to https://test.pypi.org/manage/account/token/
 2. Click "Add API token"
-3. Name it (e.g., "verse-content-sdk-upload")
+3. Name it (e.g., "verse-sdk-upload")
 4. Scope: "Entire account" (initially, then narrow to project after first upload)
 5. Save the token (starts with `pypi-`)
 
@@ -38,7 +38,7 @@ API tokens are more secure than passwords and recommended for publishing.
 
 1. Go to https://pypi.org/manage/account/token/
 2. Click "Add API token"
-3. Name it (e.g., "verse-content-sdk-upload")
+3. Name it (e.g., "verse-sdk-upload")
 4. Scope: "Entire account" (initially, then narrow to project after first upload)
 5. Save the token (starts with `pypi-`)
 
@@ -145,7 +145,7 @@ verse-generate --chapter 1 --verse 1 --all
 ### 6. Clean Previous Builds
 
 ```bash
-rm -rf dist/ build/ verse_content_sdk.egg-info/
+rm -rf dist/ build/ verse_sdk.egg-info/
 ```
 
 ## Publishing Process
@@ -157,8 +157,8 @@ python -m build
 ```
 
 This creates:
-- `dist/verse-content-sdk-0.1.0-py3-none-any.whl` (wheel format)
-- `dist/verse-content-sdk-0.1.0.tar.gz` (source distribution)
+- `dist/verse-sdk-0.1.0-py3-none-any.whl` (wheel format)
+- `dist/verse-sdk-0.1.0.tar.gz` (source distribution)
 
 ### Step 2: Test on TestPyPI
 
@@ -171,11 +171,11 @@ python -m twine upload --repository testpypi dist/*
 You'll see output like:
 ```
 Uploading distributions to https://test.pypi.org/legacy/
-Uploading verse-content-sdk-0.1.0-py3-none-any.whl
-Uploading verse-content-sdk-0.1.0.tar.gz
+Uploading verse-sdk-0.1.0-py3-none-any.whl
+Uploading verse-sdk-0.1.0.tar.gz
 ```
 
-View your package: https://test.pypi.org/project/verse-content-sdk/
+View your package: https://test.pypi.org/project/verse-sdk/
 
 ### Step 3: Test Installation from TestPyPI
 
@@ -187,7 +187,7 @@ python -m venv test_env
 source test_env/bin/activate  # On Windows: test_env\Scripts\activate
 
 # Install from TestPyPI (with real PyPI for dependencies)
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ verse-content-sdk
+pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ verse-sdk
 
 # Test the installation
 verse-generate --help
@@ -205,13 +205,13 @@ If testing looks good, upload to production PyPI:
 python -m twine upload dist/*
 ```
 
-View your package: https://pypi.org/project/verse-content-sdk/
+View your package: https://pypi.org/project/verse-sdk/
 
 ### Step 5: Verify Production Installation
 
 ```bash
 # In a new environment
-pip install verse-content-sdk
+pip install verse-sdk
 
 # Test it works
 verse-generate --help
@@ -226,7 +226,7 @@ git push origin v0.1.0
 
 ### Step 7: Create GitHub Release
 
-1. Go to https://github.com/sanatan-learnings/verse-content-sdk/releases
+1. Go to https://github.com/sanatan-learnings/verse-sdk/releases
 2. Click "Draft a new release"
 3. Select the tag you just created
 4. Title: "v0.1.0"
@@ -239,11 +239,11 @@ git push origin v0.1.0
 After publishing, you can manage your package at:
 
 **Production PyPI:**
-- View package: https://pypi.org/project/verse-content-sdk/
+- View package: https://pypi.org/project/verse-sdk/
 - Manage project: https://pypi.org/manage/projects/
 
 **TestPyPI:**
-- View package: https://test.pypi.org/project/verse-content-sdk/
+- View package: https://test.pypi.org/project/verse-sdk/
 - Manage project: https://test.pypi.org/manage/projects/
 
 From the management page you can:
@@ -291,7 +291,7 @@ The script will guide you through:
 This means the project name is already taken. Either:
 - Choose a different name in `setup.py`
 - Contact the current owner if it's an abandoned project
-- Use a namespace (e.g., `my-verse-content-sdk`)
+- Use a namespace (e.g., `my-verse-sdk`)
 
 ### "File already exists"
 
@@ -329,7 +329,7 @@ pip install -e .
 
 # Or create a wheel and install it
 python -m build
-pip install dist/verse-content-sdk-*.whl
+pip install dist/verse-sdk-*.whl
 ```
 
 ## Updating After Initial Release

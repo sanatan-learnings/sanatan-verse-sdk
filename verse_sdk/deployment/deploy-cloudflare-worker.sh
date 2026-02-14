@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Cloudflare Worker Deployment Script (verse-content-sdk)
+# Cloudflare Worker Deployment Script (verse-sdk)
 #
 # This script deploys Cloudflare Workers for verse-based projects.
 # It handles installation, authentication, deployment, and configuration.

@@ -12,7 +12,7 @@ from pathlib import Path
 # Add SDK to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from verse_content_sdk.embeddings.generate_embeddings import (
+from verse_sdk.embeddings.generate_embeddings import (
     load_collections_config,
     get_enabled_collections,
     extract_yaml_frontmatter,

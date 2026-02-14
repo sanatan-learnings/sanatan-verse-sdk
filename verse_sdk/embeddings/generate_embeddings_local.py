@@ -10,11 +10,11 @@ Installation:
   pip install sentence-transformers
 
 Usage:
-  from verse_content_sdk.embeddings import generate_embeddings_local
+  from verse_sdk.embeddings import generate_embeddings_local
   generate_embeddings_local(verses_dir, output_file)
 
 Or as a script:
-  python -m verse_content_sdk.embeddings.generate_embeddings_local --verses-dir _verses --output data/embeddings.json
+  python -m verse_sdk.embeddings.generate_embeddings_local --verses-dir _verses --output data/embeddings.json
 """
 
 import os

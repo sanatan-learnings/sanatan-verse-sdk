@@ -7,12 +7,12 @@ combines fields into rich semantic documents, and generates embeddings
 using either OpenAI (default) or HuggingFace (local via sentence-transformers).
 
 Usage as library:
-    from verse_content_sdk.embeddings import generate_embeddings
+    from verse_sdk.embeddings import generate_embeddings
     generate_embeddings(verses_dir, output_file, provider='openai')
 
 Usage as script:
-    python -m verse_content_sdk.embeddings.generate_embeddings --provider openai
-    python -m verse_content_sdk.embeddings.generate_embeddings --provider huggingface
+    python -m verse_sdk.embeddings.generate_embeddings --provider openai
+    python -m verse_sdk.embeddings.generate_embeddings --provider huggingface
 """
 
 import os
