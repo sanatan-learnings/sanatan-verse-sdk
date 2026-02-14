@@ -1,15 +1,16 @@
-# verse-sdk
+# verse-sdk - Python SDK for Spiritual Verse Collections
 
-Python SDK for generating multimedia content for spiritual text collections (Hanuman Chalisa, Sundar Kaand, etc.)
+Complete toolkit for generating rich multimedia content for spiritual text collections (Hanuman Chalisa, Sundar Kaand, etc.)
 
 ## Features
 
-- **📚 Collection-Aware**: Organized support for multiple verse collections
-- **🎯 Simple Generation**: Generate images and audio for specific verses
-- **🤖 AI-Powered**: DALL-E 3 for images, ElevenLabs for audio
-- **🔍 Semantic Search**: Vector embeddings for intelligent verse search
-- **🎨 Theme System**: Configurable visual styles for images
-- **🎵 Audio**: Verse pronunciation in full and slow speeds
+- **🔄 Complete Workflow**: Fetch text, generate media, and update embeddings - all in one command
+- **📖 Text Fetching**: Scrape traditional Devanagari text from authoritative sources
+- **🎨 AI Images**: Generate themed images with DALL-E 3
+- **🎵 Audio Pronunciation**: Full and slow-speed audio with ElevenLabs
+- **🔍 Semantic Search**: Vector embeddings for intelligent verse discovery
+- **📚 Multi-Collection**: Organized support for multiple verse collections
+- **🎨 Theme System**: Customizable visual styles (modern, traditional, kids-friendly, etc.)
 
 ## Quick Start
 
