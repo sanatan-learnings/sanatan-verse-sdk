@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}===========================================${NC}"
 echo -e "${BLUE}  PyPI Publishing Script${NC}"
-echo -e "${BLUE}  verse-sdk${NC}"
+echo -e "${BLUE}  sanatan-sdk${NC}"
 echo -e "${BLUE}===========================================${NC}"
 echo ""
 
@@ -100,10 +100,10 @@ if [ "$TEST_UPLOAD" = "y" ] || [ "$TEST_UPLOAD" = "Y" ]; then
         echo -e "${GREEN}✓ Successfully uploaded to TestPyPI${NC}"
         echo ""
         echo -e "${BLUE}View your package at:${NC}"
-        echo -e "https://test.pypi.org/project/verse-sdk/${VERSION}/"
+        echo -e "https://test.pypi.org/project/sanatan-sdk/${VERSION}/"
         echo ""
         echo -e "${YELLOW}Test installation with:${NC}"
-        echo "pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ verse-sdk"
+        echo "pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ sanatan-sdk"
         echo ""
     else
         echo -e "${RED}Error uploading to TestPyPI. Check the error above.${NC}"
@@ -135,10 +135,10 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}===========================================${NC}"
     echo ""
     echo -e "${BLUE}View your package at:${NC}"
-    echo -e "https://pypi.org/project/verse-sdk/${VERSION}/"
+    echo -e "https://pypi.org/project/sanatan-sdk/${VERSION}/"
     echo ""
     echo -e "${BLUE}Install with:${NC}"
-    echo "pip install verse-sdk"
+    echo "pip install sanatan-sdk"
     echo ""
 
     # Ask about git tagging
@@ -154,7 +154,7 @@ if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ Git tag created and pushed${NC}"
         echo ""
         echo -e "${BLUE}Create GitHub release at:${NC}"
-        echo "https://github.com/sanatan-learnings/verse-sdk/releases/new?tag=v${VERSION}"
+        echo "https://github.com/sanatan-learnings/sanatan-sdk/releases/new?tag=v${VERSION}"
     fi
 
     echo ""

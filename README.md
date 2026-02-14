@@ -56,6 +56,7 @@ pip install sanatan-sdk
 ## Commands
 
 - **[verse-generate](docs/commands/verse-generate.md)** - Complete orchestrator for verse content (text fetching, multimedia generation, embeddings)
+- **[verse-status](docs/commands/verse-status.md)** - Check status and completion of verse collections
 - **[verse-fetch-text](docs/commands/verse-fetch-text.md)** - Fetch traditional Devanagari text from authoritative sources
 - **[verse-images](docs/commands/verse-images.md)** - Generate images using DALL-E 3
 - **[verse-audio](docs/commands/verse-audio.md)** - Generate audio pronunciations using ElevenLabs
