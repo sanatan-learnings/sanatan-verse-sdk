@@ -8,7 +8,7 @@ Use local YAML files as the canonical source for verse text instead of web scrap
 # 1. Create directory
 mkdir -p data/verses
 
-# 2. Create verse file: data/verses/sundar-kaand.yaml
+# 2. Create verse file: data/verses/sundar-kaand.yaml (or .yml)
 # See example below
 
 # 3. SDK automatically uses local file
@@ -20,7 +20,7 @@ verse-generate --collection sundar-kaand --verse 1
 ### Location
 
 ```
-data/verses/{collection}.yaml
+data/verses/{collection}.yaml  (or .yml - both extensions supported)
 ```
 
 ### Structure
@@ -105,13 +105,13 @@ _meta:
 
 SDK checks sources in this order:
 
-1. **Local file** (`data/verses/{collection}.yaml`) - instant
+1. **Local file** (`data/verses/{collection}.yaml` or `.yml`) - instant
 2. **Web scraping** (ramcharitmanas.net, etc.) - fallback
 
 ```bash
 # Found in local file - fast
 verse-fetch-text --collection sundar-kaand --verse chaupai_01
-# ✓ Found in local file: data/verses/sundar-kaand.yaml
+# ✓ Found in local file: data/verses/sundar-kaand.{yaml,yml}
 
 # Not in local file - falls back to web
 verse-fetch-text --collection sundar-kaand --verse chaupai_99

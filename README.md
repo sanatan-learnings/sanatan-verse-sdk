@@ -44,7 +44,7 @@ By default, the complete workflow includes:
 - 🔗 Update vector embeddings for semantic search
 
 **Text Sources** (checked in order):
-1. Local YAML file: `data/verses/{collection}.yaml` (recommended)
+1. Local YAML file: `data/verses/{collection}.yaml` or `.yml` (recommended)
 2. Web scraping from authoritative sources (fallback)
 
 Opt-out flags (to skip specific steps):

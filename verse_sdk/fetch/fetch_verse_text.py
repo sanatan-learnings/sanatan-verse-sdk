@@ -142,7 +142,7 @@ def fetch_from_generic_source(url: str, selectors: list) -> Optional[str]:
 
 def fetch_from_local_file(collection: str, verse_id: str, project_dir: Path = None) -> Optional[Dict]:
     """
-    Fetch verse text from local YAML file in data/verses/{collection}.yaml
+    Fetch verse text from local YAML file in data/verses/{collection}.yaml or .yml
 
     Args:
         collection: Collection key (e.g., "sundar-kaand")
@@ -155,8 +155,10 @@ def fetch_from_local_file(collection: str, verse_id: str, project_dir: Path = No
     if project_dir is None:
         project_dir = Path.cwd()
 
-    # Look for local verses file
+    # Look for local verses file - try .yaml first, then .yml
     verses_file = project_dir / "data" / "verses" / f"{collection}.yaml"
+    if not verses_file.exists():
+        verses_file = project_dir / "data" / "verses" / f"{collection}.yml"
 
     if not verses_file.exists():
         return None
@@ -219,7 +221,7 @@ def fetch_verse_text(collection: str, verse_id: str) -> Dict[str, any]:
     # Step 1: Try local file first
     local_data = fetch_from_local_file(collection, verse_id)
     if local_data:
-        print(f"✓ Found in local file: data/verses/{collection}.yaml", file=sys.stderr)
+        print(f"✓ Found in local file: data/verses/{collection}.{{yaml,yml}}", file=sys.stderr)
         return {
             "success": True,
             "collection": collection,

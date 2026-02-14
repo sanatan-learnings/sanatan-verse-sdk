@@ -87,8 +87,11 @@ def parse_verse_frontmatter(verse_file: Path) -> Dict:
 
 
 def load_normative_verses(collection: str, project_dir: Path) -> Dict:
-    """Load normative verses from data/verses/{collection}.yaml"""
+    """Load normative verses from data/verses/{collection}.yaml or .yml"""
+    # Try .yaml first, then .yml
     verses_file = project_dir / "data" / "verses" / f"{collection}.yaml"
+    if not verses_file.exists():
+        verses_file = project_dir / "data" / "verses" / f"{collection}.yml"
 
     if not verses_file.exists():
         return {}
@@ -342,7 +345,7 @@ def analyze_collection(
     if validate_text:
         normative_verses = load_normative_verses(collection, project_dir)
         if not normative_verses:
-            print(f"Warning: No normative verses found for {collection} at data/verses/{collection}.yaml",
+            print(f"Warning: No normative verses found for {collection} at data/verses/{collection}.{{yaml,yml}}",
                   file=sys.stderr)
 
     # Find verse files
@@ -498,12 +501,12 @@ def print_collection_status(analysis: Dict, detailed: bool = False, show_validat
                             print(f"   │  ├─ Normative: {validation['normative_text'][:60]}...")
                             print(f"   │  └─ Current:   {validation['current_text'][:60]}...")
                     elif status == 'missing_normative':
-                        print(f"   │  └─ Add to data/verses/{collection}.yaml")
+                        print(f"   │  └─ Add to data/verses/{collection}.{{yaml,yml}}")
                     elif status == 'mismatch':
                         print(f"   │  └─ Fix: verse-generate --collection {collection} --verse {verse_id.split('_')[-1]} --fetch-text")
         else:
             print(f"\n   Text Validation:")
-            print(f"   └─ No normative source found (data/verses/{collection}.yaml)")
+            print(f"   └─ No normative source found (data/verses/{collection}.{{yaml,yml}})")
 
     if detailed and not show_validation:
         print(f"\n   Verse Details:")

@@ -1,10 +1,10 @@
 # verse-sync
 
-Sync verse text with canonical source from `data/verses/{collection}.yaml`.
+Sync verse text with canonical source from `data/verses/{collection}.yaml` (or `.yml`).
 
 ## Overview
 
-The `verse-sync` command updates verse files to match the normative text stored in local YAML files, ensuring text accuracy and consistency across your verse collection. It reads canonical text from `data/verses/{collection}.yaml` and updates the `devanagari` field in verse markdown files while preserving other fields.
+The `verse-sync` command updates verse files to match the normative text stored in local YAML files, ensuring text accuracy and consistency across your verse collection. It reads canonical text from `data/verses/{collection}.yaml` (or `.yml`) and updates the `devanagari` field in verse markdown files while preserving other fields.
 
 ## Usage
 
@@ -38,7 +38,7 @@ verse-sync --collection sundar-kaand --verse chaupai_01 --verse chaupai_02 --ver
 
 ## How It Works
 
-1. **Reads canonical text** from `data/verses/{collection}.yaml`
+1. **Reads canonical text** from `data/verses/{collection}.yaml` (or `.yml`)
 2. **Parses verse file** in `_verses/{collection}/{verse_id}.md`
 3. **Updates devanagari field** in frontmatter
 4. **Preserves other fields** (transliteration, meaning, translation, etc.)
@@ -249,7 +249,7 @@ $ verse-sync --collection sundar-kaand --verse chaupai_01
 ✗ Error: No normative verses found for sundar-kaand
 ```
 
-**Fix**: Create `data/verses/sundar-kaand.yaml` with canonical text
+**Fix**: Create `data/verses/sundar-kaand.yaml` (or `.yml`) with canonical text
 
 ### Verse Not Found
 
@@ -265,7 +265,7 @@ $ verse-sync --collection sundar-kaand --verse chaupai_01
 ✗ chaupai_50             - Not found in normative source
 ```
 
-**Fix**: Add verse to `data/verses/{collection}.yaml`
+**Fix**: Add verse to `data/verses/{collection}.yaml` (or `.yml`)
 
 ## Use Cases
 

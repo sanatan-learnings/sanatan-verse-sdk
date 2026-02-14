@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sync verse text with canonical source from data/verses/{collection}.yaml
+Sync verse text with canonical source from data/verses/{collection}.yaml or .yml
 
 This command updates verse files to match the normative text stored in local YAML files,
 ensuring text accuracy and consistency across your verse collection.
@@ -38,8 +38,11 @@ load_dotenv()
 
 
 def load_normative_verses(collection: str, project_dir: Path) -> Dict:
-    """Load normative verses from data/verses/{collection}.yaml"""
+    """Load normative verses from data/verses/{collection}.yaml or .yml"""
+    # Try .yaml first, then .yml
     verses_file = project_dir / "data" / "verses" / f"{collection}.yaml"
+    if not verses_file.exists():
+        verses_file = project_dir / "data" / "verses" / f"{collection}.yml"
 
     if not verses_file.exists():
         return {}
@@ -327,7 +330,7 @@ Examples:
   verse-sync --collection sundar-kaand --verse chaupai_01 --verse chaupai_02 --verse doha_01
 
 Note:
-  - Reads canonical text from data/verses/{collection}.yaml
+  - Reads canonical text from data/verses/{collection}.yaml or .yml
   - Updates devanagari field in verse frontmatter
   - Preserves other fields (transliteration, meaning, translation)
   - Use --dry-run to preview changes before applying
@@ -392,7 +395,7 @@ Note:
         print("VERSE SYNC")
     print("="*60)
     print(f"\nCollection: {args.collection}")
-    print(f"Source: data/verses/{args.collection}.yaml\n")
+    print(f"Source: data/verses/{args.collection}.{{yaml,yml}}\n")
 
     # Determine verses to sync
     verse_ids = None
