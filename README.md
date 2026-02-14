@@ -60,6 +60,7 @@ pip install sanatan-sdk
 ## Commands
 
 - **[verse-generate](docs/commands/verse-generate.md)** - Complete orchestrator for verse content (text fetching, multimedia generation, embeddings)
+- **[verse-translate](docs/commands/verse-translate.md)** - Translate verses into multiple languages (Hindi, Spanish, French, etc.)
 - **[verse-status](docs/commands/verse-status.md)** - Check status, completion, and validate text against canonical source
 - **[verse-sync](docs/commands/verse-sync.md)** - Sync verse text with canonical source (fix mismatches)
 - **[verse-fetch-text](docs/commands/verse-fetch-text.md)** - Fetch traditional Devanagari text from authoritative sources

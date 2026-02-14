@@ -46,6 +46,7 @@ setup(
             'verse-fetch-text=verse_sdk.fetch.fetch_verse_text:main',
             'verse-status=verse_sdk.cli.status:main',
             'verse-sync=verse_sdk.cli.sync:main',
+            'verse-translate=verse_sdk.cli.translate:main',
         ],
     },
 )
