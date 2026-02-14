@@ -365,47 +365,49 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
         frontmatter = yaml.safe_load(parts[1]) or {}
         body = parts[2]
 
-        # Update frontmatter with generated content
-        frontmatter['devanagari'] = content['devanagari']
-        frontmatter['transliteration'] = content['transliteration']
-        frontmatter['meaning'] = content['meaning']
-        frontmatter['translation'] = content['translation']
+        # Get verse info from existing frontmatter or filename
+        verse_num = frontmatter.get('verse_number', 0)
+        collection = frontmatter.get('collection_key') or frontmatter.get('collection', 'unknown')
+        verse_id = verse_file.stem  # e.g., shloka_02
+        verse_type = verse_id.split('_')[0] if '_' in verse_id else 'verse'
+
+        # Update frontmatter with ALL generated content (complete chaupai format)
+        # Preserve existing metadata fields but add/update with new structure
+        frontmatter.update({
+            'layout': frontmatter.get('layout', 'verse'),
+            'collection_key': collection,  # Use collection_key, not just collection
+            'permalink': frontmatter.get('permalink', f'/{collection}/{verse_id}/'),
+            'title_en': content.get('title_en', frontmatter.get('title_en', f'{verse_type.title()} {verse_num}')),
+            'title_hi': content.get('title_hi', frontmatter.get('title_hi', f'{verse_type} {verse_num}')),
+            'verse_number': verse_num,
+            'previous_verse': frontmatter.get('previous_verse', f'/{collection}/{verse_type}_{verse_num-1:02d}' if verse_num > 1 else None),
+            'next_verse': frontmatter.get('next_verse', f'/{collection}/{verse_type}_{verse_num+1:02d}'),
+            'image': frontmatter.get('image', f'/images/{collection}/modern-minimalist/{verse_id}.png'),
+            'devanagari': content['devanagari'],
+            'transliteration': content['transliteration'],
+            'word_meanings': content.get('word_meanings', frontmatter.get('word_meanings', [])),
+            'literal_translation': content.get('literal_translation', {'en': '', 'hi': ''}),
+            'interpretive_meaning': content.get('interpretive_meaning', {'en': '', 'hi': ''}),
+            'story': content.get('story', {'en': '', 'hi': ''}),
+            'practical_application': content.get('practical_application', {
+                'teaching': {'en': '', 'hi': ''},
+                'when_to_use': {'en': '', 'hi': ''}
+            }),
+            'meaning': content.get('meaning', ''),
+            'translation': content.get('translation', {'en': ''})
+        })
+
+        # Remove None values and old 'collection' field
+        frontmatter = {k: v for k, v in frontmatter.items() if v is not None and k != 'collection'}
 
         # Build updated content
         updated_content = "---\n"
-        updated_content += yaml.dump(frontmatter, allow_unicode=True, sort_keys=False)
+        updated_content += yaml.dump(frontmatter, allow_unicode=True, sort_keys=False, default_flow_style=False)
         updated_content += "---"
 
-        # Update body if we have story and practical applications
-        if content.get('story') or content.get('practical_applications'):
-            # Replace or add story and practical applications sections
-            if '## Story' in body or '## Context' in body:
-                # Replace existing story section
-                import re
-                body = re.sub(
-                    r'## (Story|Context).*?(?=##|$)',
-                    f"## Story & Context\n\n{content.get('story', '')}\n\n",
-                    body,
-                    flags=re.DOTALL
-                )
-            else:
-                # Add story section
-                body += f"\n\n## Story & Context\n\n{content.get('story', '')}\n"
-
-            if '## Practical' in body:
-                # Replace existing practical applications
-                import re
-                body = re.sub(
-                    r'## Practical.*?(?=##|$)',
-                    f"## Practical Applications\n\n{content.get('practical_applications', '')}\n\n",
-                    body,
-                    flags=re.DOTALL
-                )
-            else:
-                # Add practical applications section
-                body += f"\n## Practical Applications\n\n{content.get('practical_applications', '')}\n"
-
-        updated_content += body
+        # Remove body sections (everything should be in frontmatter now for complete format)
+        # Only keep body if there's custom content beyond standard sections
+        updated_content += "\n"
 
         # Write updated file
         with open(verse_file, 'w', encoding='utf-8') as f:
