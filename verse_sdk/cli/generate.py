@@ -675,7 +675,7 @@ Provide ONLY the scene description, no additional text."""
         return None
 
 
-def ensure_scene_description_exists(collection: str, verse_number: int, verse_id: str, devanagari_text: str) -> bool:
+def ensure_scene_description_exists(collection: str, verse_number: int, verse_id: str, devanagari_text: str, title_en: str = None) -> bool:
     """
     Ensure scene description exists for the verse. Creates file and/or adds scene if missing.
 
@@ -684,6 +684,7 @@ def ensure_scene_description_exists(collection: str, verse_number: int, verse_id
         verse_number: Verse number (for ordering)
         verse_id: Verse identifier (e.g., chaupai_05)
         devanagari_text: Canonical Devanagari text for generating description
+        title_en: English title of the verse (optional)
 
     Returns:
         True if scene description is available, False if failed
@@ -711,16 +712,26 @@ Scene descriptions for generating images with DALL-E 3.
     with open(prompts_file, 'r', encoding='utf-8') as f:
         content = f.read()
 
+    # Extract verse type from verse_id (e.g., "chaupai" from "chaupai_05")
+    verse_type = verse_id.split('_')[0] if '_' in verse_id else 'verse'
+    verse_type_title = verse_type.title()  # Capitalize: Chaupai, Shloka, Doha, etc.
+
     # Generate new scene description
-    print(f"  → Generating scene description for Verse {verse_number}...")
+    print(f"  → Generating scene description for {verse_type_title} {verse_number}...")
     scene_description = generate_scene_description(devanagari_text, verse_id, collection)
 
     if not scene_description:
         print(f"  ✗ Failed to generate scene description")
         return False
 
+    # Build header: "### Chaupai 5 (chaupai_05): Title" or "### Chaupai 5 (chaupai_05)" if no title
+    if title_en:
+        header = f"### {verse_type_title} {verse_number} ({verse_id}): {title_en}"
+    else:
+        header = f"### {verse_type_title} {verse_number} ({verse_id})"
+
     # Prepare new verse entry
-    verse_entry = f"""### Verse {verse_number}: {verse_id}
+    verse_entry = f"""{header}
 
 **Scene Description**:
 {scene_description}
@@ -729,13 +740,14 @@ Scene descriptions for generating images with DALL-E 3.
 
 """
 
-    # Check if scene description already exists
+    # Check if scene description already exists (match both old and new formats)
     import re
-    verse_pattern = rf'### Verse {verse_number}:.*?(?=\n---\n|\Z)'
+    # Try new format first, then fall back to old format
+    verse_pattern = rf'### (?:Verse {verse_number}|{verse_type_title} {verse_number}).*?(?=\n---\n|\Z)'
 
     if re.search(verse_pattern, content, re.DOTALL):
         # Replace existing scene description
-        print(f"  → Replacing existing scene description for Verse {verse_number}...")
+        print(f"  → Replacing existing scene description for {verse_type_title} {verse_number}...")
         updated_content = re.sub(
             verse_pattern,
             verse_entry.rstrip('\n'),
@@ -746,13 +758,13 @@ Scene descriptions for generating images with DALL-E 3.
         with open(prompts_file, 'w', encoding='utf-8') as f:
             f.write(updated_content)
 
-        print(f"  ✓ Updated scene description for Verse {verse_number} in {prompts_file.name}")
+        print(f"  ✓ Updated scene description for {verse_type_title} {verse_number} in {prompts_file.name}")
     else:
         # Append new scene description
         with open(prompts_file, 'a', encoding='utf-8') as f:
             f.write(verse_entry)
 
-        print(f"  ✓ Added scene description for Verse {verse_number} to {prompts_file.name}")
+        print(f"  ✓ Added scene description for {verse_type_title} {verse_number} to {prompts_file.name}")
 
     return True
 
@@ -1298,12 +1310,28 @@ Environment Variables:
                     print(f"  Cannot generate scene description without canonical text.", file=sys.stderr)
                     results['image'] = False
                 else:
+                    # Try to get title from verse file
+                    verse_file = Path.cwd() / "_verses" / args.collection / f"{verse_id}.md"
+                    title_en = None
+                    if verse_file.exists():
+                        try:
+                            with open(verse_file, 'r', encoding='utf-8') as f:
+                                file_content = f.read()
+                            if file_content.startswith('---'):
+                                parts = file_content.split('---', 2)
+                                if len(parts) >= 3:
+                                    frontmatter = yaml.safe_load(parts[1])
+                                    title_en = frontmatter.get('title_en')
+                        except Exception:
+                            pass  # If we can't read title, continue without it
+
                     # Ensure scene description exists (creates file/adds description if needed)
                     scene_ready = ensure_scene_description_exists(
                         args.collection,
                         verse_num,
                         verse_id,
-                        canonical_data['devanagari']
+                        canonical_data['devanagari'],
+                        title_en
                     )
 
                     if scene_ready:
