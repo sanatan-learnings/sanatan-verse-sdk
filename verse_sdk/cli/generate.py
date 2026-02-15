@@ -621,7 +621,7 @@ def infer_verse_id(collection: str, verse_number: int, project_dir: Path = Path.
         return None
     else:
         # No matches - this is a new verse, use default pattern
-        return f"verse_{verse_number:02d}"
+        return f"verse-{verse_number:02d}"
 
 
 def generate_scene_description(devanagari_text: str, verse_id: str, collection: str) -> str:
@@ -1217,7 +1217,7 @@ Environment Variables:
                 verse_id = inferred
 
                 # Show inference result if it's not the default
-                if len(verse_numbers) == 1 and verse_id != f"verse_{verse_num:02d}":
+                if len(verse_numbers) == 1 and verse_id != f"verse-{verse_num:02d}":
                     print(f"\n✓ Auto-detected verse ID: {verse_id}")
                     print(f"  (To override, use --verse-id)\n")
 

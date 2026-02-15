@@ -120,13 +120,13 @@ def generate_verse_url(verse_data):
     title_en = verse_data.get('title_en', '')
     if 'Doha' in title_en:
         if 'Opening' in title_en:
-            return '/verses/doha_01/'
+            return '/verses/doha-01/'
         else:
-            return '/verses/doha_02/'
+            return '/verses/doha-02/'
     elif 'Closing' in title_en:
-        return '/verses/closing_verse/'
+        return '/verses/closing-verse/'
     else:
-        return f'/verses/verse_{verse_num:02d}/'
+        return f'/verses/verse-{verse_num:02d}/'
 
 def process_verse_file(file_path, model):
     """Process a single verse file and return metadata + embeddings."""

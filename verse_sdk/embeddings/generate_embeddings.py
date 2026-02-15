@@ -223,11 +223,11 @@ def generate_verse_url(verse_data):
     title_en = verse_data.get('title_en', '')
     if 'Doha' in title_en:
         if 'Opening' in title_en or verse_num == 1 or verse_num == '1':
-            return '/verses/doha_01/'
+            return '/verses/doha-01/'
         elif verse_num == 2 or verse_num == '2':
-            return '/verses/doha_02/'
+            return '/verses/doha-02/'
     elif 'Closing' in title_en:
-        return '/verses/doha_closing/'
+        return '/verses/doha-closing/'
 
     # Ensure verse_num is an integer for formatting
     if isinstance(verse_num, str):
@@ -236,7 +236,7 @@ def generate_verse_url(verse_data):
         except ValueError:
             verse_num = 0
 
-    return f'/verses/verse_{verse_num:02d}/'
+    return f'/verses/verse-{verse_num:02d}/'
 
 
 def process_verse_file(file_path, embed_func, client_or_model, config, collection_metadata=None):
