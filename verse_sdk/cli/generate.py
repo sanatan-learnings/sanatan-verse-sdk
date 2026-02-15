@@ -773,11 +773,12 @@ def generate_audio(collection: str, verse: int, verse_id: str = None) -> bool:
     try:
         result = subprocess.run(cmd, check=True)
 
-        # Verify that audio files were actually created
+        # Verify that audio files were actually created with non-zero size
         audio_dir = Path.cwd() / "audio" / collection
         full_audio = audio_dir / f"{verse_id}_full.mp3"
         slow_audio = audio_dir / f"{verse_id}_slow.mp3"
 
+        # Check if files exist
         if not full_audio.exists() or not slow_audio.exists():
             print(f"\n✗ Audio generation reported success but files not found:")
             if not full_audio.exists():
@@ -785,6 +786,23 @@ def generate_audio(collection: str, verse: int, verse_id: str = None) -> bool:
             if not slow_audio.exists():
                 print(f"  Missing: {slow_audio}")
             print("\nThis may indicate an issue with the audio generation workflow.")
+            return False
+
+        # Check if files have non-zero size (not corrupted/empty)
+        full_size = full_audio.stat().st_size
+        slow_size = slow_audio.stat().st_size
+
+        if full_size == 0 or slow_size == 0:
+            print(f"\n✗ Audio generation created corrupted files (0 bytes):")
+            if full_size == 0:
+                print(f"  Corrupted: {full_audio.name} (0 bytes)")
+            if slow_size == 0:
+                print(f"  Corrupted: {slow_audio.name} (0 bytes)")
+            print("\nPossible causes:")
+            print("  - ElevenLabs API returned empty response")
+            print("  - Network interruption during download")
+            print("  - Insufficient disk space")
+            print("\nTry regenerating with: verse-audio --collection {collection} --verse {verse_id} --force")
             return False
 
         print(f"\n✓ Audio generated successfully")

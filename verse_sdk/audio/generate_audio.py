@@ -233,9 +233,23 @@ class AudioGenerator:
                 # Save to temporary file first
                 temp_path = output_path.with_suffix('.temp.mp3') if speed == "slow" else output_path
 
+                # Write audio chunks and track total bytes written
+                bytes_written = 0
                 with open(temp_path, 'wb') as f:
                     for chunk in audio:
                         f.write(chunk)
+                        bytes_written += len(chunk)
+
+                # Verify we received data from the API
+                if bytes_written == 0:
+                    print(f"  ✗ Error: ElevenLabs API returned empty audio stream")
+                    print(f"    This may indicate:")
+                    print(f"      - API quota exceeded")
+                    print(f"      - Invalid API key or voice ID")
+                    print(f"      - Text cannot be processed")
+                    if temp_path.exists():
+                        temp_path.unlink()
+                    return False
 
                 # If slow speed, apply audio processing to slow it down
                 if speed == "slow":
@@ -245,6 +259,22 @@ class AudioGenerator:
                         temp_path.unlink()
                     if not success:
                         return False
+
+                # Verify file was written with non-zero size
+                if not output_path.exists():
+                    print(f"  ✗ Error: Output file was not created: {output_path}")
+                    return False
+
+                file_size = output_path.stat().st_size
+                if file_size == 0:
+                    print(f"  ✗ Error: Generated file is empty (0 bytes): {output_path.name}")
+                    print(f"    This may indicate:")
+                    print(f"      - Empty response from ElevenLabs API")
+                    print(f"      - Network interruption during download")
+                    print(f"      - API quota exceeded")
+                    # Delete the empty file
+                    output_path.unlink()
+                    return False
 
                 return True
 
@@ -401,9 +431,14 @@ class AudioGenerator:
                 )
 
                 if success:
-                    file_size = output_path.stat().st_size / 1024  # KB
-                    print(f"  ✓ Generated {filename} ({file_size:.1f} KB)")
-                    generated += 1
+                    # Double-check file exists and has content (defensive check)
+                    if output_path.exists() and output_path.stat().st_size > 0:
+                        file_size = output_path.stat().st_size / 1024  # KB
+                        print(f"  ✓ Generated {filename} ({file_size:.1f} KB)")
+                        generated += 1
+                    else:
+                        print(f"  ✗ Failed to generate {filename} (file missing or empty)")
+                        failed += 1
                 else:
                     print(f"  ✗ Failed to generate {filename}")
                     failed += 1
