@@ -744,7 +744,13 @@ Scene descriptions for generating images with DALL-E 3.
     import re
     # Match verse header followed by content until the next --- separator or end of file
     # Use \s* to handle variable whitespace before ---
-    verse_pattern = rf'### (?:Verse {verse_number}|{verse_type_title} {verse_number})[^\n]*\n.*?(?=\n---\s*\n|\Z)'
+    # First try to match by verse_id in parentheses (most specific)
+    verse_id_pattern = rf'###[^\n]*\({re.escape(verse_id)}\)[^\n]*\n.*?(?=\n---\s*\n|\Z)'
+    # Fallback: match by verse number (for entries without verse_id)
+    verse_number_pattern = rf'### (?:Verse {verse_number}|{verse_type_title} {verse_number})(?![^\n]*\()\s*[^\n]*\n.*?(?=\n---\s*\n|\Z)'
+
+    # Try verse_id match first (catches duplicates with any verse number)
+    verse_pattern = verse_id_pattern if re.search(verse_id_pattern, content, re.DOTALL) else verse_number_pattern
 
     if re.search(verse_pattern, content, re.DOTALL):
         # Replace existing scene description
