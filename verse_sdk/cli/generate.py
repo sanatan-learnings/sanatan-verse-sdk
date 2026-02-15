@@ -1553,7 +1553,7 @@ Environment Variables:
         print()
 
         # Exit with appropriate code
-        all_results = [r for r in results.values() if r is not None and r != results['verse'] and r != results['verse_id']]
+        all_results = [r for r in results.values() if r is not None and r != results['position'] and r != results['verse_id']]
         if all_results and all(all_results):
             print("✓ All tasks completed successfully!")
             sys.exit(0)
