@@ -581,6 +581,37 @@ def list_collections(project_dir: Path = Path.cwd()):
     return enabled
 
 
+def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional[int]:
+    """
+    Find the next verse number to generate by scanning existing verse files.
+
+    Returns:
+        Next verse number to generate, or None if no verses exist
+    """
+    verses_dir = project_dir / "_verses" / collection
+    if not verses_dir.exists():
+        return 1  # Start from verse 1 if directory doesn't exist
+
+    # Find all markdown files
+    verse_files = list(verses_dir.glob("*.md"))
+    if not verse_files:
+        return 1  # Start from verse 1 if no files exist
+
+    # Extract verse numbers from filenames
+    verse_numbers = []
+    for verse_file in verse_files:
+        # Try to extract number from filename (e.g., chaupai-05.md -> 5)
+        match = re.search(r'[-_](\d+)\.md$', verse_file.name)
+        if match:
+            verse_numbers.append(int(match.group(1)))
+
+    if not verse_numbers:
+        return 1
+
+    # Return max + 1
+    return max(verse_numbers) + 1
+
+
 def infer_verse_id(collection: str, verse_number: int, project_dir: Path = Path.cwd()) -> Optional[str]:
     """
     Infer verse ID by scanning existing verse files in the collection.
@@ -996,6 +1027,9 @@ Examples:
   # Generate only audio
   verse-generate --collection sankat-mochan-hanumanashtak --verse 5 --audio
 
+  # Auto-generate next verse after the last generated verse
+  verse-generate --collection sundar-kaand --next --all
+
   # Regenerate AI content only (no multimedia)
   verse-generate --collection sundar-kaand --verse 3 --regenerate-content
 
@@ -1043,6 +1077,11 @@ Environment Variables:
         type=str,
         help="Verse number or range (e.g., 5, 1-10, 5-20)",
         metavar="N or M-N"
+    )
+    parser.add_argument(
+        "--next",
+        action="store_true",
+        help="Auto-detect and generate the next verse after the last generated verse"
     )
 
     # Content types
@@ -1110,8 +1149,12 @@ Environment Variables:
     # Validate required arguments
     if not args.collection:
         parser.error("--collection is required")
-    if not args.verse:
-        parser.error("--verse is required")
+
+    # Either --verse or --next must be specified (but not both)
+    if args.next and args.verse:
+        parser.error("--next and --verse are mutually exclusive")
+    if not args.verse and not args.next:
+        parser.error("Either --verse or --next is required")
 
     # Default to --all if no generation flags specified
     # BUT: if only --regenerate-content is specified, don't generate multimedia
@@ -1121,6 +1164,15 @@ Environment Variables:
     # Validate collection
     if not validate_collection(args.collection):
         sys.exit(1)
+
+    # Handle --next by finding the next verse to generate
+    if args.next:
+        next_verse = find_next_verse(args.collection)
+        if next_verse is None:
+            print(f"✗ Error: Could not determine next verse for collection '{args.collection}'")
+            sys.exit(1)
+        args.verse = str(next_verse)
+        print(f"✓ Auto-detected next verse: {next_verse}")
 
     # Parse verse argument (supports single number or range)
     verse_numbers = []
