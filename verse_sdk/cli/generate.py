@@ -364,7 +364,7 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
             'verse_type': verse_type,
             'previous_verse': f'/{collection}/{verse_type}_{verse_num-1:02d}' if verse_num > 1 else None,
             'next_verse': f'/{collection}/{verse_type}_{verse_num+1:02d}',
-            'image': f'/images/{collection}/modern-minimalist/{verse_id}.png',
+            'image': f'/images/{collection}/modern-minimalist/{verse_id.replace("_", "-")}.png',
             'devanagari': content['devanagari'],
             'transliteration': content['transliteration'],
             'phonetic_notes': content.get('phonetic_notes', []),
@@ -461,7 +461,7 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
             'verse_type': verse_type,
             'previous_verse': frontmatter.get('previous_verse', f'/{collection}/{verse_type}_{verse_num-1:02d}' if verse_num > 1 else None),
             'next_verse': frontmatter.get('next_verse', f'/{collection}/{verse_type}_{verse_num+1:02d}'),
-            'image': frontmatter.get('image', f'/images/{collection}/modern-minimalist/{verse_id}.png'),
+            'image': frontmatter.get('image', f'/images/{collection}/modern-minimalist/{verse_id.replace("_", "-")}.png'),
             'devanagari': content['devanagari'],
             'transliteration': content['transliteration'],
             'phonetic_notes': content.get('phonetic_notes', frontmatter.get('phonetic_notes', [])),
@@ -742,8 +742,9 @@ Scene descriptions for generating images with DALL-E 3.
 
     # Check if scene description already exists (match both old and new formats)
     import re
-    # Try new format first, then fall back to old format
-    verse_pattern = rf'### (?:Verse {verse_number}|{verse_type_title} {verse_number}).*?(?=\n---\n|\Z)'
+    # Match verse header followed by content until the next --- separator or end of file
+    # Use \s* to handle variable whitespace before ---
+    verse_pattern = rf'### (?:Verse {verse_number}|{verse_type_title} {verse_number})[^\n]*\n.*?(?=\n---\s*\n|\Z)'
 
     if re.search(verse_pattern, content, re.DOTALL):
         # Replace existing scene description
