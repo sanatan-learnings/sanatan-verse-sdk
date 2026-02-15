@@ -15,9 +15,9 @@ Environment Variables:
     ELEVENLABS_API_KEY - Your Eleven Labs API key (required)
 
 Output:
-    audio/doha_01_full.mp3, audio/doha_01_slow.mp3
-    audio/doha_02_full.mp3, audio/doha_02_slow.mp3
-    audio/verse_01_full.mp3, audio/verse_01_slow.mp3
+    audio/doha-01-full.mp3, audio/doha-01-slow.mp3
+    audio/doha-02-full.mp3, audio/doha-02-slow.mp3
+    audio/verse-01-full.mp3, audio/verse-01-slow.mp3
     ... (86 files total for 43 verses)
 """
 
@@ -106,7 +106,7 @@ class AudioGenerator:
         Parse all verse files and extract Devanagari text.
 
         Args:
-            specific_verse: Optional verse stem to generate only (e.g., 'verse_01')
+            specific_verse: Optional verse stem to generate only (e.g., 'verse-01')
 
         Returns:
             Dictionary mapping filename to Devanagari text
@@ -355,7 +355,7 @@ class AudioGenerator:
             start_from: Optional filename to resume from (e.g., 'verse_15_full.mp3')
             only_file: Optional single filename to generate (e.g., 'doha_01_full.mp3')
             regenerate_files: Optional list of filenames to regenerate
-            specific_verse: Optional verse stem to generate only (e.g., 'verse_01')
+            specific_verse: Optional verse stem to generate only (e.g., 'verse-01')
         """
         verses = self.parse_verse_files(specific_verse=specific_verse)
 
@@ -507,12 +507,12 @@ def main():
     )
     parser.add_argument(
         "--verse",
-        help="Generate audio for specific verse only (e.g., verse_01, chaupai_03)",
+        help="Generate audio for specific verse only (e.g., verse-01, chaupai-03)",
         metavar="VERSE"
     )
     parser.add_argument(
         "--start-from",
-        help="Resume from specific file (e.g., verse_15_full.mp3)",
+        help="Resume from specific file (e.g., verse-15-full.mp3)",
         metavar="FILENAME"
     )
     parser.add_argument(
@@ -522,7 +522,7 @@ def main():
     )
     parser.add_argument(
         "--regenerate",
-        help="Regenerate specific files (comma-separated, e.g., doha_01_full.mp3,verse_10_slow.mp3)",
+        help="Regenerate specific files (comma-separated, e.g., doha-01-full.mp3,verse-10-slow.mp3)",
         metavar="FILES"
     )
     parser.add_argument(

@@ -118,7 +118,7 @@ class ImageGenerator:
         )
         if doha_with_id_sections:
             for verse_id, scene_desc in doha_with_id_sections:
-                filename = f'{verse_id.replace("_", "-")}.png'
+                filename = f'{verse_id}.png'
                 prompts[filename] = scene_desc.strip()
         else:
             # Fall back to numbered format
@@ -140,8 +140,8 @@ class ImageGenerator:
         )
         if verse_with_id_sections:
             for verse_id, scene_desc in verse_with_id_sections:
-                # Use the verse ID from parentheses, convert underscores to dashes
-                filename = f'{verse_id.replace("_", "-")}.png'
+                # Use the verse ID from parentheses (already in dash format)
+                filename = f'{verse_id}.png'
                 prompts[filename] = scene_desc.strip()
 
         # Try Chapter X, Verse Y format (for Bhagavad Gita)
@@ -272,8 +272,8 @@ class ImageGenerator:
 
         # Filter to specific verse if requested
         if specific_verse:
-            # Convert verse_id format to filename format (shloka_01 -> shloka-01.png)
-            target_filename = f"{specific_verse.replace('_', '-')}.png"
+            # verse_id is already in dash format (e.g., shloka-01)
+            target_filename = f"{specific_verse}.png"
             if target_filename in prompts:
                 ordered_files = [target_filename]
                 print(f"✓ Generating specific verse: {specific_verse} ({target_filename})")
@@ -478,7 +478,7 @@ Cost Estimate:
     parser.add_argument(
         '--verse',
         default=None,
-        help='Generate image for specific verse only (e.g., verse_01, chaupai_03)'
+        help='Generate image for specific verse only (e.g., verse-01, chaupai-03)'
     )
 
     parser.add_argument(

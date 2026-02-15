@@ -351,7 +351,7 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
             verse_id = verse_file.stem  # e.g., chaupai_02 from chaupai_02.md
 
         # Determine verse type and format IDs
-        verse_type = verse_id.split('_')[0] if '_' in verse_id else 'verse'  # chaupai, shloka, doha, etc.
+        verse_type = verse_id.split('-')[0] if '-' in verse_id else 'verse'  # chaupai, shloka, doha, etc.
 
         # Build complete frontmatter (chaupai format)
         frontmatter = {
@@ -362,9 +362,9 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
             'title_hi': content.get('title_hi', f'{verse_type} {verse_num}'),
             'verse_number': verse_num,
             'verse_type': verse_type,
-            'previous_verse': f'/{collection}/{verse_type}_{verse_num-1:02d}' if verse_num > 1 else None,
-            'next_verse': f'/{collection}/{verse_type}_{verse_num+1:02d}',
-            'image': f'/images/{collection}/modern-minimalist/{verse_id.replace("_", "-")}.png',
+            'previous_verse': f'/{collection}/{verse_type}-{verse_num-1:02d}' if verse_num > 1 else None,
+            'next_verse': f'/{collection}/{verse_type}-{verse_num+1:02d}',
+            'image': f'/images/{collection}/modern-minimalist/{verse_id}.png',
             'devanagari': content['devanagari'],
             'transliteration': content['transliteration'],
             'phonetic_notes': content.get('phonetic_notes', []),
@@ -447,7 +447,7 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
         verse_num = frontmatter.get('verse_number', 0)
         collection = frontmatter.get('collection_key') or frontmatter.get('collection', 'unknown')
         verse_id = verse_file.stem  # e.g., shloka_02
-        verse_type = verse_id.split('_')[0] if '_' in verse_id else 'verse'
+        verse_type = verse_id.split('-')[0] if '-' in verse_id else 'verse'
 
         # Update frontmatter with ALL generated content (complete chaupai format)
         # Preserve existing metadata fields but add/update with new structure
@@ -459,9 +459,9 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
             'title_hi': content.get('title_hi', frontmatter.get('title_hi', f'{verse_type} {verse_num}')),
             'verse_number': verse_num,
             'verse_type': verse_type,
-            'previous_verse': frontmatter.get('previous_verse', f'/{collection}/{verse_type}_{verse_num-1:02d}' if verse_num > 1 else None),
-            'next_verse': frontmatter.get('next_verse', f'/{collection}/{verse_type}_{verse_num+1:02d}'),
-            'image': frontmatter.get('image', f'/images/{collection}/modern-minimalist/{verse_id.replace("_", "-")}.png'),
+            'previous_verse': frontmatter.get('previous_verse', f'/{collection}/{verse_type}-{verse_num-1:02d}' if verse_num > 1 else None),
+            'next_verse': frontmatter.get('next_verse', f'/{collection}/{verse_type}-{verse_num+1:02d}'),
+            'image': frontmatter.get('image', f'/images/{collection}/modern-minimalist/{verse_id}.png'),
             'devanagari': content['devanagari'],
             'transliteration': content['transliteration'],
             'phonetic_notes': content.get('phonetic_notes', frontmatter.get('phonetic_notes', [])),
@@ -713,7 +713,7 @@ Scene descriptions for generating images with DALL-E 3.
         content = f.read()
 
     # Extract verse type from verse_id (e.g., "chaupai" from "chaupai_05")
-    verse_type = verse_id.split('_')[0] if '_' in verse_id else 'verse'
+    verse_type = verse_id.split('-')[0] if '-' in verse_id else 'verse'
     verse_type_title = verse_type.title()  # Capitalize: Chaupai, Shloka, Doha, etc.
 
     # Generate new scene description
@@ -779,9 +779,9 @@ def generate_image(collection: str, verse: int, theme: str, verse_id: str = None
     # Prompts file will be created if needed by ensure_scene_description_exists
     prompts_file = Path.cwd() / "docs" / "image-prompts" / f"{collection}.md"
 
-    # Use provided verse_id or default to verse_{N:02d}
+    # Use provided verse_id or default to verse-{N:02d}
     if not verse_id:
-        verse_id = f"verse_{verse:02d}"
+        verse_id = f"verse-{verse:02d}"
 
     print(f"✓ Collection: {collection}")
     print(f"✓ Verse: {verse_id}")
@@ -813,9 +813,9 @@ def generate_audio(collection: str, verse: int, verse_id: str = None) -> bool:
     print("GENERATING AUDIO")
     print(f"{'='*60}\n")
 
-    # Use provided verse_id or default to verse_{N:02d}
+    # Use provided verse_id or default to verse-{N:02d}
     if not verse_id:
-        verse_id = f"verse_{verse:02d}"
+        verse_id = f"verse-{verse:02d}"
 
     # Check if verse file exists
     verses_dir = Path.cwd() / "_verses" / collection
@@ -1006,8 +1006,8 @@ Note:
   - Use --no-update-embeddings to skip embeddings (faster generation)
   - Theme defaults to "modern-minimalist" (use --theme to change)
   - Verse ID is automatically detected from existing verse files
-  - Use --verse-id only when multiple files match (e.g., chaupai_05 and doha_05)
-  - For new verses, defaults to verse_{N:02d}
+  - Use --verse-id only when multiple files match (e.g., chaupai-05 and doha-05)
+  - For new verses, defaults to verse-{N:02d}
 
 Environment Variables:
   OPENAI_API_KEY      - Required for image generation and embeddings
@@ -1087,7 +1087,7 @@ Environment Variables:
     parser.add_argument(
         "--verse-id",
         type=str,
-        help="Override verse identifier (e.g., chaupai_05, doha_01). If not specified, auto-detects from existing files or defaults to verse_{N:02d}",
+        help="Override verse identifier (e.g., chaupai-05, doha-01). If not specified, auto-detects from existing files or defaults to verse-{N:02d}",
         metavar="ID"
     )
 
