@@ -456,7 +456,16 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
 
 def find_command(command_name: str) -> str:
     """Find the full path to a command, checking common locations."""
-    # First try shutil.which (checks PATH)
+    # First, try to find command in the same directory as current Python executable
+    # This ensures we use commands from the same virtual environment
+    python_executable = Path(sys.executable)
+    bin_dir = python_executable.parent
+    cmd_in_venv = bin_dir / command_name
+
+    if cmd_in_venv.exists():
+        return str(cmd_in_venv)
+
+    # Try shutil.which (checks PATH)
     cmd_path = shutil.which(command_name)
     if cmd_path:
         return cmd_path
