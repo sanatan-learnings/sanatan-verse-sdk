@@ -745,7 +745,10 @@ Scene descriptions for generating images with DALL-E 3.
     # Match verse header followed by content until the next --- separator or end of file
     # Use \s* to handle variable whitespace before ---
     # First try to match by verse_id in parentheses (most specific)
-    verse_id_pattern = rf'###[^\n]*\({re.escape(verse_id)}\)[^\n]*\n.*?(?=\n---\s*\n|\Z)'
+    # Support both dash and underscore formats for backward compatibility
+    verse_id_dash = re.escape(verse_id)
+    verse_id_underscore = re.escape(verse_id.replace('-', '_'))
+    verse_id_pattern = rf'###[^\n]*\((?:{verse_id_dash}|{verse_id_underscore})\)[^\n]*\n.*?(?=\n---\s*\n|\Z)'
     # Fallback: match by verse number (for entries without verse_id)
     verse_number_pattern = rf'### (?:Verse {verse_number}|{verse_type_title} {verse_number})(?![^\n]*\()\s*[^\n]*\n.*?(?=\n---\s*\n|\Z)'
 
