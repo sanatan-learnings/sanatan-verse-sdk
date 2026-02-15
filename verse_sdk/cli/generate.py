@@ -1196,6 +1196,12 @@ Environment Variables:
             verse_numbers = [int(args.verse)]
         except ValueError:
             print(f"✗ Error: Invalid verse number: {args.verse}")
+            print(f"")
+            print(f"The --verse flag expects a NUMBER (e.g., 15), not a verse ID.")
+            print(f"")
+            print(f"Did you mean one of these?")
+            print(f"  verse-generate --collection {args.collection} --verse 15")
+            print(f"  verse-generate --collection {args.collection} --verse 15 --verse-id {args.verse}")
             sys.exit(1)
 
     # Validate verse_id is not used with ranges
