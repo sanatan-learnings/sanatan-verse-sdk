@@ -91,7 +91,16 @@ Hindi: [शीर्षक हिंदी में]
 2. TRANSLITERATION (IAST format, single line, precisely matching the Devanagari):
 [Your transliteration here]
 
-3. WORD-BY-WORD MEANINGS (structured list of key words):
+3. PHONETIC NOTES (for 2-3 key words that may be difficult to pronounce):
+CRITICAL: Only include words that ACTUALLY APPEAR in the Devanagari text above.
+Format each as:
+PHONETIC: [Devanagari word from verse] | PRONUNCIATION: [syllable-by-syllable] | EMPHASIS: [which syllable]
+
+Example (only if these words appear in the verse):
+PHONETIC: हनुमंत | PRONUNCIATION: ha-nu-mant | EMPHASIS: first syllable
+PHONETIC: परिखेहु | PRONUNCIATION: pa-ri-khe-hu | EMPHASIS: third syllable
+
+4. WORD-BY-WORD MEANINGS (structured list of ALL key words):
 Format each word exactly as:
 WORD: [Devanagari word] | ROMAN: [romanization] | EN: [English meaning] | HI: [Hindi meaning]
 
@@ -99,22 +108,22 @@ Example:
 WORD: तब | ROMAN: Tab | EN: then/until then | HI: तब/तब तक
 WORD: लगि | ROMAN: Lagi | EN: until | HI: तक
 
-4. WORD-BY-WORD BREAKDOWN (plain text explanation):
+5. WORD-BY-WORD BREAKDOWN (plain text explanation):
 [Simple word-by-word meaning explanation]
 
-5. LITERAL TRANSLATION:
+6. LITERAL TRANSLATION:
 English: [Direct, literal translation]
 Hindi: [शाब्दिक अनुवाद]
 
-6. INTERPRETIVE MEANING (deeper spiritual/contextual explanation):
+7. INTERPRETIVE MEANING (deeper spiritual/contextual explanation):
 English: [2-3 sentences explaining the deeper meaning]
 Hindi: [गहरा अर्थ 2-3 वाक्य]
 
-7. STORY & CONTEXT:
+8. STORY & CONTEXT:
 English: [2-3 paragraphs explaining context, significance, and narrative]
 Hindi: [संदर्भ और कथा 2-3 पैराग्राफ]
 
-8. PRACTICAL APPLICATION:
+9. PRACTICAL APPLICATION:
 Teaching (English): [Core teaching in 1-2 sentences]
 Teaching (Hindi): [मुख्य शिक्षा 1-2 वाक्य]
 When to Use (English): [When to recite/apply this verse]
@@ -141,6 +150,7 @@ Format your response exactly as above with clear section headers."""
             "transliteration": "",
             "title_en": "",
             "title_hi": "",
+            "phonetic_notes": [],
             "word_meanings": [],
             "meaning": "",
             "literal_translation": {"en": "", "hi": ""},
@@ -164,21 +174,23 @@ Format your response exactly as above with clear section headers."""
                 continue
 
             # Section headers
-            if "VERSE TITLE" in line.upper() or "1." in line:
+            if "VERSE TITLE" in line.upper() or line.strip() == "1.":
                 current_section = "title"
-            elif "TRANSLITERATION" in line.upper() or "2." in line:
+            elif "TRANSLITERATION" in line.upper() or line.strip() == "2.":
                 current_section = "transliteration"
-            elif "WORD-BY-WORD MEANINGS" in line.upper() or "3." in line:
+            elif "PHONETIC NOTES" in line.upper() or line.strip() == "3.":
+                current_section = "phonetic_notes"
+            elif "WORD-BY-WORD MEANINGS" in line.upper() or line.strip() == "4.":
                 current_section = "word_meanings"
-            elif "WORD-BY-WORD BREAKDOWN" in line.upper() or "4." in line:
+            elif "WORD-BY-WORD BREAKDOWN" in line.upper() or line.strip() == "5.":
                 current_section = "meaning"
-            elif "LITERAL TRANSLATION" in line.upper() or "5." in line:
+            elif "LITERAL TRANSLATION" in line.upper() or line.strip() == "6.":
                 current_section = "literal_translation"
-            elif "INTERPRETIVE MEANING" in line.upper() or "6." in line:
+            elif "INTERPRETIVE MEANING" in line.upper() or line.strip() == "7.":
                 current_section = "interpretive_meaning"
-            elif "STORY" in line.upper() or "7." in line:
+            elif "STORY" in line.upper() or line.strip() == "8.":
                 current_section = "story"
-            elif "PRACTICAL APPLICATION" in line.upper() or "8." in line:
+            elif "PRACTICAL APPLICATION" in line.upper() or line.strip() == "9.":
                 current_section = "practical_application"
             # Language indicators
             elif line_stripped.startswith("English:"):
@@ -218,6 +230,37 @@ Format your response exactly as above with clear section headers."""
             # Content lines
             elif current_section == "transliteration" and line_stripped and not any(x in line.upper() for x in ["TRANSLITERATION", "2."]):
                 result["transliteration"] = line_stripped
+            elif current_section == "phonetic_notes" and line_stripped and "PHONETIC:" in line_stripped:
+                # Parse phonetic note entry: PHONETIC: word | PRONUNCIATION: syllables | EMPHASIS: which
+                try:
+                    parts = line_stripped.split("|")
+                    if len(parts) >= 3:
+                        word = ""
+                        phonetic = ""
+                        emphasis = ""
+
+                        for part in parts:
+                            part = part.strip()
+                            if part.startswith("PHONETIC:"):
+                                word = part[9:].strip()
+                            elif part.startswith("PRONUNCIATION:"):
+                                phonetic = part[14:].strip()
+                            elif part.startswith("EMPHASIS:"):
+                                emphasis = part[9:].strip()
+
+                        if word and phonetic:
+                            # Validate that the word exists in the devanagari text
+                            if word in devanagari_text:
+                                result["phonetic_notes"].append({
+                                    "word": word,
+                                    "phonetic": phonetic,
+                                    "emphasis": emphasis
+                                })
+                            else:
+                                print(f"  ⚠ Warning: Skipping phonetic note for '{word}' - not found in verse", file=sys.stderr)
+                except Exception as e:
+                    print(f"  ⚠ Warning: Failed to parse phonetic note: {line_stripped}", file=sys.stderr)
+                    pass  # Skip malformed entries
             elif current_section == "word_meanings" and line_stripped and "WORD:" in line_stripped:
                 # Parse word meaning entry: WORD: ... | ROMAN: ... | EN: ... | HI: ...
                 try:
@@ -318,11 +361,13 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
             'title_en': content.get('title_en', f'{verse_type.title()} {verse_num}'),
             'title_hi': content.get('title_hi', f'{verse_type} {verse_num}'),
             'verse_number': verse_num,
+            'verse_type': verse_type,
             'previous_verse': f'/{collection}/{verse_type}_{verse_num-1:02d}' if verse_num > 1 else None,
             'next_verse': f'/{collection}/{verse_type}_{verse_num+1:02d}',
             'image': f'/images/{collection}/modern-minimalist/{verse_id}.png',
             'devanagari': content['devanagari'],
             'transliteration': content['transliteration'],
+            'phonetic_notes': content.get('phonetic_notes', []),
             'word_meanings': content.get('word_meanings', []),
             'literal_translation': content.get('literal_translation', {'en': '', 'hi': ''}),
             'interpretive_meaning': content.get('interpretive_meaning', {'en': '', 'hi': ''}),
@@ -413,11 +458,13 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
             'title_en': content.get('title_en', frontmatter.get('title_en', f'{verse_type.title()} {verse_num}')),
             'title_hi': content.get('title_hi', frontmatter.get('title_hi', f'{verse_type} {verse_num}')),
             'verse_number': verse_num,
+            'verse_type': verse_type,
             'previous_verse': frontmatter.get('previous_verse', f'/{collection}/{verse_type}_{verse_num-1:02d}' if verse_num > 1 else None),
             'next_verse': frontmatter.get('next_verse', f'/{collection}/{verse_type}_{verse_num+1:02d}'),
             'image': frontmatter.get('image', f'/images/{collection}/modern-minimalist/{verse_id}.png'),
             'devanagari': content['devanagari'],
             'transliteration': content['transliteration'],
+            'phonetic_notes': content.get('phonetic_notes', frontmatter.get('phonetic_notes', [])),
             'word_meanings': content.get('word_meanings', frontmatter.get('word_meanings', [])),
             'literal_translation': content.get('literal_translation', {'en': '', 'hi': ''}),
             'interpretive_meaning': content.get('interpretive_meaning', {'en': '', 'hi': ''}),
