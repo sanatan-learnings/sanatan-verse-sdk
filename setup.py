@@ -8,7 +8,7 @@ setup(
     version="0.14.3",
     author="Sanatan Learnings",
     author_email="arun.gupta@gmail.com",
-    description="SDK for generating rich multimedia content for verse-based texts",
+    description="Python SDK for creating verse-based content sites with AI translations, multimedia (images, audio), semantic search, and deployment",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/sanatan-learnings/sanatan-sdk",
