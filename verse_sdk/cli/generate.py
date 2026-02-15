@@ -581,26 +581,86 @@ def list_collections(project_dir: Path = Path.cwd()):
     return enabled
 
 
-def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional[int]:
+def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> Optional[list]:
     """
-    Find the next verse number to generate by scanning existing verse files.
+    Read the verse sequence from the data file's _meta.sequence list.
+
+    Args:
+        collection: Collection key (e.g., "sundar-kaand")
+        project_dir: Project directory (defaults to current working directory)
 
     Returns:
-        Next verse number to generate, or None if no verses exist
+        List of verse IDs in sequence order, or None if not found
     """
+    # Look for data file - try .yaml first, then .yml
+    data_file = project_dir / "data" / "verses" / f"{collection}.yaml"
+    if not data_file.exists():
+        data_file = project_dir / "data" / "verses" / f"{collection}.yml"
+
+    if not data_file.exists():
+        return None
+
+    try:
+        with open(data_file, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+
+        if not data:
+            return None
+
+        # Check for _meta.sequence
+        if '_meta' in data and isinstance(data['_meta'], dict):
+            sequence = data['_meta'].get('sequence')
+            if sequence and isinstance(sequence, list):
+                return sequence
+
+        return None
+
+    except Exception as e:
+        print(f"Warning: Error reading sequence from {data_file}: {e}", file=sys.stderr)
+        return None
+
+
+def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional[int]:
+    """
+    Find the next verse position to generate.
+
+    If a data file with sequence exists, uses the sequence to find the next position.
+    Otherwise, falls back to scanning existing verse files.
+
+    Returns:
+        Next verse position (1-based) to generate, or 1 if no verses exist
+    """
+    # Try to use sequence from data file
+    sequence = get_verse_sequence(collection, project_dir)
+    if sequence:
+        # Find which verses in the sequence already have files
+        verses_dir = project_dir / "_verses" / collection
+        if not verses_dir.exists():
+            return 1  # Start from position 1
+
+        # Check each position in the sequence
+        for position, verse_id in enumerate(sequence, start=1):
+            # Check if file exists for this verse_id
+            verse_file = verses_dir / f"{verse_id}.md"
+            if not verse_file.exists():
+                # Found first missing verse
+                return position
+
+        # All verses in sequence exist
+        return len(sequence) + 1
+
+    # Fallback: scan existing files (old behavior)
     verses_dir = project_dir / "_verses" / collection
     if not verses_dir.exists():
-        return 1  # Start from verse 1 if directory doesn't exist
+        return 1
 
-    # Find all markdown files
     verse_files = list(verses_dir.glob("*.md"))
     if not verse_files:
-        return 1  # Start from verse 1 if no files exist
+        return 1
 
     # Extract verse numbers from filenames
     verse_numbers = []
     for verse_file in verse_files:
-        # Try to extract number from filename (e.g., chaupai-05.md -> 5)
         match = re.search(r'[-_](\d+)\.md$', verse_file.name)
         if match:
             verse_numbers.append(int(match.group(1)))
@@ -608,18 +668,40 @@ def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional
     if not verse_numbers:
         return 1
 
-    # Return max + 1
     return max(verse_numbers) + 1
 
 
-def infer_verse_id(collection: str, verse_number: int, project_dir: Path = Path.cwd()) -> Optional[str]:
+def infer_verse_id(collection: str, verse_position: int, project_dir: Path = Path.cwd()) -> Optional[str]:
     """
-    Infer verse ID by scanning existing verse files in the collection.
+    Infer verse ID from verse position.
+
+    If a data file with sequence exists, maps position to verse_id from the sequence.
+    Otherwise, falls back to scanning existing verse files.
+
+    Args:
+        collection: Collection key
+        verse_position: Position in the sequence (1-based index)
+        project_dir: Project directory
 
     Returns:
-        - The inferred verse_id if exactly one match found
-        - None if no matches or ambiguous (multiple matches)
+        - The verse_id at the given position
+        - None if position is invalid or data is missing
     """
+    # Try to use sequence from data file
+    sequence = get_verse_sequence(collection, project_dir)
+    if sequence:
+        # Map position to verse_id
+        if verse_position < 1 or verse_position > len(sequence):
+            print(f"\n✗ Error: Verse position {verse_position} is out of range", file=sys.stderr)
+            print(f"  The sequence in data/verses/{collection}.yaml has {len(sequence)} verses", file=sys.stderr)
+            print(f"  Valid positions: 1-{len(sequence)}", file=sys.stderr)
+            return None
+
+        # Get verse_id from sequence (1-based position)
+        verse_id = sequence[verse_position - 1]
+        return verse_id
+
+    # Fallback: scan existing files (old behavior)
     verses_dir = project_dir / "_verses" / collection
     if not verses_dir.exists():
         return None
@@ -627,9 +709,9 @@ def infer_verse_id(collection: str, verse_number: int, project_dir: Path = Path.
     # Look for files matching the verse number
     # Patterns: chaupai_05.md, doha_05.md, verse_05.md, verse-05.md, etc.
     patterns = [
-        f"*_{verse_number:02d}.md",  # chaupai_05.md, doha_05.md
-        f"*{verse_number:02d}.md",   # verse05.md (no separator)
-        f"*-{verse_number:02d}.md",  # verse-05.md (dash separator)
+        f"*_{verse_position:02d}.md",  # chaupai_05.md, doha_05.md
+        f"*{verse_position:02d}.md",   # verse05.md (no separator)
+        f"*-{verse_position:02d}.md",  # verse-05.md (dash separator)
     ]
 
     matches = []
@@ -645,14 +727,14 @@ def infer_verse_id(collection: str, verse_number: int, project_dir: Path = Path.
         return verse_id
     elif len(matches) > 1:
         # Multiple matches - ambiguous
-        print(f"\n⚠ Multiple verse files found for verse {verse_number}:")
+        print(f"\n⚠ Multiple verse files found for verse {verse_position}:")
         for match in matches:
             print(f"  - {match.name}")
         print(f"\nPlease specify which one using --verse-id")
         return None
     else:
         # No matches - this is a new verse, use default pattern
-        return f"verse-{verse_number:02d}"
+        return f"verse-{verse_position:02d}"
 
 
 def generate_scene_description(devanagari_text: str, verse_id: str, collection: str) -> str:
@@ -1036,21 +1118,23 @@ Examples:
   # Regenerate content AND multimedia
   verse-generate --collection sundar-kaand --verse 3 --regenerate-content --all
 
-  # Override auto-detected verse ID (only needed for ambiguous cases)
-  verse-generate --collection sundar-kaand --verse 5 --verse-id chaupai_05
+  # Override auto-detected verse ID (only needed when not using sequence)
+  verse-generate --collection sundar-kaand --verse 5 --verse-id chaupai-05
 
   # List available collections
   verse-generate --list-collections
 
 Note:
+  - The --verse flag refers to POSITION in the sequence (from data/verses/{collection}.yaml)
+  - Position 1 = first verse in sequence, position 15 = 15th verse in sequence, etc.
+  - If data file has sequence, verse ID is mapped from sequence (e.g., position 15 → chaupai-11)
+  - If no sequence exists, falls back to old behavior (scanning existing files)
+  - Use --next to auto-generate the next verse in the sequence
   - Complete workflow by default: generates image + audio, updates embeddings
   - Use --regenerate-content ALONE to only regenerate text (no multimedia)
   - Use --regenerate-content --all to regenerate text AND multimedia
   - Use --no-update-embeddings to skip embeddings (faster generation)
   - Theme defaults to "modern-minimalist" (use --theme to change)
-  - Verse ID is automatically detected from existing verse files
-  - Use --verse-id only when multiple files match (e.g., chaupai-05 and doha-05)
-  - For new verses, defaults to verse-{N:02d}
 
 Environment Variables:
   OPENAI_API_KEY      - Required for image generation and embeddings
@@ -1075,7 +1159,7 @@ Environment Variables:
     parser.add_argument(
         "--verse",
         type=str,
-        help="Verse number or range (e.g., 5, 1-10, 5-20)",
+        help="Verse position in sequence or range (e.g., 5, 1-10, 5-20). Position is mapped to verse ID from data/verses/{collection}.yaml sequence.",
         metavar="N or M-N"
     )
     parser.add_argument(
@@ -1195,13 +1279,18 @@ Environment Variables:
         try:
             verse_numbers = [int(args.verse)]
         except ValueError:
-            print(f"✗ Error: Invalid verse number: {args.verse}")
+            print(f"✗ Error: Invalid verse position: {args.verse}")
             print(f"")
-            print(f"The --verse flag expects a NUMBER (e.g., 15), not a verse ID.")
+            print(f"The --verse flag expects a POSITION NUMBER (e.g., 15), not a verse ID.")
+            print(f"Position refers to the verse's location in the sequence (1st, 2nd, 3rd, etc.)")
             print(f"")
-            print(f"Did you mean one of these?")
-            print(f"  verse-generate --collection {args.collection} --verse 15")
-            print(f"  verse-generate --collection {args.collection} --verse 15 --verse-id {args.verse}")
+            print(f"Examples:")
+            print(f"  verse-generate --collection {args.collection} --verse 15    # Generate 15th verse in sequence")
+            print(f"  verse-generate --collection {args.collection} --verse 1     # Generate 1st verse in sequence")
+            print(f"  verse-generate --collection {args.collection} --next        # Auto-generate next verse")
+            print(f"")
+            print(f"If you need to specify a verse ID directly, use --verse-id:")
+            print(f"  verse-generate --collection {args.collection} --verse-id {args.verse}")
             sys.exit(1)
 
     # Validate verse_id is not used with ranges
@@ -1223,9 +1312,9 @@ Environment Variables:
 
     print(f"\nCollection: {args.collection}")
     if len(verse_numbers) == 1:
-        print(f"Verse: {verse_numbers[0]}")
+        print(f"Position: {verse_numbers[0]}")
     else:
-        print(f"Verses: {verse_numbers[0]}-{verse_numbers[-1]} ({len(verse_numbers)} verses)")
+        print(f"Positions: {verse_numbers[0]}-{verse_numbers[-1]} ({len(verse_numbers)} verses)")
     if generate_image_flag:
         print(f"Theme: {args.theme}")
 
@@ -1258,11 +1347,11 @@ Environment Variables:
 
     # Process each verse in the range
     try:
-        for idx, verse_num in enumerate(verse_numbers, 1):
+        for idx, verse_position in enumerate(verse_numbers, 1):
             # Show progress for batch operations
             if len(verse_numbers) > 1:
                 print(f"\n{'#'*60}")
-                print(f"# Processing verse {idx}/{len(verse_numbers)}: Verse {verse_num}")
+                print(f"# Processing verse {idx}/{len(verse_numbers)}: Position {verse_position}")
                 print(f"{'#'*60}\n")
 
             # Determine verse ID (with smart inference)
@@ -1270,27 +1359,27 @@ Environment Variables:
                 # User explicitly specified verse ID (only for single verse)
                 verse_id = args.verse_id
             else:
-                # Try to infer verse ID from existing files
-                inferred = infer_verse_id(args.collection, verse_num)
+                # Try to infer verse ID from position (using sequence or fallback)
+                inferred = infer_verse_id(args.collection, verse_position)
                 if inferred is None:
-                    # Inference failed (multiple matches found)
-                    print(f"⚠ Skipping verse {verse_num} (ambiguous verse ID)")
+                    # Inference failed (out of range or ambiguous)
+                    print(f"⚠ Skipping position {verse_position} (cannot determine verse ID)")
                     overall_results.append({
-                        'verse': verse_num,
+                        'position': verse_position,
                         'success': False,
-                        'reason': 'Ambiguous verse ID'
+                        'reason': 'Cannot determine verse ID'
                     })
                     continue
                 verse_id = inferred
 
-                # Show inference result if it's not the default
-                if len(verse_numbers) == 1 and verse_id != f"verse-{verse_num:02d}":
-                    print(f"\n✓ Auto-detected verse ID: {verse_id}")
+                # Show inference result
+                if len(verse_numbers) == 1:
+                    print(f"\n✓ Position {verse_position} → Verse ID: {verse_id}")
                     print(f"  (To override, use --verse-id)\n")
 
             # Track success for this verse
             results = {
-                'verse': verse_num,
+                'position': verse_position,
                 'verse_id': verse_id,
                 'verse_file_created': None,
                 'regenerate_content': None,
