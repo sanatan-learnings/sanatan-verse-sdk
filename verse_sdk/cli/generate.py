@@ -274,6 +274,54 @@ def format_file_size(size_bytes: int) -> str:
         return f"{size_bytes / (1024 * 1024):.1f} MB"
 
 
+# ==================== Progress Indicators ====================
+
+class ProgressBar:
+    """Simple ASCII progress bar for tracking long operations."""
+
+    def __init__(self, total: int, width: int = 10, filled_char: str = "●", empty_char: str = "○"):
+        self.total = total
+        self.current = 0
+        self.width = width
+        self.filled_char = filled_char
+        self.empty_char = empty_char
+
+    def update(self, current: int, message: str = ""):
+        """Update progress bar to current position."""
+        self.current = current
+        self.display(message)
+
+    def display(self, message: str = ""):
+        """Display the progress bar."""
+        if self.total == 0:
+            percentage = 100
+            filled = self.width
+        else:
+            percentage = int((self.current / self.total) * 100)
+            filled = int((self.current / self.total) * self.width)
+
+        empty = self.width - filled
+        bar = self.filled_char * filled + self.empty_char * empty
+
+        # Build progress line
+        progress_line = f"[{bar}] {percentage:3d}%"
+        if message:
+            progress_line += f" - {message}"
+
+        # Print with carriage return to overwrite previous line
+        print(f"\r{progress_line}", end="", flush=True)
+
+    def finish(self, message: str = ""):
+        """Complete the progress bar and move to next line."""
+        self.current = self.total
+        self.display(message)
+        print()  # Move to next line
+
+    def increment(self, message: str = ""):
+        """Increment progress by 1."""
+        self.update(self.current + 1, message)
+
+
 def generate_verse_content(devanagari_text: str, collection: str, verse_id: str = None,
                           dry_run: bool = False, cost_tracker: CostTracker = None) -> Tuple[dict, float]:
     """
@@ -1294,7 +1342,8 @@ def validate_scene_description_exists(collection: str, verse_id: str, project_di
         return False
 
 
-def ensure_scene_description_exists(collection: str, verse_position: int, verse_id: str, devanagari_text: str, title_en: str = None) -> bool:
+def ensure_scene_description_exists(collection: str, verse_position: int, verse_id: str, devanagari_text: str,
+                                   title_en: str = None, scene_mode: str = "prefer-existing") -> Tuple[bool, str]:
     """
     Ensure scene description exists for the verse. Creates file and/or adds scene if missing.
 
@@ -1304,14 +1353,59 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
         verse_id: Verse identifier (e.g., chaupai-05)
         devanagari_text: Canonical Devanagari text for generating description
         title_en: English title of the verse (optional)
+        scene_mode: Scene description mode - "require", "prefer-existing", or "auto-generate"
 
     Returns:
-        True if scene description is available, False if failed
+        Tuple of (success: bool, message: str)
+        - "require" mode: Returns (False, error_msg) if scene missing
+        - "prefer-existing" mode: Returns (True, "existing"|"generated")
+        - "auto-generate" mode: Always generates, returns (True, "generated")
     """
     prompts_dir = Path.cwd() / "docs" / "image-prompts"
-    prompts_dir.mkdir(parents=True, exist_ok=True)
-
     prompts_file = prompts_dir / f"{collection}.md"
+
+    # Extract verse type and number from verse_id (e.g., "chaupai" and 5 from "chaupai-05")
+    verse_type = verse_id.split('-')[0] if '-' in verse_id else 'verse'
+    verse_type_title = verse_type.title()  # Capitalize: Chaupai, Shloka, Doha, etc.
+    verse_number = extract_verse_number_from_id(verse_id) or verse_position  # Extract from ID, fallback to position
+
+    # Check if scene description already exists
+    scene_exists = validate_scene_description_exists(collection, verse_id, Path.cwd())
+
+    # Handle based on scene mode
+    if scene_mode == "require":
+        # Strict mode: Require existing scene, fail if missing
+        if not scene_exists:
+            error_msg = f"Scene description required but not found for {verse_id}"
+            instructions = [
+                f"Add scene description to: {prompts_file}",
+                f"Add a section with header: ### {verse_type_title} {verse_number} ({verse_id})",
+                "Include a **Scene Description**: paragraph with the visual description",
+                "Or use --prefer-existing-scene to auto-generate missing scenes"
+            ]
+            return False, "\n".join([error_msg] + [f"  → {inst}" for inst in instructions])
+        else:
+            print(f"  ✓ Using existing scene description for {verse_type_title} {verse_number}")
+            return True, "existing"
+
+    elif scene_mode == "prefer-existing":
+        # Smart default: Use existing if found, generate if missing
+        if scene_exists:
+            print(f"  ✓ Using existing scene description for {verse_type_title} {verse_number}")
+            return True, "existing"
+        else:
+            print(f"  → Existing scene not found, generating with AI...")
+            # Fall through to generation logic below
+            pass
+
+    elif scene_mode == "auto-generate":
+        # Always generate: Ignore existing
+        print(f"  → Generating scene description with AI (auto-generate mode)...")
+        # Fall through to generation logic below
+        pass
+
+    # Generation logic (for prefer-existing when missing, or auto-generate)
+    prompts_dir.mkdir(parents=True, exist_ok=True)
 
     # Create file if it doesn't exist
     if not prompts_file.exists():
@@ -1331,18 +1425,13 @@ Scene descriptions for generating images with DALL-E 3.
     with open(prompts_file, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # Extract verse type and number from verse_id (e.g., "chaupai" and 5 from "chaupai-05")
-    verse_type = verse_id.split('-')[0] if '-' in verse_id else 'verse'
-    verse_type_title = verse_type.title()  # Capitalize: Chaupai, Shloka, Doha, etc.
-    verse_number = extract_verse_number_from_id(verse_id) or verse_position  # Extract from ID, fallback to position
-
     # Generate new scene description
     print(f"  → Generating scene description for {verse_type_title} {verse_number}...")
     scene_description = generate_scene_description(devanagari_text, verse_id, collection)
 
     if not scene_description:
         print(f"  ✗ Failed to generate scene description")
-        return False
+        return False, "generation_failed"
 
     # Build header: "### Chaupai 5 (chaupai-05): Title" or "### Chaupai 5 (chaupai-05)" if no title
     if title_en:
@@ -1350,10 +1439,13 @@ Scene descriptions for generating images with DALL-E 3.
     else:
         header = f"### {verse_type_title} {verse_number} ({verse_id})"
 
+    # Mark as AI-generated
+    ai_marker = "[AI-Generated - Review Recommended]"
+
     # Prepare new verse entry
     verse_entry = f"""{header}
 
-**Scene Description**:
+**Scene Description**: {ai_marker}
 {scene_description}
 
 ---
@@ -1389,14 +1481,16 @@ Scene descriptions for generating images with DALL-E 3.
             f.write(updated_content)
 
         print(f"  ✓ Updated scene description for {verse_type_title} {verse_number} in {prompts_file.name}")
+        print(f"  ⚠ {ai_marker}")
     else:
         # Append new scene description
         with open(prompts_file, 'a', encoding='utf-8') as f:
             f.write(verse_entry)
 
         print(f"  ✓ Added scene description for {verse_type_title} {verse_number} to {prompts_file.name}")
+        print(f"  ⚠ {ai_marker}")
 
-    return True
+    return True, "generated"
 
 
 def generate_image(collection: str, verse: int, theme: str, verse_id: str = None) -> bool:
@@ -1730,6 +1824,31 @@ Environment Variables:
         metavar="ID"
     )
 
+    # Scene description mode (mutually exclusive)
+    scene_mode_group = parser.add_mutually_exclusive_group()
+    scene_mode_group.add_argument(
+        "--require-scene",
+        action="store_const",
+        const="require",
+        dest="scene_mode",
+        help="Require existing scene description. Exit with error if scene is missing (strict mode for curated projects)"
+    )
+    scene_mode_group.add_argument(
+        "--prefer-existing-scene",
+        action="store_const",
+        const="prefer-existing",
+        dest="scene_mode",
+        help="Use existing scene if found, generate with AI if missing (smart default, respects curation)"
+    )
+    scene_mode_group.add_argument(
+        "--auto-generate-scene",
+        action="store_const",
+        const="auto-generate",
+        dest="scene_mode",
+        help="Always generate scene descriptions with AI (current behavior, quick prototyping)"
+    )
+    parser.set_defaults(scene_mode="prefer-existing")  # Smart default
+
     # Dry-run mode
     parser.add_argument(
         "--dry-run",
@@ -1917,9 +2036,23 @@ Environment Variables:
     # Initialize cost tracker
     cost_tracker = CostTracker()
 
+    # Initialize progress bar for batch operations
+    progress_bar = None
+    if len(verse_numbers) > 1:
+        print("\nProcessing verses:")
+        # Count total steps: for each verse, we might do content + image + audio + embeddings
+        # But we'll just show verse-level progress for simplicity
+        progress_bar = ProgressBar(total=len(verse_numbers), width=20)
+
     # Process each verse in the range
     try:
         for idx, verse_position in enumerate(verse_numbers, 1):
+            # Update progress bar
+            if progress_bar:
+                verse_id_preview = f"verse {idx}/{len(verse_numbers)}"
+                progress_bar.update(idx - 1, f"Processing {verse_id_preview}...")
+                print()  # New line after progress bar
+
             # Show progress for batch operations
             if len(verse_numbers) > 1:
                 print(f"\n{'#'*60}")
@@ -2074,22 +2207,15 @@ Environment Variables:
                         except Exception:
                             pass  # If we can't read title, continue without it
 
-                    # Check if scene description already exists
-                    scene_exists = validate_scene_description_exists(args.collection, verse_id, Path.cwd())
-
-                    if scene_exists:
-                        print(f"  ✓ Scene description already exists for {verse_id}")
-                        scene_ready = True
-                    else:
-                        # Ensure scene description exists (creates file/adds description if needed)
-                        print(f"  → Scene description not found, generating...")
-                        scene_ready = ensure_scene_description_exists(
-                            args.collection,
-                            verse_position,
-                            verse_id,
-                            canonical_data['devanagari'],
-                            title_en
-                        )
+                    # Ensure scene description exists (handles all modes: require/prefer-existing/auto-generate)
+                    scene_ready, scene_source = ensure_scene_description_exists(
+                        args.collection,
+                        verse_position,
+                        verse_id,
+                        canonical_data['devanagari'],
+                        title_en,
+                        scene_mode=args.scene_mode
+                    )
 
                     if scene_ready:
                         results['image'] = generate_image(args.collection, verse_position, args.theme, verse_id)
@@ -2111,6 +2237,11 @@ Environment Variables:
 
             # Store results for this verse
             overall_results.append(results)
+
+        # Finish progress bar
+        if progress_bar:
+            progress_bar.finish("All verses processed")
+            print()
 
     except KeyboardInterrupt:
         print("\n\n⚠ Generation interrupted by user")
