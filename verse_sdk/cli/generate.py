@@ -37,8 +37,9 @@ import subprocess
 import yaml
 import shutil
 import json
+import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, List, Tuple
 
 try:
     from dotenv import load_dotenv
@@ -54,11 +55,227 @@ except ImportError:
     print("Install with: pip install openai")
     sys.exit(1)
 
+try:
+    from PIL import Image
+except ImportError:
+    # PIL is optional - only needed for image verification
+    Image = None
+
 # Load environment variables
 load_dotenv()
 
+# Global flag for debug mode
+DEBUG_MODE = False
 
-def generate_verse_content(devanagari_text: str, collection: str, verse_id: str = None) -> dict:
+
+# ==================== Custom Exception Classes ====================
+
+class UserFriendlyError(Exception):
+    """Custom exception with user-friendly error messages and fix instructions."""
+
+    def __init__(self, message: str, fix_instructions: List[str] = None):
+        self.message = message
+        self.fix_instructions = fix_instructions or []
+        super().__init__(self.message)
+
+    def display(self):
+        """Display the error with formatting."""
+        print(f"\n✗ Error: {self.message}\n", file=sys.stderr)
+        if self.fix_instructions:
+            print("How to fix:", file=sys.stderr)
+            for i, instruction in enumerate(self.fix_instructions, 1):
+                print(f"  {i}. {instruction}", file=sys.stderr)
+            print()
+
+
+# ==================== Cost Tracking ====================
+
+class CostTracker:
+    """Track API costs throughout generation."""
+
+    # Pricing (as of 2024)
+    GPT4_INPUT_COST = 0.03 / 1000  # $0.03 per 1K tokens
+    GPT4_OUTPUT_COST = 0.06 / 1000  # $0.06 per 1K tokens
+    DALLE3_STANDARD_COST = 0.040  # $0.040 per image (1024x1024)
+    DALLE3_HD_COST = 0.080  # $0.080 per image (1024x1024 HD)
+    ELEVENLABS_COST = 0.30 / 1000  # ~$0.30 per 1K characters
+    EMBEDDING_COST = 0.0001 / 1000  # $0.0001 per 1K tokens
+
+    def __init__(self):
+        self.costs = {
+            'content_generation': 0.0,
+            'scene_generation': 0.0,
+            'image_generation': 0.0,
+            'audio_generation': 0.0,
+            'embeddings': 0.0
+        }
+
+    def track_gpt4(self, category: str, input_tokens: int, output_tokens: int):
+        """Track GPT-4 API cost."""
+        cost = (input_tokens * self.GPT4_INPUT_COST) + (output_tokens * self.GPT4_OUTPUT_COST)
+        self.costs[category] += cost
+        return cost
+
+    def track_dalle3(self, hd: bool = False):
+        """Track DALL-E 3 image cost."""
+        cost = self.DALLE3_HD_COST if hd else self.DALLE3_STANDARD_COST
+        self.costs['image_generation'] += cost
+        return cost
+
+    def track_elevenlabs(self, character_count: int):
+        """Track ElevenLabs audio cost."""
+        cost = character_count * self.ELEVENLABS_COST
+        self.costs['audio_generation'] += cost
+        return cost
+
+    def track_embeddings(self, token_count: int):
+        """Track embedding generation cost."""
+        cost = token_count * self.EMBEDDING_COST
+        self.costs['embeddings'] += cost
+        return cost
+
+    def get_total(self) -> float:
+        """Get total cost across all categories."""
+        return sum(self.costs.values())
+
+    def format_cost(self, cost: float) -> str:
+        """Format cost for display."""
+        if cost < 0.01:
+            return f"${cost:.4f}"
+        return f"${cost:.2f}"
+
+
+# ==================== File Verification ====================
+
+def verify_image_file(image_path: Path) -> Tuple[bool, str, int]:
+    """
+    Verify that an image file exists and is valid.
+
+    Returns:
+        (is_valid, message, file_size)
+    """
+    if not image_path.exists():
+        return False, "File not found", 0
+
+    file_size = image_path.stat().st_size
+
+    if file_size == 0:
+        return False, "File is empty", 0
+
+    if file_size < 1000:  # Less than 1KB is suspicious
+        return False, f"File is too small ({file_size} bytes)", file_size
+
+    # Try to open with PIL if available
+    if Image:
+        try:
+            with Image.open(image_path) as img:
+                # Verify it can be loaded
+                img.verify()
+            return True, "Valid image", file_size
+        except Exception as e:
+            return False, f"Invalid image format: {str(e)}", file_size
+    else:
+        # Without PIL, just check extension and size
+        if image_path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.webp']:
+            return True, "Image exists (format not verified)", file_size
+        return False, "Unknown image format", file_size
+
+
+def verify_audio_files(collection: str, verse_id: str) -> Tuple[bool, str, List[Tuple[Path, int]]]:
+    """
+    Verify that audio files exist and are valid.
+
+    Returns:
+        (is_valid, message, [(file_path, file_size), ...])
+    """
+    audio_dir = Path.cwd() / "public" / "audio" / collection
+    audio_files = []
+
+    # Check for both normal and slow versions
+    normal_file = audio_dir / f"{verse_id}.mp3"
+    slow_file = audio_dir / f"{verse_id}-slow.mp3"
+
+    all_valid = True
+    messages = []
+
+    for audio_file, label in [(normal_file, "normal"), (slow_file, "slow")]:
+        if not audio_file.exists():
+            all_valid = False
+            messages.append(f"{label} version not found")
+            continue
+
+        file_size = audio_file.stat().st_size
+
+        if file_size == 0:
+            all_valid = False
+            messages.append(f"{label} version is empty")
+        elif file_size < 1000:  # Less than 1KB is suspicious
+            all_valid = False
+            messages.append(f"{label} version too small ({file_size} bytes)")
+        else:
+            audio_files.append((audio_file, file_size))
+
+    if all_valid:
+        return True, "All audio files valid", audio_files
+    else:
+        return False, "; ".join(messages), audio_files
+
+
+def verify_verse_file(verse_file: Path) -> Tuple[bool, str, int]:
+    """
+    Verify that a verse markdown file exists and has required frontmatter.
+
+    Returns:
+        (is_valid, message, file_size)
+    """
+    if not verse_file.exists():
+        return False, "File not found", 0
+
+    file_size = verse_file.stat().st_size
+
+    if file_size == 0:
+        return False, "File is empty", 0
+
+    try:
+        with open(verse_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Check for frontmatter
+        if not content.startswith('---'):
+            return False, "Missing frontmatter", file_size
+
+        parts = content.split('---', 2)
+        if len(parts) < 3:
+            return False, "Invalid frontmatter format", file_size
+
+        # Parse frontmatter
+        frontmatter = yaml.safe_load(parts[1])
+
+        # Check required fields
+        required_fields = ['verse_id', 'devanagari']
+        missing_fields = [f for f in required_fields if f not in frontmatter]
+
+        if missing_fields:
+            return False, f"Missing required fields: {', '.join(missing_fields)}", file_size
+
+        return True, "Valid verse file", file_size
+
+    except Exception as e:
+        return False, f"Error reading file: {str(e)}", file_size
+
+
+def format_file_size(size_bytes: int) -> str:
+    """Format file size for display."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    else:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def generate_verse_content(devanagari_text: str, collection: str, verse_id: str = None,
+                          dry_run: bool = False, cost_tracker: CostTracker = None) -> Tuple[dict, float]:
     """
     Generate AI content (transliteration, meaning, translation, story) from Devanagari text.
 
@@ -66,14 +283,43 @@ def generate_verse_content(devanagari_text: str, collection: str, verse_id: str 
         devanagari_text: The canonical Devanagari verse text
         collection: Collection key for context
         verse_id: Verse identifier (e.g., chaupai_02, shloka_01)
+        dry_run: If True, skip API call and return mock data
+        cost_tracker: CostTracker instance to record API costs
 
     Returns:
-        Dictionary with generated content fields in complete chaupai format
+        Tuple of (content_dict, cost)
     """
+    if dry_run:
+        print(f"  → [DRY-RUN] Would generate AI content from canonical text...", file=sys.stderr)
+        mock_result = {
+            "devanagari": devanagari_text,
+            "transliteration": "[mock transliteration]",
+            "title_en": "[Mock Title]",
+            "title_hi": "[नकली शीर्षक]",
+            "phonetic_notes": [],
+            "word_meanings": [],
+            "meaning": "[mock word-by-word meaning]",
+            "literal_translation": {"en": "[mock literal translation]", "hi": "[नकली शाब्दिक अनुवाद]"},
+            "interpretive_meaning": {"en": "[mock interpretive meaning]", "hi": "[नकली व्याख्यात्मक अर्थ]"},
+            "story": {"en": "[mock story]", "hi": "[नकली कथा]"},
+            "practical_application": {
+                "teaching": {"en": "[mock teaching]", "hi": "[नकली शिक्षा]"},
+                "when_to_use": {"en": "[mock when to use]", "hi": "[नकली उपयोग]"}
+            },
+            "translation": {"en": "[mock translation]"}
+        }
+        return mock_result, 0.0
+
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("Error: OPENAI_API_KEY environment variable not set", file=sys.stderr)
-        sys.exit(1)
+        raise UserFriendlyError(
+            "OPENAI_API_KEY environment variable not set",
+            [
+                "Set the OPENAI_API_KEY environment variable with your OpenAI API key",
+                "Get an API key from: https://platform.openai.com/api-keys",
+                "Add to your .env file: OPENAI_API_KEY=sk-..."
+            ]
+        )
 
     client = OpenAI(api_key=api_key)
 
@@ -143,6 +389,15 @@ Format your response exactly as above with clear section headers."""
         )
 
         content = response.choices[0].message.content
+
+        # Track cost
+        cost = 0.0
+        if cost_tracker and hasattr(response, 'usage'):
+            cost = cost_tracker.track_gpt4(
+                'content_generation',
+                response.usage.prompt_tokens,
+                response.usage.completion_tokens
+            )
 
         # Parse the response into structured fields (complete chaupai format)
         result = {
@@ -321,11 +576,21 @@ Format your response exactly as above with clear section headers."""
         result["translation"]["en"] = result["literal_translation"]["en"] or result["interpretive_meaning"]["en"]
 
         print(f"  ✓ Generated complete verse content with titles, translations, story, and practical applications", file=sys.stderr)
-        return result
+        return result, cost
 
     except Exception as e:
-        print(f"  ✗ Error generating content: {e}", file=sys.stderr)
-        sys.exit(1)
+        if DEBUG_MODE:
+            import traceback
+            traceback.print_exc()
+        raise UserFriendlyError(
+            f"Failed to generate verse content: {str(e)}",
+            [
+                "Check your OPENAI_API_KEY is valid and has available credits",
+                "Verify the Devanagari text is properly formatted",
+                "Try again in a few moments if this is a temporary API issue",
+                "Use --debug flag to see full error details"
+            ]
+        )
 
 
 def create_verse_file_with_content(verse_file: Path, content: dict, collection: str, verse_num: int, verse_id: str = None, project_dir: Path = None) -> bool:
@@ -1465,7 +1730,25 @@ Environment Variables:
         metavar="ID"
     )
 
+    # Dry-run mode
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview what would be generated without actually creating files or making API calls"
+    )
+
+    # Debug mode
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Show full error tracebacks and debug information"
+    )
+
     args = parser.parse_args()
+
+    # Set global debug mode
+    global DEBUG_MODE
+    DEBUG_MODE = args.debug
 
     # Handle list collections
     if args.list_collections:
@@ -1569,6 +1852,10 @@ Environment Variables:
         print("  ✓ Generate audio")
     if update_embeddings_flag:
         print("  ✓ Update embeddings")
+
+    if args.dry_run:
+        print("\n⚠ DRY-RUN MODE: No files will be created or API calls made")
+
     print()
 
     # Pre-generation validation for all verses
@@ -1627,6 +1914,9 @@ Environment Variables:
     # Track overall success across all verses
     overall_results = []
 
+    # Initialize cost tracker
+    cost_tracker = CostTracker()
+
     # Process each verse in the range
     try:
         for idx, verse_position in enumerate(verse_numbers, 1):
@@ -1667,7 +1957,18 @@ Environment Variables:
                 'regenerate_content': None,
                 'image': None,
                 'audio': None,
-                'embeddings': None
+                'embeddings': None,
+                'content_cost': 0.0,
+                'image_cost': 0.0,
+                'audio_cost': 0.0,
+                'embeddings_cost': 0.0,
+                'verse_file_path': None,
+                'verse_file_size': 0,
+                'image_file_path': None,
+                'image_file_size': 0,
+                'audio_files': [],
+                'prev_verse': None,
+                'next_verse': None
             }
 
             # Check if verse file exists, create if needed
@@ -1690,11 +1991,14 @@ Environment Variables:
                     results['verse_file_created'] = False
                 else:
                     # Generate content from canonical text
-                    generated_content = generate_verse_content(
+                    generated_content, content_cost = generate_verse_content(
                         canonical_data['devanagari'],
                         args.collection,
-                        verse_id
+                        verse_id,
+                        dry_run=args.dry_run,
+                        cost_tracker=cost_tracker
                     )
+                    results['content_cost'] = content_cost
 
                     # Create verse markdown file
                     results['verse_file_created'] = create_verse_file_with_content(
@@ -1726,11 +2030,14 @@ Environment Variables:
                     results['regenerate_content'] = False
                 else:
                     # Generate content from canonical text
-                    generated_content = generate_verse_content(
+                    generated_content, content_cost = generate_verse_content(
                         canonical_data['devanagari'],
                         args.collection,
-                        verse_id
+                        verse_id,
+                        dry_run=args.dry_run,
+                        cost_tracker=cost_tracker
                     )
+                    results['content_cost'] = content_cost
 
                     # Update verse markdown file
                     verse_file = Path.cwd() / "_verses" / args.collection / f"{verse_id}.md"
@@ -1808,10 +2115,16 @@ Environment Variables:
     except KeyboardInterrupt:
         print("\n\n⚠ Generation interrupted by user")
         sys.exit(1)
+    except UserFriendlyError as e:
+        e.display()
+        sys.exit(1)
     except Exception as e:
-        print(f"\n✗ Fatal error: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"\n✗ Fatal error: {e}", file=sys.stderr)
+        if DEBUG_MODE:
+            import traceback
+            traceback.print_exc()
+        else:
+            print("Use --debug flag to see full error details", file=sys.stderr)
         sys.exit(1)
 
     # Summary
@@ -1823,30 +2136,68 @@ Environment Variables:
         # Single verse summary
         results = overall_results[0]
 
+        # Operations status
+        print("Operations:")
         if results['verse_file_created'] is not None:
             status = "✓" if results['verse_file_created'] else "✗"
-            print(f"{status} Verse file creation: {'Success' if results['verse_file_created'] else 'Failed'}")
+            print(f"  {status} Verse file creation: {'Success' if results['verse_file_created'] else 'Failed'}")
 
         if regenerate_content_flag:
             status = "✓" if results['regenerate_content'] else "✗"
-            print(f"{status} Regenerate content: {'Success' if results['regenerate_content'] else 'Failed'}")
+            cost_str = cost_tracker.format_cost(results.get('content_cost', 0))
+            print(f"  {status} Regenerate content: {'Success' if results['regenerate_content'] else 'Failed'} ({cost_str})")
 
         if generate_image_flag:
             status = "✓" if results['image'] else "✗"
-            print(f"{status} Image: {'Success' if results['image'] else 'Failed'}")
+            cost_str = cost_tracker.format_cost(results.get('image_cost', 0))
+            print(f"  {status} Image: {'Success' if results['image'] else 'Failed'} ({cost_str})")
 
         if generate_audio_flag:
             status = "✓" if results['audio'] else "✗"
-            print(f"{status} Audio: {'Success' if results['audio'] else 'Failed'}")
+            cost_str = cost_tracker.format_cost(results.get('audio_cost', 0))
+            print(f"  {status} Audio: {'Success' if results['audio'] else 'Failed'} ({cost_str})")
 
         if update_embeddings_flag:
             status = "✓" if results['embeddings'] else "✗"
-            print(f"{status} Embeddings: {'Success' if results['embeddings'] else 'Failed'}")
+            cost_str = cost_tracker.format_cost(results.get('embeddings_cost', 0))
+            print(f"  {status} Embeddings: {'Success' if results['embeddings'] else 'Failed'} ({cost_str})")
+
+        # File paths and sizes
+        print("\nGenerated Files:")
+        if results.get('verse_file_path'):
+            size_str = format_file_size(results.get('verse_file_size', 0))
+            print(f"  📄 Verse: {results['verse_file_path']} ({size_str})")
+
+        if results.get('image_file_path'):
+            size_str = format_file_size(results.get('image_file_size', 0))
+            print(f"  🖼️  Image: {results['image_file_path']} ({size_str})")
+
+        if results.get('audio_files'):
+            for audio_path, audio_size in results['audio_files']:
+                size_str = format_file_size(audio_size)
+                print(f"  🔊 Audio: {audio_path} ({size_str})")
+
+        # Navigation
+        if results.get('prev_verse') or results.get('next_verse'):
+            print("\nNavigation:")
+            if results.get('prev_verse'):
+                print(f"  ← Previous: {results['prev_verse']}")
+            if results.get('next_verse'):
+                print(f"  → Next: {results['next_verse']}")
+
+        # Total cost
+        total_cost = cost_tracker.get_total()
+        if total_cost > 0:
+            print(f"\nTotal Cost: {cost_tracker.format_cost(total_cost)}")
+            print("  Breakdown:")
+            for category, cost in cost_tracker.costs.items():
+                if cost > 0:
+                    print(f"    - {category.replace('_', ' ').title()}: {cost_tracker.format_cost(cost)}")
 
         print()
 
         # Exit with appropriate code
-        all_results = [r for r in results.values() if r is not None and r != results['position'] and r != results['verse_id']]
+        all_results = [r for r in results.values() if isinstance(r, bool)]
         if all_results and all(all_results):
             print("✓ All tasks completed successfully!")
             sys.exit(0)
