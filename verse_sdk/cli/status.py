@@ -226,8 +226,8 @@ def check_verse_status(
 
     # Check audio files
     audio_dir = project_dir / "audio" / collection
-    audio_full = audio_dir / f"{verse_id}_full.mp3"
-    audio_slow = audio_dir / f"{verse_id}_slow.mp3"
+    audio_full = audio_dir / f"{verse_id}-full.mp3"
+    audio_slow = audio_dir / f"{verse_id}-slow.mp3"
 
     # Check image files (check common themes)
     images_dir = project_dir / "images" / collection

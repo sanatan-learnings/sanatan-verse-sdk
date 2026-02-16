@@ -192,7 +192,7 @@ def verify_audio_files(collection: str, verse_id: str) -> Tuple[bool, str, List[
     audio_files = []
 
     # Check for both normal and slow versions
-    normal_file = audio_dir / f"{verse_id}.mp3"
+    normal_file = audio_dir / f"{verse_id}-full.mp3"
     slow_file = audio_dir / f"{verse_id}-slow.mp3"
 
     all_valid = True
@@ -1676,8 +1676,8 @@ def generate_audio(collection: str, verse: int, verse_id: str = None) -> bool:
 
         # Verify that audio files were actually created with non-zero size
         audio_dir = Path.cwd() / "audio" / collection
-        full_audio = audio_dir / f"{verse_id}_full.mp3"
-        slow_audio = audio_dir / f"{verse_id}_slow.mp3"
+        full_audio = audio_dir / f"{verse_id}-full.mp3"
+        slow_audio = audio_dir / f"{verse_id}-slow.mp3"
 
         # Check if files exist
         if not full_audio.exists() or not slow_audio.exists():

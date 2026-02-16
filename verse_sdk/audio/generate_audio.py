@@ -352,8 +352,8 @@ class AudioGenerator:
         Generate all audio files for all verses.
 
         Args:
-            start_from: Optional filename to resume from (e.g., 'verse_15_full.mp3')
-            only_file: Optional single filename to generate (e.g., 'doha_01_full.mp3')
+            start_from: Optional filename to resume from (e.g., 'verse-15-full.mp3')
+            only_file: Optional single filename to generate (e.g., 'doha-01-full.mp3')
             regenerate_files: Optional list of filenames to regenerate
             specific_verse: Optional verse stem to generate only (e.g., 'verse-01')
         """
@@ -398,7 +398,7 @@ class AudioGenerator:
         for idx, (base_name, devanagari) in enumerate(verses.items(), 1):
             # Generate both full and slow versions
             for speed in ["full", "slow"]:
-                filename = f"{base_name}_{speed}.mp3"
+                filename = f"{base_name}-{speed}.mp3"
                 output_path = self.audio_dir / filename
 
                 # If --only is specified, skip files that don't match
@@ -517,7 +517,7 @@ def main():
     )
     parser.add_argument(
         "--only",
-        help="Generate only one specific file (e.g., doha_01_full.mp3)",
+        help="Generate only one specific file (e.g., doha-01-full.mp3)",
         metavar="FILENAME"
     )
     parser.add_argument(
