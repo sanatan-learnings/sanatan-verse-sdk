@@ -1072,21 +1072,24 @@ def validate_generation_requirements(
     """
     errors = []
 
-    # 1. Check collection exists
-    collections_file = project_dir / "data" / "collections.yaml"
-    if not collections_file.exists():
-        collections_file = project_dir / "data" / "collections.yml"
+    # 1. Check collection exists (use same path as list_collections)
+    collections_file = project_dir / "_data" / "collections.yml"
 
     if collections_file.exists():
         try:
             with open(collections_file, 'r', encoding='utf-8') as f:
                 collections_data = yaml.safe_load(f)
-            if collections_data and collection not in collections_data.get('collections', {}):
-                errors.append(f"Collection '{collection}' not found in collections.yaml")
+            # Check if collection exists as a direct key (matching list_collections structure)
+            if collections_data and collection not in collections_data:
+                errors.append(f"Collection '{collection}' not found in _data/collections.yml")
+            # Check if collection is enabled
+            elif collections_data and not collections_data.get(collection, {}).get('enabled', False):
+                errors.append(f"Collection '{collection}' is disabled in _data/collections.yml")
         except Exception as e:
-            errors.append(f"Error reading collections.yaml: {e}")
+            errors.append(f"Error reading _data/collections.yml: {e}")
     else:
-        errors.append("collections.yaml not found in data/ directory")
+        # Collections file is optional - just warn
+        pass
 
     # 2. Check verse exists in data file
     data_file = project_dir / "data" / "verses" / f"{collection}.yaml"
