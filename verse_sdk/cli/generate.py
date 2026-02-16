@@ -1849,6 +1849,79 @@ Note:
 Environment Variables:
   OPENAI_API_KEY      - Required for image generation and embeddings
   ELEVENLABS_API_KEY  - Required for audio generation
+
+✅ Success Criteria Checklist:
+  Before running verse-generate, ensure you have:
+  □ _data/collections.yml with collection defined and enabled: true
+  □ data/verses/{collection}.yml with canonical Devanagari text for verse
+  □ _verses/{collection}/ directory exists
+  □ OPENAI_API_KEY set (for image/content/embeddings)
+  □ ELEVENLABS_API_KEY set (for audio)
+  □ docs/themes/{theme}.yml exists (if using custom theme)
+
+🔧 Error Troubleshooting:
+  "Collection not found"
+    → Move data/collections.yaml to _data/collections.yml
+    → Check collection has enabled: true
+
+  "Verse not found in data file"
+    → Add verse to data/verses/{collection}.yml with devanagari field
+
+  "Scene description not found" (warning only)
+    → Use --auto-generate-scene to generate scenes automatically
+    → Or manually add to data/scenes/{collection}.yml
+
+  "OPENAI_API_KEY not set"
+    → Export key: export OPENAI_API_KEY='sk-...'
+    → Or create .env file with OPENAI_API_KEY=sk-...
+
+  "Audio generation failed"
+    → Check ELEVENLABS_API_KEY is set
+    → Verify verse file exists in _verses/{collection}/{verse-id}.md
+
+📊 Batch Processing Examples:
+  # Generate verses 1-10
+  verse-generate --collection sundar-kaand --verse 1-10 --all
+
+  # Generate verses 15-20 without embeddings (faster)
+  verse-generate --collection sundar-kaand --verse 15-20 --all --no-update-embeddings
+
+  # Regenerate content for verses 1-5 (no multimedia)
+  verse-generate --collection sundar-kaand --verse 1-5 --regenerate-content
+
+  # Generate all remaining verses starting from position 21
+  for i in {21..50}; do
+    verse-generate --collection sundar-kaand --verse $i --all || break
+  done
+
+  # Generate next verse in sequence (auto-detect)
+  verse-generate --collection sundar-kaand --next --all
+
+💰 Cost Estimates (per verse):
+  Content Generation (GPT-4):
+    ~500-1000 tokens input × $0.03/1K = $0.015-$0.03
+    ~1000-2000 tokens output × $0.06/1K = $0.06-$0.12
+    Total: ~$0.08-$0.15 per verse
+
+  Image Generation (DALL-E 3):
+    Standard 1024x1792: $0.040 per image
+    HD 1024x1792: $0.080 per image
+
+  Audio Generation (ElevenLabs):
+    ~100-200 characters × 2 speeds = 200-400 chars
+    ~$0.30/1K characters = $0.06-$0.12 per verse
+
+  Embeddings (OpenAI):
+    ~500 tokens × $0.0001/1K = $0.00005 (negligible)
+
+  Complete Workflow (1 verse):
+    Content + Image + Audio + Embeddings
+    = $0.08 + $0.04 + $0.09 + $0.00
+    ≈ $0.21 per verse (standard quality)
+
+  Batch Example (50 verses):
+    50 verses × $0.21 = ~$10.50
+    (Image HD: +$2.00, total ~$12.50)
         """
     )
 
