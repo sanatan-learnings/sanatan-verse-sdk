@@ -2,7 +2,7 @@
 """
 Generate verse images using DALL-E 3.
 
-This script combines scene descriptions from docs/image-prompts.md with visual
+This script combines scene descriptions from data/scenes/{collection}.yml with visual
 style specifications from docs/themes/<theme-name>.yml to generate images
 using OpenAI's DALL-E 3 API.
 
@@ -11,12 +11,12 @@ Supports both:
 - Simple verse texts (Hanuman Chalisa): "Verse X" format
 
 Architecture:
-    1. Scene descriptions (what's happening) come from docs/image-prompts.md
+    1. Scene descriptions (what's happening) come from data/scenes/{collection}.yml
     2. Visual style (colors, character design, mood) comes from docs/themes/*.yml
     3. Script combines both to create complete DALL-E 3 prompts
 
 Usage:
-    verse-images --theme-name modern-minimalist
+    verse-images --collection hanuman-chalisa --theme modern-minimalist --verse verse-01
 
 Requirements:
     pip install openai requests pillow pyyaml
@@ -40,8 +40,10 @@ except ImportError:
 # Use current working directory (where the user runs the command)
 # This allows the SDK to work with any project structure
 PROJECT_DIR = Path.cwd()
+DATA_DIR = PROJECT_DIR / "data"
 DOCS_DIR = PROJECT_DIR / "docs"
 IMAGES_DIR = PROJECT_DIR / "images"
+SCENES_DIR = DATA_DIR / "scenes"
 THEMES_DIR = DOCS_DIR / "themes"
 
 # DALL-E 3 Configuration
@@ -78,7 +80,14 @@ class ImageGenerator:
         self.style_modifier = style_modifier
 
         # Set collection-specific paths
-        self.prompts_file = DOCS_DIR / "image-prompts" / f"{collection}.md"
+        self.scenes_file = SCENES_DIR / f"{collection}.yml"
+
+        # Try .yaml extension as fallback
+        if not self.scenes_file.exists():
+            yaml_file = SCENES_DIR / f"{collection}.yaml"
+            if yaml_file.exists():
+                self.scenes_file = yaml_file
+
         self.output_dir = IMAGES_DIR / collection / theme
 
         # Create output directory
@@ -87,95 +96,56 @@ class ImageGenerator:
 
     def parse_prompts_file(self) -> Dict[str, str]:
         """
-        Parse the image-prompts.md file to extract scene descriptions.
+        Parse the data/scenes/{collection}.yml file to extract scene descriptions.
 
         Returns:
-            Dictionary mapping filename to scene description text
+            Dictionary mapping verse_id to scene description text
         """
-        if not self.prompts_file.exists():
-            raise FileNotFoundError(f"Prompts file not found: {self.prompts_file}")
+        if not self.scenes_file.exists():
+            # Check if old format exists and provide migration error
+            old_format_file = DOCS_DIR / "image-prompts" / f"{self.collection}.md"
+            if old_format_file.exists():
+                raise FileNotFoundError(
+                    f"\n\n⚠️  BREAKING CHANGE: Scene descriptions moved to YAML format\n\n"
+                    f"Scene file not found: {self.scenes_file}\n"
+                    f"Old location (no longer supported): {old_format_file}\n"
+                    f"New location (required): {self.scenes_file}\n\n"
+                    f"MIGRATION REQUIRED:\n"
+                    f"1. Create data/scenes/ directory\n"
+                    f"2. Convert {old_format_file.name} → {self.scenes_file.name}\n\n"
+                    f"Conversion script:\n"
+                    f"https://github.com/sanatan-learnings/hanuman-gpt/blob/main/scripts/convert_scenes_to_yaml.py\n\n"
+                    f"Or see example YAML files:\n"
+                    f"https://github.com/sanatan-learnings/hanuman-gpt/tree/main/data/scenes\n"
+                )
+            raise FileNotFoundError(f"Scene file not found: {self.scenes_file}")
 
-        with open(self.prompts_file, 'r', encoding='utf-8') as f:
-            content = f.read()
+        with open(self.scenes_file, 'r', encoding='utf-8') as f:
+            scenes_data = yaml.safe_load(f)
+
+        if not scenes_data or 'scenes' not in scenes_data:
+            raise ValueError(f"Invalid scene file format: {self.scenes_file}. Missing 'scenes' section.")
 
         prompts = {}
+        scenes = scenes_data['scenes']
 
-        # Extract title page scene description
-        title_match = re.search(
-            r'### Title Page.*?\*\*Scene Description\*\*:\s*(.*?)(?=\n---|\n###|\Z)',
-            content,
-            re.DOTALL
-        )
-        if title_match:
-            prompts['title-page.png'] = title_match.group(1).strip()
+        # Iterate through all scenes in the YAML file
+        for verse_id, scene_data in scenes.items():
+            # verse_id is already in the correct format (e.g., 'chaupai-01', 'shloka-01', 'title-page')
+            # scene_data should be a dict with 'title' and 'description' keys
 
-        # Extract opening doha scene descriptions
-        # Try with verse IDs in parentheses first
-        doha_with_id_sections = re.findall(
-            r'###\s+Opening Doha\s+\d+\s+\(([^)]+)\).*?\*\*Scene Description\*\*:\s*(.*?)(?=\n---|\n###|\Z)',
-            content,
-            re.DOTALL
-        )
-        if doha_with_id_sections:
-            for verse_id, scene_desc in doha_with_id_sections:
+            if isinstance(scene_data, dict) and 'description' in scene_data:
+                scene_description = scene_data['description'].strip()
                 filename = f'{verse_id}.png'
-                prompts[filename] = scene_desc.strip()
-        else:
-            # Fall back to numbered format
-            doha_sections = re.findall(
-                r'### Opening Doha (\d+):.*?\*\*Scene Description\*\*:\s*(.*?)(?=\n---|\n###|\Z)',
-                content,
-                re.DOTALL
-            )
-            for doha_num, scene_desc in doha_sections:
-                filename = f'opening-doha-{doha_num.zfill(2)}.png'
-                prompts[filename] = scene_desc.strip()
+                prompts[filename] = scene_description
+            elif isinstance(scene_data, str):
+                # Fallback: if scene_data is just a string, use it directly
+                prompts[f'{verse_id}.png'] = scene_data.strip()
+            else:
+                print(f"⚠ Warning: Skipping verse '{verse_id}' - invalid format (expected dict with 'description' key)")
+                continue
 
-        # Extract verse scene descriptions with verse IDs
-        # First try to extract verses with IDs in parentheses (e.g., "Shloka 1 (shloka_01)", "Chaupai 2 (chaupai_02)")
-        verse_with_id_sections = re.findall(
-            r'###\s+(?:Shloka|Chaupai|Doha|Verse)\s+\d+\s+\(([^)]+)\).*?\*\*Scene Description\*\*:\s*(.*?)(?=\n---|\n###|\Z)',
-            content,
-            re.DOTALL
-        )
-        if verse_with_id_sections:
-            for verse_id, scene_desc in verse_with_id_sections:
-                # Use the verse ID from parentheses (already in dash format)
-                filename = f'{verse_id}.png'
-                prompts[filename] = scene_desc.strip()
-
-        # Try Chapter X, Verse Y format (for Bhagavad Gita)
-        chapter_verse_sections = re.findall(
-            r'### Chapter (\d+),\s*Verse (\d+).*?\*\*Scene Description\*\*:\s*(.*?)(?=\n---|\n###|\Z)',
-            content,
-            re.DOTALL
-        )
-        if chapter_verse_sections:
-            for chapter_num, verse_num, scene_desc in chapter_verse_sections:
-                filename = f'chapter-{chapter_num.zfill(2)}-verse-{verse_num.zfill(2)}.png'
-                prompts[filename] = scene_desc.strip()
-
-        # Fall back to simple Verse X format (for Hanuman Chalisa without IDs)
-        if not verse_with_id_sections and not chapter_verse_sections:
-            verse_sections = re.findall(
-                r'### Verse (\d+):.*?\*\*Scene Description\*\*:\s*(.*?)(?=\n---|\n###|\Z)',
-                content,
-                re.DOTALL
-            )
-            for verse_num, scene_desc in verse_sections:
-                filename = f'verse-{verse_num.zfill(2)}.png'
-                prompts[filename] = scene_desc.strip()
-
-        # Extract closing doha scene description
-        closing_match = re.search(
-            r'### Closing Doha:.*?\*\*Scene Description\*\*:\s*(.*?)(?=\n---|\n###|\Z)',
-            content,
-            re.DOTALL
-        )
-        if closing_match:
-            prompts['closing-doha.png'] = closing_match.group(1).strip()
-
-        print(f"✓ Parsed {len(prompts)} scene descriptions from {self.prompts_file.name}")
+        print(f"✓ Parsed {len(prompts)} scene descriptions from {self.scenes_file.name}")
         return prompts
 
     def build_full_prompt(self, scene_description: str) -> str:
@@ -183,7 +153,7 @@ class ImageGenerator:
         Build the full prompt by combining scene description with theme style.
 
         Args:
-            scene_description: The scene description from docs/image-prompts.md
+            scene_description: The scene description from data/scenes/{collection}.yml
 
         Returns:
             Complete prompt for DALL-E 3
