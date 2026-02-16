@@ -3,7 +3,7 @@
 Generate verse images using DALL-E 3.
 
 This script combines scene descriptions from data/scenes/{collection}.yml with visual
-style specifications from docs/themes/<theme-name>.yml to generate images
+style specifications from data/themes/{collection}/{theme}.yml to generate images
 using OpenAI's DALL-E 3 API.
 
 Supports both:
@@ -12,8 +12,12 @@ Supports both:
 
 Architecture:
     1. Scene descriptions (what's happening) come from data/scenes/{collection}.yml
-    2. Visual style (colors, character design, mood) comes from docs/themes/*.yml
+    2. Visual style (colors, character design, mood) comes from data/themes/{collection}/{theme}.yml
     3. Script combines both to create complete DALL-E 3 prompts
+
+Migration Note:
+    Themes moved from docs/themes/ to data/themes/ for better organization.
+    Old location (docs/themes/) is no longer supported.
 
 Usage:
     verse-images --collection hanuman-chalisa --theme modern-minimalist --verse verse-01
@@ -44,7 +48,7 @@ DATA_DIR = PROJECT_DIR / "data"
 DOCS_DIR = PROJECT_DIR / "docs"
 IMAGES_DIR = PROJECT_DIR / "images"
 SCENES_DIR = DATA_DIR / "scenes"
-THEMES_DIR = DOCS_DIR / "themes"
+THEMES_DIR = DATA_DIR / "themes"
 
 # DALL-E 3 Configuration
 DALLE_MODEL = "dall-e-3"
@@ -363,6 +367,8 @@ def load_theme_config(collection: str, theme: str) -> Optional[Dict]:
     """
     Load theme configuration from YAML file if it exists.
 
+    Location: data/themes/{collection}/{theme}.yml
+
     Args:
         collection: Collection key
         theme: Theme name
@@ -395,7 +401,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Generate from theme YAML (automatically reads style from docs/themes/modern-minimalist.yml)
+  # Generate from theme YAML (automatically reads style from data/themes/{collection}/{theme}.yml)
   python scripts/generate_theme_images.py --theme-name modern-minimalist
 
   # Generate with custom style (overrides theme YAML)
@@ -421,9 +427,13 @@ Configuration:
     OPENAI_API_KEY=your-api-key-here
 
 Theme YAML Files:
-  Place theme specifications in docs/themes/<theme-name>.yml
+  Location: data/themes/{collection}/{theme}.yml
   The script will automatically read generation settings from the YAML file
   Use --style to override the theme's default style modifier
+
+Migration from docs/themes/:
+  If you have themes in the old location, move them:
+    mv docs/themes data/themes
 
 Cost Estimate:
   - DALL-E 3 Standard: $0.040 per image

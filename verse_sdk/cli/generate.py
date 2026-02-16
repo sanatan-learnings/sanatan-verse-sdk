@@ -1857,7 +1857,7 @@ Environment Variables:
   □ _verses/{collection}/ directory exists
   □ OPENAI_API_KEY set (for image/content/embeddings)
   □ ELEVENLABS_API_KEY set (for audio)
-  □ docs/themes/{theme}.yml exists (if using custom theme)
+  □ data/themes/{collection}/{theme}.yml exists (if using custom theme)
 
 🔧 Error Troubleshooting:
   "Collection not found"
