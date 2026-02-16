@@ -733,6 +733,99 @@ def get_navigation_from_sequence(collection: str, verse_id: str, project_dir: Pa
         return None, None
 
 
+def validate_generation_requirements(
+    collection: str,
+    verse_id: str,
+    generate_image: bool,
+    generate_audio: bool,
+    regenerate_content: bool,
+    update_embeddings: bool,
+    project_dir: Path = Path.cwd()
+) -> tuple[bool, list[str]]:
+    """
+    Validate all requirements before starting generation.
+
+    Args:
+        collection: Collection key
+        verse_id: Verse ID to generate
+        generate_image: Whether image generation is requested
+        generate_audio: Whether audio generation is requested
+        regenerate_content: Whether content regeneration is requested
+        update_embeddings: Whether embeddings update is requested
+        project_dir: Project directory
+
+    Returns:
+        Tuple of (is_valid, error_messages)
+    """
+    errors = []
+
+    # 1. Check collection exists
+    collections_file = project_dir / "data" / "collections.yaml"
+    if not collections_file.exists():
+        collections_file = project_dir / "data" / "collections.yml"
+
+    if collections_file.exists():
+        try:
+            with open(collections_file, 'r', encoding='utf-8') as f:
+                collections_data = yaml.safe_load(f)
+            if collections_data and collection not in collections_data.get('collections', {}):
+                errors.append(f"Collection '{collection}' not found in collections.yaml")
+        except Exception as e:
+            errors.append(f"Error reading collections.yaml: {e}")
+    else:
+        errors.append("collections.yaml not found in data/ directory")
+
+    # 2. Check verse exists in data file
+    data_file = project_dir / "data" / "verses" / f"{collection}.yaml"
+    if not data_file.exists():
+        data_file = project_dir / "data" / "verses" / f"{collection}.yml"
+
+    verse_in_data = False
+    if data_file.exists():
+        try:
+            with open(data_file, 'r', encoding='utf-8') as f:
+                verses_data = yaml.safe_load(f)
+            if verses_data and verse_id in verses_data:
+                verse_data = verses_data[verse_id]
+                if isinstance(verse_data, dict) and 'devanagari' in verse_data:
+                    verse_in_data = True
+                elif isinstance(verse_data, str):
+                    verse_in_data = True
+                else:
+                    errors.append(f"Verse '{verse_id}' exists but missing 'devanagari' field")
+            else:
+                errors.append(f"Verse '{verse_id}' not found in {data_file.name}")
+        except Exception as e:
+            errors.append(f"Error reading {data_file.name}: {e}")
+    else:
+        errors.append(f"Data file not found: data/verses/{collection}.yaml")
+
+    # 3. Check API keys
+    if generate_image or regenerate_content or update_embeddings:
+        if not os.getenv("OPENAI_API_KEY"):
+            errors.append("OPENAI_API_KEY not set (required for image/content/embeddings)")
+
+    if generate_audio:
+        if not os.getenv("ELEVENLABS_API_KEY"):
+            errors.append("ELEVENLABS_API_KEY not set (required for audio)")
+
+    # 4. Check scene description exists (warning only, not fatal)
+    if generate_image and verse_in_data:
+        if not validate_scene_description_exists(collection, verse_id, project_dir):
+            # This is just a warning - we can generate it
+            print(f"  ⚠ Warning: Scene description not found for {verse_id} (will be generated)")
+
+    # 5. Check verses directory exists
+    verses_dir = project_dir / "_verses" / collection
+    if not verses_dir.exists():
+        try:
+            verses_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            errors.append(f"Cannot create verses directory: {e}")
+
+    return len(errors) == 0, errors
+
+
 def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional[int]:
     """
     Find the next verse position to generate.
@@ -1478,18 +1571,58 @@ Environment Variables:
         print("  ✓ Update embeddings")
     print()
 
-    # Check API keys
-    if generate_image_flag or update_embeddings_flag or regenerate_content_flag:
-        if not os.getenv("OPENAI_API_KEY"):
-            print("✗ Error: OPENAI_API_KEY not set (required for content generation, image generation, and embeddings)")
-            print("Set it in .env file or environment")
-            sys.exit(1)
+    # Pre-generation validation for all verses
+    print("="*60)
+    print("PRE-GENERATION VALIDATION")
+    print("="*60)
+    print()
 
-    if generate_audio_flag:
-        if not os.getenv("ELEVENLABS_API_KEY"):
-            print("✗ Error: ELEVENLABS_API_KEY not set (required for audio generation)")
-            print("Set it in .env file or environment")
-            sys.exit(1)
+    validation_failed = False
+    for idx, verse_position in enumerate(verse_numbers, 1):
+        # Determine verse ID first
+        if args.verse_id:
+            verse_id = args.verse_id
+        else:
+            verse_id = infer_verse_id(args.collection, verse_position)
+            if verse_id is None:
+                print(f"✗ Position {verse_position}: Cannot determine verse ID")
+                validation_failed = True
+                continue
+
+        print(f"Validating position {verse_position} ({verse_id})...")
+
+        # Run comprehensive validation
+        is_valid, errors = validate_generation_requirements(
+            args.collection,
+            verse_id,
+            generate_image_flag,
+            generate_audio_flag,
+            regenerate_content_flag,
+            update_embeddings_flag,
+            Path.cwd()
+        )
+
+        if not is_valid:
+            print(f"✗ Validation failed for {verse_id}:")
+            for error in errors:
+                print(f"  - {error}")
+            validation_failed = True
+        else:
+            print(f"✓ Validation passed for {verse_id}")
+
+    print()
+
+    if validation_failed:
+        print("="*60)
+        print("✗ VALIDATION FAILED - Cannot proceed with generation")
+        print("="*60)
+        print("\nPlease fix the errors above and try again.")
+        sys.exit(1)
+
+    print("="*60)
+    print("✓ ALL VALIDATIONS PASSED - Starting generation")
+    print("="*60)
+    print()
 
     # Track overall success across all verses
     overall_results = []
