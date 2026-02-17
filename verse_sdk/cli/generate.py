@@ -668,6 +668,13 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
         verse_type = verse_id.split('-')[0] if '-' in verse_id else 'verse'  # chaupai, shloka, doha, etc.
         id_number = extract_verse_number_from_id(verse_id) or verse_num
 
+        # Extract chapter number for Bhagavad Gita format (chapter-XX-verse-YY)
+        chapter_number = None
+        if 'chapter-' in verse_id:
+            chapter_match = re.search(r'chapter-(\d+)', verse_id)
+            if chapter_match:
+                chapter_number = int(chapter_match.group(1))
+
         # Get navigation from sequence
         if project_dir is None:
             project_dir = verse_file.parent.parent.parent  # Go up from _verses/collection/file.md
@@ -680,6 +687,7 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
             'permalink': f'/{collection}/{verse_id}/',
             'title_en': content.get('title_en', f'{verse_type.title()} {id_number}'),
             'title_hi': content.get('title_hi', f'{verse_type} {id_number}'),
+            'chapter': chapter_number,  # Will be removed if None
             'verse_number': verse_num,
             'verse_type': verse_type,
             'previous_verse': f'/{collection}/{prev_id}/' if prev_id else None,
