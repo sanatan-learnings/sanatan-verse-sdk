@@ -965,7 +965,7 @@ def list_collections(project_dir: Path = Path.cwd()):
     return enabled
 
 
-def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> Optional[list]:
+def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> tuple[Optional[list], str]:
     """
     Read the verse sequence from the data file.
 
@@ -979,7 +979,11 @@ def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> Optio
         project_dir: Project directory (defaults to current working directory)
 
     Returns:
-        List of verse IDs in sequence order, or None if not found
+        Tuple of (sequence_list, source) where source is:
+        - "explicit" if from _meta.sequence
+        - "bhagavad-gita-auto" if auto-generated from BG structure
+        - "yaml-keys" if extracted from YAML keys
+        - None if not found
     """
     # Look for data file - try .yaml first, then .yml
     data_file = project_dir / "data" / "verses" / f"{collection}.yaml"
@@ -987,20 +991,20 @@ def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> Optio
         data_file = project_dir / "data" / "verses" / f"{collection}.yml"
 
     if not data_file.exists():
-        return None
+        return None, None
 
     try:
         with open(data_file, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
 
         if not data:
-            return None
+            return None, None
 
         # Method 1: Check for explicit _meta.sequence
         if '_meta' in data and isinstance(data['_meta'], dict):
             sequence = data['_meta'].get('sequence')
             if sequence and isinstance(sequence, list):
-                return sequence
+                return sequence, "explicit"
 
             # Method 2: Check for Bhagavad Gita chapter structure
             # Format: chapter-XX-verse-YY with known chapter verse counts
@@ -1025,7 +1029,7 @@ def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> Optio
                         sequence.append(verse_id)
 
                 if sequence:
-                    return sequence
+                    return sequence, "bhagavad-gita-auto"
 
         # Method 3: Fallback - extract verse IDs from YAML keys (sorted)
         verse_ids = [k for k in data.keys() if not k.startswith('_')]
@@ -1036,13 +1040,13 @@ def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> Optio
                 return [int(n) for n in numbers]
 
             verse_ids.sort(key=sort_key)
-            return verse_ids
+            return verse_ids, "yaml-keys"
 
-        return None
+        return None, None
 
     except Exception as e:
         print(f"Warning: Error reading sequence from {data_file}: {e}", file=sys.stderr)
-        return None
+        return None, None
 
 
 def extract_verse_number_from_id(verse_id: str) -> Optional[int]:
@@ -1073,7 +1077,7 @@ def get_navigation_from_sequence(collection: str, verse_id: str, project_dir: Pa
     Returns:
         Tuple of (previous_verse_id, next_verse_id), None if not found
     """
-    sequence = get_verse_sequence(collection, project_dir)
+    sequence, _ = get_verse_sequence(collection, project_dir)
     if not sequence:
         return None, None
 
@@ -1193,8 +1197,8 @@ def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional
     Returns:
         Next verse position (1-based) to generate, or None if canonical file missing
     """
-    # Require canonical YAML file for proper sequence
-    sequence = get_verse_sequence(collection, project_dir)
+    # Get verse sequence and its source
+    sequence, source = get_verse_sequence(collection, project_dir)
     if not sequence:
         print(f"✗ Error: Cannot use --next without canonical verse file", file=sys.stderr)
         print(f"", file=sys.stderr)
@@ -1205,6 +1209,38 @@ def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional
         print(f"  2. Run verse-validate --fix to create template", file=sys.stderr)
         print(f"  3. Use explicit verse number: verse-generate --collection {collection} --verse 1", file=sys.stderr)
         return None
+
+    # Warn if sequence was auto-generated (not explicit)
+    if source != "explicit":
+        print(f"⚠️  Warning: No explicit _meta.sequence found in data/verses/{collection}.yaml", file=sys.stderr)
+        print(f"", file=sys.stderr)
+
+        if source == "bhagavad-gita-auto":
+            print(f"Using auto-generated sequence for Bhagavad Gita (18 chapters, 700 verses).", file=sys.stderr)
+        elif source == "yaml-keys":
+            print(f"Using sequence extracted from existing verse IDs in YAML file.", file=sys.stderr)
+
+        print(f"", file=sys.stderr)
+        print(f"To avoid this warning, add _meta.sequence to your YAML file:", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"  _meta:", file=sys.stderr)
+        print(f"    sequence:", file=sys.stderr)
+        print(f"      - chapter-01-verse-01", file=sys.stderr)
+        print(f"      - chapter-01-verse-02", file=sys.stderr)
+        print(f"      - ...", file=sys.stderr)
+        print(f"", file=sys.stderr)
+
+        # Ask for confirmation
+        try:
+            response = input("Continue with auto-generated sequence? (y/n): ").strip().lower()
+            if response not in ['y', 'yes']:
+                print("Cancelled.", file=sys.stderr)
+                return None
+        except (EOFError, KeyboardInterrupt):
+            print("\nCancelled.", file=sys.stderr)
+            return None
+
+        print("")  # Add spacing after confirmation
 
     # Find which verses in the sequence already have files
     verses_dir = project_dir / "_verses" / collection
@@ -1245,7 +1281,7 @@ def infer_verse_id(collection: str, verse_position: int, project_dir: Path = Pat
         - None if position is invalid or data is missing
     """
     # Try to use sequence from data file
-    sequence = get_verse_sequence(collection, project_dir)
+    sequence, _ = get_verse_sequence(collection, project_dir)
     if sequence:
         # Map position to verse_id
         if verse_position < 1 or verse_position > len(sequence):
