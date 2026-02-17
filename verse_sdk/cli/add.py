@@ -183,15 +183,40 @@ def add_verses_to_yaml(project_dir: Path, collection_key: str, verse_numbers: Li
             print(f"  ✓ Added {verse_id} to {yaml_file.name}")
             added += 1
 
-    # Write back to file preserving formatting
+    # Write back to file with blank lines between verses
     with open(yaml_file, 'w', encoding='utf-8') as f:
-        # Use custom YAML dumper to preserve formatting
-        yaml.dump(existing_verses, f,
-                 default_flow_style=False,
-                 allow_unicode=True,
-                 sort_keys=True,
-                 width=1000,  # Prevent line wrapping
-                 default_style=None)
+        sorted_keys = sorted(existing_verses.keys())
+        for i, key in enumerate(sorted_keys):
+            # Write verse key
+            f.write(f"{key}:\n")
+
+            # Write verse data
+            verse_data = existing_verses[key]
+            if isinstance(verse_data, dict):
+                for field_key, field_value in verse_data.items():
+                    if isinstance(field_value, str):
+                        if '\n' in field_value and field_value.strip():
+                            # Multi-line string - use literal style
+                            f.write(f"  {field_key}: |\n")
+                            for line in field_value.split('\n'):
+                                if line or field_value.endswith('\n'):  # Keep empty lines
+                                    f.write(f"    {line}\n")
+                        elif field_value:
+                            # Single line string
+                            f.write(f"  {field_key}: {yaml.dump(field_value, allow_unicode=True).strip()}\n")
+                        else:
+                            # Empty string
+                            f.write(f"  {field_key}: ''\n")
+                    else:
+                        # Other types
+                        f.write(f"  {field_key}: {yaml.dump(field_value, allow_unicode=True).strip()}\n")
+            else:
+                # Non-dict value
+                f.write(f"  {yaml.dump(verse_data, allow_unicode=True)}")
+
+            # Add blank line between verses (except after last verse)
+            if i < len(sorted_keys) - 1:
+                f.write("\n")
 
     return added, skipped, format_used
 
