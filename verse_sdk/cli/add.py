@@ -42,6 +42,41 @@ def parse_verse_range(verse_arg: str) -> List[int]:
         return [int(verse_arg)]
 
 
+def detect_chapter_format(verse_keys: List[str]) -> Optional[Tuple[int, str]]:
+    """
+    Detect if verse IDs use chapter-based format (e.g., chapter-01-shloka-01).
+
+    Args:
+        verse_keys: List of verse IDs
+
+    Returns:
+        Tuple of (detected_chapter_number, chapter_format_string) if chapter-based,
+        None if simple format
+        e.g., (1, "{:02d}") for chapter-01-shloka-01
+    """
+    if not verse_keys:
+        return None
+
+    first_key = verse_keys[0]
+
+    # Try to detect chapter-XX pattern
+    match = re.search(r'chapter-(\d+)', first_key)
+    if match:
+        chapter_num = int(match.group(1))
+        chapter_str = match.group(1)
+
+        # Determine padding
+        if len(chapter_str) > 1 and chapter_str[0] == '0':
+            padding = len(chapter_str)
+            chapter_format = f"{{:0{padding}d}}"
+        else:
+            chapter_format = "{:d}"
+
+        return chapter_num, chapter_format
+
+    return None
+
+
 def infer_verse_format(existing_verses: dict) -> Tuple[str, str]:
     """
     Infer verse ID format from existing verses.
@@ -53,6 +88,7 @@ def infer_verse_format(existing_verses: dict) -> Tuple[str, str]:
         Tuple of (prefix, format_string)
         e.g., ("verse", "{:02d}") for verse-01, verse-02, etc.
         e.g., ("chaupai", "{:d}") for chaupai-1, chaupai-2, etc.
+        e.g., ("chapter-01-shloka", "{:02d}") for chapter-01-shloka-01
     """
     if not existing_verses:
         # Default format if no verses exist
@@ -118,7 +154,7 @@ def get_collection_info(project_dir: Path, collection_key: str) -> dict:
     return collections[collection_key]
 
 
-def add_verses_to_yaml(project_dir: Path, collection_key: str, verse_numbers: List[int], custom_format: Optional[str] = None) -> Tuple[int, int, str]:
+def add_verses_to_yaml(project_dir: Path, collection_key: str, verse_numbers: List[int], custom_format: Optional[str] = None, chapter: Optional[int] = None) -> Tuple[int, int, str]:
     """
     Add verse placeholders to canonical YAML file.
 
@@ -127,6 +163,7 @@ def add_verses_to_yaml(project_dir: Path, collection_key: str, verse_numbers: Li
         collection_key: Collection key
         verse_numbers: List of verse numbers to add
         custom_format: Optional custom format (overrides inferred format)
+        chapter: Optional chapter number for chapter-based formats
 
     Returns:
         Tuple of (added_count, skipped_count, format_used)
@@ -164,6 +201,24 @@ def add_verses_to_yaml(project_dir: Path, collection_key: str, verse_numbers: Li
     else:
         prefix, format_str = infer_verse_format(existing_verses)
 
+    # Handle chapter-based formats
+    verse_keys = [k for k in existing_verses.keys() if not k.startswith('_')]
+    chapter_info = detect_chapter_format(verse_keys)
+
+    if chapter and chapter_info:
+        # Replace chapter number in prefix
+        detected_chapter, chapter_format = chapter_info
+        old_chapter_str = chapter_format.format(detected_chapter)
+        new_chapter_str = chapter_format.format(chapter)
+
+        # Replace chapter number in prefix
+        prefix = prefix.replace(f"chapter-{old_chapter_str}", f"chapter-{new_chapter_str}")
+
+        print(f"  📖 Using chapter {chapter} (detected format: chapter-{chapter_format})")
+    elif chapter and not chapter_info:
+        print(f"  ⚠️  Warning: --chapter flag provided but collection doesn't use chapter-based format")
+        print(f"     Ignoring --chapter flag")
+
     format_used = f"{prefix}-{format_str}"
 
     added = 0
@@ -200,7 +255,7 @@ def add_verses_to_yaml(project_dir: Path, collection_key: str, verse_numbers: Li
     return added, skipped, format_used
 
 
-def create_markdown_files(project_dir: Path, collection_key: str, verse_numbers: List[int], verse_prefix: str, format_str: str) -> Tuple[int, int]:
+def create_markdown_files(project_dir: Path, collection_key: str, verse_numbers: List[int], verse_prefix: str, format_str: str, chapter: Optional[int] = None) -> Tuple[int, int]:
     """
     Create markdown files for verses.
 
@@ -260,6 +315,9 @@ Examples:
   # Add verses WITH markdown files (optional)
   verse-add --collection hanuman-chalisa --verse 44-50 --markdown
 
+  # Add verses to specific chapter (for chapter-based formats)
+  verse-add --collection bhagavad-gita --verse 1-10 --chapter 2
+
   # Add verses with custom verse ID format
   verse-add --collection bhagavad-gita --verse 1 --format "chapter-01-verse-{:02d}"
 
@@ -294,6 +352,12 @@ For more information:
         help="Verse ID format (default: verse-{:02d})"
     )
 
+    parser.add_argument(
+        "--chapter",
+        type=int,
+        help="Chapter number for chapter-based formats (e.g., --chapter 2 for chapter-02-shloka-01)"
+    )
+
     args = parser.parse_args()
 
     try:
@@ -314,12 +378,20 @@ For more information:
         print(f"📝 Adding verses to {collection_name}")
         print(f"   Collection: {args.collection}")
         print(f"   Verses: {args.verse} ({len(verse_numbers)} verse(s))")
+        if args.chapter:
+            print(f"   Chapter: {args.chapter}")
         print()
 
         # Add to YAML
         print("Updating canonical YAML file:")
         custom_format = args.format if args.format != "verse-{:02d}" else None
-        yaml_added, yaml_skipped, format_used = add_verses_to_yaml(project_dir, args.collection, verse_numbers, custom_format)
+        yaml_added, yaml_skipped, format_used = add_verses_to_yaml(
+            project_dir,
+            args.collection,
+            verse_numbers,
+            custom_format,
+            chapter=args.chapter
+        )
 
         # Parse format for markdown creation
         match = re.match(r'^([a-z\-]+)-(.+)$', format_used)
@@ -337,7 +409,14 @@ For more information:
         if args.markdown:
             print()
             print("Creating markdown files:")
-            md_created, md_skipped = create_markdown_files(project_dir, args.collection, verse_numbers, verse_prefix, format_str)
+            md_created, md_skipped = create_markdown_files(
+                project_dir,
+                args.collection,
+                verse_numbers,
+                verse_prefix,
+                format_str,
+                chapter=args.chapter
+            )
         else:
             md_created = 0
             md_skipped = len(verse_numbers)

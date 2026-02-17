@@ -10,14 +10,20 @@ verse-add --collection COLLECTION --verse NUMBER [OPTIONS]
 
 ## Description
 
-The `verse-add` command adds new verse entries to an existing collection. It updates the canonical YAML file (`data/verses/<collection>.yaml`) with placeholder entries and optionally creates corresponding markdown files in `_verses/<collection>/`.
+The `verse-add` command adds new verse entries to an existing collection. By default, it **only updates the canonical YAML file** (`data/verses/<collection>.yaml`) with placeholder entries. Markdown files are auto-created by `verse-generate` when needed.
 
-**Smart Format Detection**: The command automatically infers the verse naming format from existing entries. If you have `verse-01`, `verse-02`, it will continue with `verse-03`. If you have `chaupai-1`, `chaupai-2`, it will use that format. This ensures consistency across your collection.
+**Smart Format Detection**: The command automatically infers the verse naming format from existing entries:
+- If you have `verse-01`, `verse-02`, it will continue with `verse-03`
+- If you have `chaupai-1`, `chaupai-2`, it will use that format
+- If you have `chapter-01-shloka-01`, it will continue with the chapter-based format
+
+**Chapter Support (v0.26.0+)**: For multi-chapter collections like the Bhagavad Gita, use the `--chapter` flag to specify which chapter to add verses to.
 
 This is useful when:
 - Expanding a collection with additional verses
 - Adding missing verses to an incomplete collection
 - Batch-creating verse placeholders for new content
+- Adding verses to specific chapters in multi-chapter texts
 
 ## Options
 
@@ -28,12 +34,15 @@ This is useful when:
 
 ### Optional
 
-- `--no-markdown` - Don't create markdown files (only update YAML)
-- `--format FORMAT` - Verse ID format (default: `verse-{:02d}`)
+- `--chapter NUMBER` - Chapter number for chapter-based formats (e.g., `--chapter 2`)
+- `--markdown` - Create markdown files (not recommended - auto-created by verse-generate)
+- `--format FORMAT` - Verse ID format (default: auto-inferred)
 
 ## Examples
 
-### Add Single Verse
+### Simple Collections
+
+#### Add Single Verse (YAML Only)
 
 ```bash
 verse-add --collection hanuman-chalisa --verse 44
@@ -44,19 +53,18 @@ verse-add --collection hanuman-chalisa --verse 44
 #    Verses: 44 (1 verse(s))
 #
 # Updating canonical YAML file:
-#   ✓ Added verse-44 to hanuman-chalisa.yaml
+#   ✓ Will add verse-44 to hanuman-chalisa.yaml
+#   Format: verse-{:02d}
 #
-# Creating markdown files:
-#   ✓ Created verse-44.md
+# Skipping markdown files (verse-generate will create them automatically)
 #
 # ✅ Summary:
 #    YAML entries added: 1
-#    Markdown files created: 1
 ```
 
-This adds a placeholder entry to `data/verses/hanuman-chalisa.yaml` and creates `_verses/hanuman-chalisa/verse-44.md`.
+This adds a placeholder entry to `data/verses/hanuman-chalisa.yaml` with `devanagari: ''`.
 
-### Add Multiple Verses (Range)
+#### Add Multiple Verses (Range)
 
 ```bash
 verse-add --collection hanuman-chalisa --verse 44-50
@@ -67,46 +75,88 @@ verse-add --collection hanuman-chalisa --verse 44-50
 #    Verses: 44-50 (7 verse(s))
 #
 # Updating canonical YAML file:
-#   ✓ Added verse-44 to hanuman-chalisa.yaml
-#   ✓ Added verse-45 to hanuman-chalisa.yaml
+#   ✓ Will add verse-44 to hanuman-chalisa.yaml
+#   ✓ Will add verse-45 to hanuman-chalisa.yaml
 #   ...
-#   ✓ Added verse-50 to hanuman-chalisa.yaml
+#   ✓ Will add verse-50 to hanuman-chalisa.yaml
 ```
 
 Adds 7 verses in one command (verses 44 through 50).
 
-### Add Without Markdown Files
+#### Add With Markdown Files (Optional)
 
 ```bash
-verse-add --collection hanuman-chalisa --verse 44-50 --no-markdown
+verse-add --collection hanuman-chalisa --verse 44-50 --markdown
 
-# Only updates data/verses/hanuman-chalisa.yaml
-# Does not create markdown files
+# Creates both YAML entries AND markdown files
+# Usually not needed - verse-generate will create markdown automatically
 ```
 
-Useful when you want to add canonical text first before creating verse pages.
+### Chapter-Based Collections (NEW in v0.26.0)
 
-### Add with Custom Format
+#### Add Verses to Specific Chapter
 
 ```bash
-verse-add --collection bhagavad-gita --verse 1 --format "chapter-01-verse-{:02d}"
+verse-add --collection bhagavad-gita --verse 1-72 --chapter 2
 
-# Creates: chapter-01-verse-01 instead of verse-01
+# Output:
+# 📝 Adding verses to Bhagavad Gita
+#    Collection: bhagavad-gita
+#    Verses: 1-72 (72 verse(s))
+#    Chapter: 2
+#
+# Updating canonical YAML file:
+#   📖 Using chapter 2 (detected format: chapter-{:02d})
+#   ✓ Will add chapter-02-shloka-01 to bhagavad-gita.yaml
+#   ✓ Will add chapter-02-shloka-02 to bhagavad-gita.yaml
+#   ...
+#   ✓ Will add chapter-02-shloka-72 to bhagavad-gita.yaml
+```
+
+#### Add Famous Verses
+
+```bash
+# Add the famous Karma Yoga verse (Chapter 2, Verse 47)
+verse-add --collection bhagavad-gita --verse 47 --chapter 2
+
+# Creates: chapter-02-shloka-47
+```
+
+#### Add Multiple Chapters
+
+```bash
+# Add all of Chapter 1 (47 shlokas)
+verse-add --collection bhagavad-gita --verse 1-47 --chapter 1
+
+# Add all of Chapter 2 (72 shlokas)
+verse-add --collection bhagavad-gita --verse 1-72 --chapter 2
+
+# Add all of Chapter 3 (43 shlokas)
+verse-add --collection bhagavad-gita --verse 1-43 --chapter 3
 ```
 
 ## Output Files
 
-### YAML Entry (data/verses/<collection>.yaml)
+### YAML Entry (Default - YAML Only)
+
+`data/verses/<collection>.yaml`:
 
 ```yaml
 verse-44:
-  devanagari: |
-    # Add Devanagari text here
-  transliteration: |
-    # Add transliteration here (optional)
+  devanagari: ''
 ```
 
-### Markdown File (_verses/<collection>/verse-44.md)
+The entry is created with an empty string for the `devanagari` field. You should edit this file to add the actual Sanskrit/Devanagari text.
+
+**Chapter-based format:**
+```yaml
+chapter-02-shloka-47:
+  devanagari: ''
+```
+
+### Markdown File (Optional - with `--markdown` flag)
+
+`_verses/<collection>/verse-44.md`:
 
 ```markdown
 ---
@@ -119,27 +169,46 @@ title: "Verse 44"
 Add verse content here.
 ```
 
+**Note**: Markdown files are usually not created by `verse-add`. Instead, `verse-generate` auto-creates them when generating content, pulling the `devanagari` text from the YAML file.
+
 ## Workflow
 
-Typical workflow for adding new verses:
+### Simple Collections
 
 ```bash
-# 1. Add verse placeholders
+# 1. Add verse placeholders (YAML only)
 verse-add --collection hanuman-chalisa --verse 44-50
 
 # 2. Edit canonical YAML file
 # Edit data/verses/hanuman-chalisa.yaml
-# Add Devanagari text for each new verse
+# Add Devanagari text for each new verse:
+#   verse-44:
+#     devanagari: 'तुलसी दास सदा हरि चेरा। कीजै नाथ हृदय महँ डेरा।।'
 
-# 3. Edit markdown files (if needed)
-# Edit _verses/hanuman-chalisa/verse-44.md (and others)
-
-# 4. Update collection configuration
+# 3. Update collection configuration
 # Edit _data/collections.yml
 # Update total_verses: 50
 
-# 5. Generate multimedia content
-verse-generate --collection hanuman-chalisa --verse 44-50
+# 4. Generate content (auto-creates markdown + multimedia)
+verse-generate --collection hanuman-chalisa --verse 44
+# This auto-creates _verses/hanuman-chalisa/verse-44.md
+# Plus images, audio, and embeddings
+```
+
+### Chapter-Based Collections
+
+```bash
+# 1. Add verses to specific chapter
+verse-add --collection bhagavad-gita --verse 1-72 --chapter 2
+
+# 2. Edit canonical YAML file
+# Edit data/verses/bhagavad-gita.yaml
+# Add Devanagari text:
+#   chapter-02-shloka-47:
+#     devanagari: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन...'
+
+# 3. Generate content for specific verse
+verse-generate --collection bhagavad-gita --verse chapter-02-shloka-47
 ```
 
 ## Behavior
@@ -165,7 +234,7 @@ Safe to run multiple times - won't overwrite existing content.
 
 ## Use Cases
 
-### Expanding a Collection
+### Expanding a Simple Collection
 
 ```bash
 # Collection has verses 1-43, add verse 44
@@ -179,33 +248,57 @@ verse-add --collection hanuman-chalisa --verse 44
 verse-add --collection sundar-kaand --verse 10-15
 ```
 
-### Bulk Placeholder Creation
+### Multi-Chapter Collections
 
 ```bash
 # Create placeholders for all Bhagavad Gita Chapter 1 verses
-verse-add --collection bhagavad-gita --verse 1-46
+verse-add --collection bhagavad-gita --verse 1-47 --chapter 1
+
+# Add Chapter 2 (Karma Yoga - 72 verses)
+verse-add --collection bhagavad-gita --verse 1-72 --chapter 2
+
+# Add specific verses from Chapter 18
+verse-add --collection bhagavad-gita --verse 65-66 --chapter 18
 ```
 
-### YAML-Only Updates
+### Batch Creation Across Chapters
 
 ```bash
-# Add canonical text first, create pages later
-verse-add --collection hanuman-chalisa --verse 44-50 --no-markdown
-
-# Later, create markdown files manually or with another tool
+# Add all 18 chapters of Bhagavad Gita
+for chapter in {1..18}; do
+  case $chapter in
+    1) verses=47 ;;
+    2) verses=72 ;;
+    3) verses=43 ;;
+    4) verses=42 ;;
+    # ... etc
+  esac
+  verse-add --collection bhagavad-gita --verse 1-$verses --chapter $chapter
+done
 ```
 
 ## Next Steps After Adding
 
-1. **Edit canonical YAML** - Add Devanagari text in `data/verses/<collection>.yaml`
-2. **Edit verse files** - Customize markdown files in `_verses/<collection>/`
-3. **Update collections.yml** - Set correct `total_verses` count
-4. **Generate content** - Run `verse-generate` to create images, audio, etc.
+1. **Edit canonical YAML** - Add Devanagari text in `data/verses/<collection>.yaml`:
+   ```yaml
+   chapter-02-shloka-47:
+     devanagari: 'कर्मण्येवाधिकारस्ते मा फलेषु कदाचन...'
+   ```
+
+2. **Update collections.yml** - Set correct `total_verses` count in `_data/collections.yml`
+
+3. **Generate content** - Run `verse-generate` to create markdown, images, audio, and embeddings:
+   ```bash
+   verse-generate --collection bhagavad-gita --verse chapter-02-shloka-47
+   ```
+
+4. **Validate** - Run `verse-validate` to ensure everything is correct
 
 ## Integration with Other Commands
 
-- **verse-validate** - Validates that verse files match YAML entries
-- **verse-generate** - Generates multimedia for newly added verses
+- **verse-validate** - Validates project structure and YAML format
+- **verse-generate** - Generates multimedia for newly added verses (auto-creates markdown)
+- **verse-status** - Check which verses have complete content
 - **verse-init** - Creates initial structure (use verse-add for expansion)
 
 ## Error Handling
@@ -226,14 +319,32 @@ verse-add --collection hanuman-chalisa
 
 ## Tips
 
-- Use ranges (`44-50`) to add multiple verses efficiently
-- Run `verse-validate` after adding to check project structure
-- Update `total_verses` in `_data/collections.yml` after adding verses
-- Use `--no-markdown` if you want to add canonical text before creating pages
-- Always commit canonical YAML files to version control
+1. **Use Ranges**: Add multiple verses efficiently with ranges (`1-72` instead of adding one at a time)
+
+2. **YAML First**: The default YAML-only mode is recommended - let `verse-generate` auto-create markdown files
+
+3. **Chapter-Based Collections**: Use `--chapter` flag for organized multi-chapter content:
+   ```bash
+   verse-add --collection bhagavad-gita --verse 1-72 --chapter 2
+   ```
+
+4. **Validate After Adding**: Run `verse-validate` to check project structure
+
+5. **Update Metadata**: Update `total_verses` in `_data/collections.yml` after adding verses
+
+6. **Consistent Format**: The SDK auto-detects format, but ensure your first verses use the format you want:
+   - `verse-01` for simple collections
+   - `chapter-01-shloka-01` for chapter-based collections
+
+7. **Version Control**: Always commit canonical YAML files to version control
+
+8. **Fill in Text Immediately**: After adding verses, edit the YAML file right away to add Devanagari text while it's fresh
 
 ## See Also
 
 - [verse-init](verse-init.md) - Initialize new projects
 - [verse-validate](verse-validate.md) - Validate project structure
-- [verse-generate](verse-generate.md) - Generate multimedia content
+- [verse-generate](verse-generate.md) - Generate multimedia content (auto-creates markdown)
+- [verse-status](verse-status.md) - Check completion status
+- [Chapter-Based Formats Guide](../chapter-based-formats.md) - Detailed guide for multi-chapter collections
+- [Local Verses Guide](../local-verses.md) - YAML file format and structure

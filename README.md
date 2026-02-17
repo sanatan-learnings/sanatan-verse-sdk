@@ -102,6 +102,7 @@ pip install sanatan-verse-sdk
 - **[verse-embeddings](docs/commands/verse-embeddings.md)** - Generate vector embeddings for semantic search ([multi-collection guide](docs/multi-collection.md))
 
 ### Project Management
+- **[verse-add](docs/commands/verse-add.md)** - Add new verse entries to collections (supports multi-chapter formats)
 - **[verse-status](docs/commands/verse-status.md)** - Check status, completion, and validate text against canonical source
 - **[verse-sync](docs/commands/verse-sync.md)** - Sync verse text with canonical source (fix mismatches)
 - **[verse-deploy](docs/commands/verse-deploy.md)** - Deploy Cloudflare Worker for API proxy
@@ -121,6 +122,7 @@ See the [Usage Guide](docs/usage.md) for detailed information on project structu
 
 - **[Usage Guide](docs/usage.md)** - Project setup, workflows, batch processing, and best practices
 - **[Local Verses Guide](docs/local-verses.md)** - Using local YAML files for verse text
+- **[Chapter-Based Formats](docs/chapter-based-formats.md)** - Multi-chapter collections (Bhagavad Gita, etc.)
 - **[Command Reference](docs/README.md)** - Detailed documentation for all commands
 - **[Development Guide](docs/development.md)** - Setup and contributing to verse-sdk
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
