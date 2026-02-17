@@ -1077,13 +1077,16 @@ def get_navigation_from_sequence(collection: str, verse_id: str, project_dir: Pa
     """
     Get previous and next verse IDs from the sequence.
 
+    Only returns verse IDs if the corresponding verse files exist to prevent
+    navigation links to non-existent verses (404 errors).
+
     Args:
         collection: Collection key
         verse_id: Current verse ID
         project_dir: Project directory
 
     Returns:
-        Tuple of (previous_verse_id, next_verse_id), None if not found
+        Tuple of (previous_verse_id, next_verse_id), None if not found or file doesn't exist
     """
     sequence, _ = get_verse_sequence(collection, project_dir)
     if not sequence:
@@ -1093,6 +1096,22 @@ def get_navigation_from_sequence(collection: str, verse_id: str, project_dir: Pa
         idx = sequence.index(verse_id)
         prev_id = sequence[idx - 1] if idx > 0 else None
         next_id = sequence[idx + 1] if idx < len(sequence) - 1 else None
+
+        # Check if verse files actually exist before returning IDs
+        verses_dir = project_dir / "_verses" / collection
+
+        # Only return prev_id if the file exists
+        if prev_id:
+            prev_file = verses_dir / f"{prev_id}.md"
+            if not prev_file.exists():
+                prev_id = None
+
+        # Only return next_id if the file exists
+        if next_id:
+            next_file = verses_dir / f"{next_id}.md"
+            if not next_file.exists():
+                next_id = None
+
         return prev_id, next_id
     except ValueError:
         # verse_id not in sequence
