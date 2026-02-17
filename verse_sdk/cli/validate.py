@@ -27,6 +27,7 @@ import sys
 import argparse
 import yaml
 import json
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
@@ -421,6 +422,96 @@ ELEVENLABS_API_KEY=your_elevenlabs_key_here
                             if not dry_run:
                                 verse_file.rename(new_path)
                             actions.append(f"{rename_prefix} {collection_dir.name}/{old_name} → {new_name}")
+
+        # Create theme directories with default templates
+        if collections_file.exists():
+            try:
+                with open(collections_file, 'r') as f:
+                    collections = yaml.safe_load(f) or {}
+            except yaml.YAMLError:
+                collections = {}
+
+            theme_prefix = "Would create" if dry_run else "Created"
+            for collection_key, config in collections.items():
+                if isinstance(config, dict) and config.get('enabled'):
+                    theme_dir = self.project_dir / "data" / "themes" / collection_key
+                    theme_file = theme_dir / "modern-minimalist.yml"
+
+                    if not theme_file.exists():
+                        if not dry_run:
+                            theme_dir.mkdir(parents=True, exist_ok=True)
+                            theme_content = """# Theme configuration for image generation
+# Visual style for DALL-E 3 prompts
+
+base_style: |
+  Modern minimalist illustration style with clean lines and vibrant colors.
+  Flat design with subtle gradients. Contemporary and approachable aesthetic.
+
+mood: Peaceful, contemplative, uplifting
+color_palette: Warm and inviting - golds, deep blues, soft whites
+art_style: Digital illustration, clean vector-style art
+quality: standard
+size: "1024x1024"
+"""
+                            theme_file.write_text(theme_content)
+                        actions.append(f"{theme_prefix} default theme: data/themes/{collection_key}/modern-minimalist.yml")
+
+        # Fix path formats in verse markdown files
+        if verses_dir.exists():
+            fix_prefix = "Would fix paths in" if dry_run else "Fixed paths in"
+
+            for collection_dir in verses_dir.iterdir():
+                if collection_dir.is_dir() and not collection_dir.name.startswith('.'):
+                    collection_key = collection_dir.name
+
+                    for verse_file in collection_dir.glob("*.md"):
+                        try:
+                            content = verse_file.read_text()
+                            original_content = content
+
+                            # Extract verse ID from filename (without .md extension)
+                            verse_id = verse_file.stem
+
+                            # Fix image paths: /images/theme/verse.png -> /images/collection/theme/verse.png
+                            # Pattern: image: /images/THEME/VERSE.png (missing collection)
+                            content = re.sub(
+                                r'image:\s*/images/([^/\s]+)/([^/\s]+\.png)',
+                                rf'image: /images/{collection_key}/\1/\2',
+                                content
+                            )
+
+                            # Fix audio paths with underscores: chapter_01_verse_01 -> chapter-01-verse-01
+                            # And add collection name if missing
+                            def fix_audio_path(match):
+                                prefix = match.group(1)  # audio_full or audio_slow
+                                path = match.group(2)
+
+                                # Convert underscores to dashes in the filename
+                                filename = path.split('/')[-1]  # Get just the filename
+                                filename = filename.replace('_', '-')
+
+                                # Check if path already has collection
+                                if path.startswith(f'/audio/{collection_key}/'):
+                                    # Already correct format, just fix underscores
+                                    return f'{prefix}: /audio/{collection_key}/{filename}'
+                                else:
+                                    # Add collection name
+                                    return f'{prefix}: /audio/{collection_key}/{filename}'
+
+                            content = re.sub(
+                                r'(audio_(?:full|slow)):\s*(/audio/[^\s]+)',
+                                fix_audio_path,
+                                content
+                            )
+
+                            # Only write if content changed
+                            if content != original_content:
+                                if not dry_run:
+                                    verse_file.write_text(content)
+                                actions.append(f"{fix_prefix} {collection_key}/{verse_file.name}")
+
+                        except Exception as e:
+                            actions.append(f"⚠️  Error processing {collection_key}/{verse_file.name}: {e}")
 
         return actions
 

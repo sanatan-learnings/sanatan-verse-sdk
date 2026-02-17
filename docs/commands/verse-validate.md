@@ -70,6 +70,9 @@ verse-validate --fix --dry-run
 #   → Would create template data/verses/bhagavad-gita.yaml (18 verse entries)
 #   → Would rename hanuman-chalisa/verse_01.md → verse-01.md
 #   → Would rename hanuman-chalisa/verse_02.md → verse-02.md
+#   → Would create default theme: data/themes/bhagavad-gita/modern-minimalist.yml
+#   → Would fix paths in bhagavad-gita/chapter-01-verse-01.md
+#   → Would fix paths in bhagavad-gita/chapter-01-verse-02.md
 ```
 
 See what would be fixed without actually making changes.
@@ -88,11 +91,15 @@ verse-validate --fix
 #   ✓ Created template data/verses/bhagavad-gita.yaml (18 verse entries)
 #   ✓ Renamed hanuman-chalisa/verse_01.md → verse-01.md
 #   ✓ Renamed hanuman-chalisa/verse_02.md → verse-02.md
+#   ✓ Created default theme: data/themes/bhagavad-gita/modern-minimalist.yml
+#   ✓ Fixed paths in bhagavad-gita/chapter-01-verse-01.md
+#   ✓ Fixed paths in bhagavad-gita/chapter-01-verse-02.md
 ```
 
 Creates missing:
 - Required directories (`_data`, `_verses`, `data`)
 - Template files (`.env.example`, `_data/collections.yml`)
+- Theme directories with default `modern-minimalist.yml` template for each collection
 
 Automatically infers and adds:
 - Collection entries in `_data/collections.yml` for any verse directories found in `_verses/`
@@ -102,6 +109,11 @@ Automatically infers and adds:
 Automatically migrates:
 - Verse filenames from underscore format (`verse_01.md`) to dash format (`verse-01.md`)
 - Safe: Skips if target filename already exists
+
+Automatically fixes:
+- Image paths: Adds collection name (`/images/<collection>/<theme>/<verse>.png`)
+- Audio paths: Adds collection name and converts underscores to dashes (`/audio/<collection>/<verse>-full.mp3`)
+- Ensures consistent path format across all verse markdown files
 
 ### Validate Specific Collection
 

@@ -103,11 +103,38 @@ git push origin vX.Y.Z
 
 ## Version Bumping
 
-Before publishing, version should be bumped in `setup.py`:
+**IMPORTANT**: Do NOT update the version in `setup.py` during development or in regular commits. The version should ONLY be bumped right before publishing to PyPI.
+
+### When to Bump Version
+
+Only update `setup.py` version when:
+1. User explicitly asks to publish to PyPI
+2. Running the publish script (`scripts/publish.sh`)
+3. As part of the release commit (just before tagging)
+
+### Version Guidelines
 
 - **Patch release** (0.23.0 → 0.23.1): Bug fixes, documentation updates
 - **Minor release** (0.23.0 → 0.24.0): New features, non-breaking changes
 - **Major release** (0.23.0 → 1.0.0): Breaking changes
+
+### Workflow
+
+```bash
+# 1. Make changes and commit (WITHOUT version bump)
+git add .
+git commit -m "feat: Add new feature"
+git push
+
+# 2. When ready to publish, use publish script (it can update version)
+bash scripts/publish.sh --version 0.25.0 --yes --skip-testpypi
+
+# OR update version manually right before publishing
+# Edit setup.py to set version="0.25.0"
+git add setup.py
+git commit -m "chore: Bump version to 0.25.0"
+bash scripts/publish.sh --yes --skip-testpypi
+```
 
 ## Commit Message Format
 
