@@ -2,18 +2,18 @@
 """
 Add new verse placeholders to existing collections.
 
-This command adds verse entries to the canonical YAML file and optionally
-creates corresponding markdown files.
+This command adds verse entries to the canonical YAML file. Markdown files
+will be auto-created by verse-generate if they don't exist.
 
 Usage:
-    # Add single verse
+    # Add single verse (YAML only, default)
     verse-add --collection hanuman-chalisa --verse 44
 
     # Add multiple verses (range)
     verse-add --collection hanuman-chalisa --verse 44-50
 
-    # Add without creating markdown files
-    verse-add --collection hanuman-chalisa --verse 44 --no-markdown
+    # Add with markdown files (optional, usually not needed)
+    verse-add --collection hanuman-chalisa --verse 44 --markdown
 """
 
 import os
@@ -272,17 +272,19 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Add single verse
+  # Add single verse (YAML only, default)
   verse-add --collection hanuman-chalisa --verse 44
 
   # Add multiple verses (range)
   verse-add --collection hanuman-chalisa --verse 44-50
 
-  # Add verses without creating markdown files
-  verse-add --collection hanuman-chalisa --verse 44-50 --no-markdown
+  # Add verses WITH markdown files (optional)
+  verse-add --collection hanuman-chalisa --verse 44-50 --markdown
 
   # Add verses with custom verse ID format
   verse-add --collection bhagavad-gita --verse 1 --format "chapter-01-verse-{:02d}"
+
+Note: verse-generate will auto-create markdown files if they don't exist
 
 For more information:
   https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md
@@ -302,9 +304,9 @@ For more information:
     )
 
     parser.add_argument(
-        "--no-markdown",
+        "--markdown",
         action="store_true",
-        help="Don't create markdown files (only update YAML)"
+        help="Create markdown files (verse-generate will auto-create them if needed)"
     )
 
     parser.add_argument(
@@ -352,8 +354,8 @@ For more information:
         if yaml_added > 0:
             print(f"   Format: {format_used}")
 
-        # Create markdown files
-        if not args.no_markdown:
+        # Create markdown files (optional)
+        if args.markdown:
             print()
             print("Creating markdown files:")
             md_created, md_skipped = create_markdown_files(project_dir, args.collection, verse_numbers, verse_prefix, format_str)
@@ -361,7 +363,7 @@ For more information:
             md_created = 0
             md_skipped = len(verse_numbers)
             print()
-            print("Skipping markdown file creation (--no-markdown flag)")
+            print("Skipping markdown files (verse-generate will create them automatically)")
 
         # Summary
         print()
@@ -370,7 +372,7 @@ For more information:
         print(f"   YAML entries added: {yaml_added}")
         if yaml_skipped > 0:
             print(f"   YAML entries skipped: {yaml_skipped} (already exist)")
-        if not args.no_markdown:
+        if args.markdown:
             print(f"   Markdown files created: {md_created}")
             if md_skipped > 0:
                 print(f"   Markdown files skipped: {md_skipped} (already exist)")
@@ -383,8 +385,10 @@ For more information:
                 print(f"   1. Edit data/verses/{args.collection}.yaml to add Devanagari text")
             if md_created > 0:
                 print(f"   2. Edit verse markdown files in _verses/{args.collection}/")
-            print(f"   3. Update total_verses in _data/collections.yml if needed")
-            print(f"   4. Generate content with: verse-generate --collection {args.collection}")
+            print(f"   {3 if md_created > 0 else 2}. Update total_verses in _data/collections.yml if needed")
+            print(f"   {4 if md_created > 0 else 3}. Generate content: verse-generate --collection {args.collection} --verse {verse_numbers[0]}")
+            if not args.markdown:
+                print(f"   Note: verse-generate will auto-create markdown files from YAML")
             print()
 
         sys.exit(0)
