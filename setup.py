@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="sanatan-sdk",
-    version="0.22.0",
+    version="0.23.0",
     author="Sanatan Learnings",
     author_email="arun.gupta@gmail.com",
     description="Python SDK for creating verse-based content sites with AI translations, multimedia (images, audio), semantic search, and deployment",
@@ -48,6 +48,7 @@ setup(
             'verse-translate=verse_sdk.cli.translate:main',
             'verse-init=verse_sdk.cli.init:main',
             'verse-validate=verse_sdk.cli.validate:main',
+            'verse-help=verse_sdk.cli.help:main',
         ],
     },
 )
