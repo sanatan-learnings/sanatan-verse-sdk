@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive help command - provides guidance on using verse-sdk.
+Comprehensive help command - provides guidance on using sanatan-verse-sdk.
 
 This command shows workflows, common commands, troubleshooting tips, and links to documentation.
 
@@ -20,7 +20,7 @@ def show_main_help():
     """Show main help screen with all topics."""
     print("""
 ╔════════════════════════════════════════════════════════════════════════════╗
-║                         VERSE-SDK HELP                                    ║
+║                      SANATAN VERSE SDK HELP                                ║
 ║                  Generate Multimedia Content for Spiritual Texts            ║
 ╚════════════════════════════════════════════════════════════════════════════╝
 
@@ -30,8 +30,8 @@ def show_main_help():
 New Project (Complete Setup in 2 Minutes)
 ──────────────────────────────────────────────────────────────────────────────
 
-  1. Install verse-sdk:
-     pip install verse-sdk
+  1. Install sanatan-verse-sdk:
+     pip install sanatan-verse-sdk
 
   2. Initialize project with collection:
      verse-init --project-name my-project --collection hanuman-chalisa
@@ -261,15 +261,15 @@ Command-Specific Help
 
 Documentation
 ──────────────────────────────────────────────────────────────────────────────
-  Online Docs:     https://github.com/sanatan-learnings/verse-sdk
-  Usage Guide:     https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/usage.md
-  Troubleshooting: https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/troubleshooting.md
+  Online Docs:     https://github.com/sanatan-learnings/sanatan-verse-sdk
+  Usage Guide:     https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md
+  Troubleshooting: https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/troubleshooting.md
   Example Project: https://github.com/sanatan-learnings/hanuman-gpt
 
 Support
 ──────────────────────────────────────────────────────────────────────────────
-  Report Issues:   https://github.com/sanatan-learnings/verse-sdk/issues
-  Discussions:     https://github.com/sanatan-learnings/verse-sdk/discussions
+  Report Issues:   https://github.com/sanatan-learnings/sanatan-verse-sdk/issues
+  Discussions:     https://github.com/sanatan-learnings/sanatan-verse-sdk/discussions
 
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║  Pro Tip: Run 'verse-validate' regularly to catch configuration issues     ║
@@ -289,7 +289,7 @@ def show_setup_help():
 
 Step 1: Install SDK
 ──────────────────────────────────────────────────────────────────────────────
-  pip install verse-sdk
+  pip install sanatan-verse-sdk
 
 Step 2: Initialize Project
 ──────────────────────────────────────────────────────────────────────────────
@@ -1027,7 +1027,7 @@ Monitoring
 def main():
     """Main entry point for verse-help command."""
     parser = argparse.ArgumentParser(
-        description="Comprehensive help for verse-sdk",
+        description="Comprehensive help for sanatan-verse-sdk",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Topics:

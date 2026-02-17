@@ -4,14 +4,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="verse-sdk",
+    name="sanatan-verse-sdk",
     version="0.25.2",
     author="Sanatan Learnings",
     author_email="arun.gupta@gmail.com",
     description="Python SDK for creating verse-based content sites with AI translations, multimedia (images, audio), semantic search, and deployment",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/sanatan-learnings/verse-sdk",
+    url="https://github.com/sanatan-learnings/sanatan-verse-sdk",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",

@@ -1,6 +1,6 @@
 # Publishing Scripts
 
-This directory contains scripts for publishing and maintaining the verse-sdk package.
+This directory contains scripts for publishing and maintaining the sanatan-verse-sdk package.
 
 ## publish.sh
 

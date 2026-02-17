@@ -1933,8 +1933,8 @@ def show_directory_structure():
     print()
     print("📚 Documentation:")
     print("-" * 70)
-    print("  • Usage Guide: https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/usage.md")
-    print("  • Troubleshooting: https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/troubleshooting.md")
+    print("  • Usage Guide: https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md")
+    print("  • Troubleshooting: https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/troubleshooting.md")
     print()
 
 

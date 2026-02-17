@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Common issues and solutions for verse-sdk.
+Common issues and solutions for sanatan-verse-sdk.
 
 ## Installation Issues
 
@@ -30,7 +30,7 @@ which verse-generate
 **Solution 3**: Reinstall
 
 ```bash
-pip install --user verse-sdk
+pip install --user sanatan-verse-sdk
 ```
 
 ### "ModuleNotFoundError: No module named 'verse_sdk'"
@@ -40,9 +40,9 @@ SDK not installed or installed in wrong environment.
 **Solution**:
 
 ```bash
-pip install verse-sdk
+pip install sanatan-verse-sdk
 # Or for development:
-pip install -e /path/to/verse-sdk
+pip install -e /path/to/sanatan-verse-sdk
 ```
 
 ## API Key Issues
@@ -340,7 +340,7 @@ If issue persists:
 2. **Verify setup**:
    ```bash
    # Check installation
-   pip show verse-sdk
+   pip show sanatan-verse-sdk
 
    # Check commands
    which verse-generate
@@ -349,14 +349,14 @@ If issue persists:
    echo $OPENAI_API_KEY | cut -c1-10
    ```
 
-3. **GitHub Issues**: https://github.com/sanatan-learnings/verse-sdk/issues
+3. **GitHub Issues**: https://github.com/sanatan-learnings/sanatan-verse-sdk/issues
 
 4. **Include in issue**:
    - Error message (full output)
    - Command you ran
    - Python version: `python --version`
    - OS version
-   - verse-sdk version: `pip show verse-sdk`
+   - sanatan-verse-sdk version: `pip show sanatan-verse-sdk`
 
 ## See Also
 

@@ -656,7 +656,7 @@ Examples:
   verse-validate --format json
 
 For more information:
-  https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/usage.md
+  https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md
         """
     )
 

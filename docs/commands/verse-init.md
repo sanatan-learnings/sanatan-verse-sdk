@@ -10,7 +10,7 @@ verse-init [OPTIONS]
 
 ## Description
 
-The `verse-init` command scaffolds a new verse collection project with the recommended directory structure, template configuration files, and optional example collections. This is the fastest way to get started with verse-sdk.
+The `verse-init` command scaffolds a new verse collection project with the recommended directory structure, template configuration files, and optional example collections. This is the fastest way to get started with sanatan-verse-sdk.
 
 ## Options
 

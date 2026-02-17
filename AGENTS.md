@@ -64,7 +64,7 @@ When running in interactive mode, use these typical answers:
 After successful publish:
 - Provide the user with the PyPI package link
 - Provide the GitHub releases link for creating a release
-- Confirm the installation command: `pip install verse-sdk`
+- Confirm the installation command: `pip install sanatan-verse-sdk`
 
 ### Example Workflows
 

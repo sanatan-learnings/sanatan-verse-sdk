@@ -1,4 +1,4 @@
-# Verse SDK - Python SDK for Spiritual Verse Collections
+# Sanatan Verse SDK - Python SDK for Spiritual Verse Collections
 
 Complete toolkit for generating rich multimedia content for spiritual text collections (Hanuman Chalisa, Sundar Kaand, etc.)
 
@@ -18,7 +18,7 @@ Complete toolkit for generating rich multimedia content for spiritual text colle
 
 ```bash
 # 1. Install
-pip install verse-sdk
+pip install sanatan-verse-sdk
 
 # 2. Create project with collection templates
 verse-init --project-name my-verse-project --collection hanuman-chalisa
@@ -85,7 +85,7 @@ Each verse generation creates:
 ## Installation
 
 ```bash
-pip install verse-sdk
+pip install sanatan-verse-sdk
 ```
 
 ## Commands
@@ -143,6 +143,6 @@ MIT License - See [LICENSE](LICENSE) file for details
 
 ## Support
 
-- [GitHub Issues](https://github.com/sanatan-learnings/verse-sdk/issues)
+- [GitHub Issues](https://github.com/sanatan-learnings/sanatan-verse-sdk/issues)
 - [Documentation](docs/README.md)
 - [Troubleshooting Guide](docs/troubleshooting.md)

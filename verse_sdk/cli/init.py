@@ -3,7 +3,7 @@
 Project initialization command - scaffolds directory structure for a new verse project.
 
 This command creates the recommended directory structure and template files
-for starting a new verse collection project with verse-sdk.
+for starting a new verse collection project with sanatan-verse-sdk.
 
 Usage:
     # Initialize in current directory
@@ -81,13 +81,13 @@ Thumbs.db
 
 README_TEMPLATE = """# {project_name}
 
-Verse collection project powered by [Verse SDK](https://github.com/sanatan-learnings/verse-sdk).
+Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanatan-learnings/sanatan-verse-sdk).
 
 ## Setup
 
 1. **Install dependencies**
    ```bash
-   pip install verse-sdk
+   pip install sanatan-verse-sdk
    ```
 
 2. **Configure API keys**
@@ -132,9 +132,9 @@ Verse collection project powered by [Verse SDK](https://github.com/sanatan-learn
 
 ## Documentation
 
-- [Usage Guide](https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/usage.md)
-- [Commands Reference](https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/README.md)
-- [Troubleshooting](https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/troubleshooting.md)
+- [Usage Guide](https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md)
+- [Commands Reference](https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/README.md)
+- [Troubleshooting](https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/troubleshooting.md)
 
 ## License
 
@@ -431,7 +431,7 @@ def init_project(
         print("   3. Add canonical verse text to data/verses/<collection>.yaml")
         print("   4. Run: verse-validate")
     print()
-    print("📚 Documentation: https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/usage.md")
+    print("📚 Documentation: https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md")
     print()
 
 
@@ -464,7 +464,7 @@ Examples:
   verse-init --minimal
 
 For more information:
-  https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/usage.md
+  https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md
         """
     )
 

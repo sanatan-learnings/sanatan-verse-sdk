@@ -255,7 +255,7 @@ Examples:
   verse-add --collection bhagavad-gita --verse 1 --format "chapter-01-verse-{:02d}"
 
 For more information:
-  https://github.com/sanatan-learnings/verse-sdk/blob/main/docs/usage.md
+  https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md
         """
     )
 

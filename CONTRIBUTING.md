@@ -1,6 +1,6 @@
-# Contributing to Verse SDK
+# Contributing to Sanatan Verse SDK
 
-Thank you for your interest in contributing to Verse SDK! This project helps generate rich multimedia content for spiritual text collections, and we welcome contributions from the community.
+Thank you for your interest in contributing to Sanatan Verse SDK! This project helps generate rich multimedia content for spiritual text collections, and we welcome contributions from the community.
 
 ## Getting Started
 
@@ -15,8 +15,8 @@ Thank you for your interest in contributing to Verse SDK! This project helps gen
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/verse-sdk.git
-   cd verse-sdk
+   git clone https://github.com/YOUR_USERNAME/sanatan-verse-sdk.git
+   cd sanatan-verse-sdk
    ```
 
 2. **Create a virtual environment**
@@ -32,8 +32,8 @@ Thank you for your interest in contributing to Verse SDK! This project helps gen
 
 4. **Set up environment variables**
    ```bash
-   # In your test project directory (not in verse-sdk)
-   cp /path/to/verse-sdk/.env.example .env
+   # In your test project directory (not in sanatan-verse-sdk)
+   cp /path/to/sanatan-verse-sdk/.env.example .env
    # Edit .env and add your actual API keys
    ```
 
@@ -45,7 +45,7 @@ Thank you for your interest in contributing to Verse SDK! This project helps gen
 ## Project Structure
 
 ```
-verse-sdk/
+sanatan-verse-sdk/
 ├── verse_sdk/
 │   ├── audio/           # Audio generation with ElevenLabs
 │   ├── cli/             # Command-line interface
@@ -127,7 +127,7 @@ if needed for context."
    ```
 
 2. **Create a Pull Request**
-   - Go to the [Sanatan SDK repository](https://github.com/sanatan-learnings/verse-sdk)
+   - Go to the [Sanatan SDK repository](https://github.com/sanatan-learnings/sanatan-verse-sdk)
    - Click "New Pull Request"
    - Select your fork and branch
    - Fill in the PR template with:
@@ -146,7 +146,7 @@ if needed for context."
 We welcome various types of contributions:
 
 ### Bug Fixes
-- Report bugs via [GitHub Issues](https://github.com/sanatan-learnings/verse-sdk/issues)
+- Report bugs via [GitHub Issues](https://github.com/sanatan-learnings/sanatan-verse-sdk/issues)
 - Include steps to reproduce
 - Provide system information (OS, Python version)
 
@@ -190,4 +190,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-Thank you for contributing to Verse SDK! 🙏
+Thank you for contributing to Sanatan Verse SDK! 🙏
