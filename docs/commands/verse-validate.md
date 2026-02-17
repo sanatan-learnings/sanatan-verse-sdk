@@ -111,9 +111,10 @@ Automatically migrates:
 - Safe: Skips if target filename already exists
 
 Automatically fixes:
+- Missing frontmatter fields: Adds `chapter` field for Bhagavad Gita verses
 - Image paths: Adds collection name (`/images/<collection>/<theme>/<verse>.png`)
 - Audio paths: Adds collection name and converts underscores to dashes (`/audio/<collection>/<verse>-full.mp3`)
-- Ensures consistent path format across all verse markdown files
+- Ensures consistent path format and required fields across all verse markdown files
 
 ### Validate Specific Collection
 

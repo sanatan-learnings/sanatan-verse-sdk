@@ -456,9 +456,9 @@ size: "1024x1024"
                             theme_file.write_text(theme_content)
                         actions.append(f"{theme_prefix} default theme: data/themes/{collection_key}/modern-minimalist.yml")
 
-        # Fix path formats in verse markdown files
+        # Fix path formats and missing frontmatter fields in verse markdown files
         if verses_dir.exists():
-            fix_prefix = "Would fix paths in" if dry_run else "Fixed paths in"
+            fix_prefix = "Would fix" if dry_run else "Fixed"
 
             for collection_dir in verses_dir.iterdir():
                 if collection_dir.is_dir() and not collection_dir.name.startswith('.'):
@@ -468,17 +468,46 @@ size: "1024x1024"
                         try:
                             content = verse_file.read_text()
                             original_content = content
+                            changes_made = []
 
                             # Extract verse ID from filename (without .md extension)
                             verse_id = verse_file.stem
 
+                            # Check if frontmatter exists
+                            if content.startswith('---\n'):
+                                # Parse frontmatter
+                                parts = content.split('---\n', 2)
+                                if len(parts) >= 3:
+                                    frontmatter = parts[1]
+                                    body = parts[2] if len(parts) > 2 else ""
+
+                                    # Fix missing chapter field for Bhagavad Gita format
+                                    if 'chapter-' in verse_id and 'chapter:' not in frontmatter:
+                                        # Extract chapter number from verse_id (e.g., chapter-01-verse-05 → 1)
+                                        chapter_match = re.search(r'chapter-(\d+)', verse_id)
+                                        if chapter_match:
+                                            chapter_num = int(chapter_match.group(1))
+                                            # Add chapter field after layout field
+                                            if 'layout:' in frontmatter:
+                                                frontmatter = frontmatter.replace(
+                                                    'layout: verse\n',
+                                                    f'layout: verse\nchapter: {chapter_num}\n'
+                                                )
+                                                changes_made.append('added chapter field')
+
+                                    # Reconstruct content with updated frontmatter
+                                    content = f"---\n{frontmatter}---\n{body}"
+
                             # Fix image paths: /images/theme/verse.png -> /images/collection/theme/verse.png
                             # Pattern: image: /images/THEME/VERSE.png (missing collection)
+                            before_image_fix = content
                             content = re.sub(
                                 r'image:\s*/images/([^/\s]+)/([^/\s]+\.png)',
                                 rf'image: /images/{collection_key}/\1/\2',
                                 content
                             )
+                            if content != before_image_fix:
+                                changes_made.append('fixed image paths')
 
                             # Fix audio paths with underscores: chapter_01_verse_01 -> chapter-01-verse-01
                             # And add collection name if missing
@@ -498,17 +527,21 @@ size: "1024x1024"
                                     # Add collection name
                                     return f'{prefix}: /audio/{collection_key}/{filename}'
 
+                            before_audio_fix = content
                             content = re.sub(
                                 r'(audio_(?:full|slow)):\s*(/audio/[^\s]+)',
                                 fix_audio_path,
                                 content
                             )
+                            if content != before_audio_fix:
+                                changes_made.append('fixed audio paths')
 
                             # Only write if content changed
                             if content != original_content:
                                 if not dry_run:
                                     verse_file.write_text(content)
-                                actions.append(f"{fix_prefix} {collection_key}/{verse_file.name}")
+                                change_desc = ', '.join(changes_made) if changes_made else 'updated'
+                                actions.append(f"{fix_prefix} {collection_key}/{verse_file.name} ({change_desc})")
 
                         except Exception as e:
                             actions.append(f"⚠️  Error processing {collection_key}/{verse_file.name}: {e}")
