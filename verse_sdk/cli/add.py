@@ -168,8 +168,9 @@ def add_verses_to_yaml(project_dir: Path, collection_key: str, verse_numbers: Li
 
     added = 0
     skipped = 0
+    new_verses = []
 
-    # Add new verses
+    # Check which verses need to be added
     for verse_num in verse_numbers:
         verse_id = f"{prefix}-{format_str.format(verse_num)}"
 
@@ -177,46 +178,24 @@ def add_verses_to_yaml(project_dir: Path, collection_key: str, verse_numbers: Li
             print(f"  ⚠️  Skipped {verse_id} (already exists)")
             skipped += 1
         else:
-            existing_verses[verse_id] = {
-                'devanagari': ''
-            }
-            print(f"  ✓ Added {verse_id} to {yaml_file.name}")
+            new_verses.append(verse_id)
+            print(f"  ✓ Will add {verse_id} to {yaml_file.name}")
             added += 1
 
-    # Write back to file with blank lines between verses
-    with open(yaml_file, 'w', encoding='utf-8') as f:
-        sorted_keys = sorted(existing_verses.keys())
-        for i, key in enumerate(sorted_keys):
-            # Write verse key
-            f.write(f"{key}:\n")
+    # Append new verses to the end of the file (preserves comments and formatting)
+    if new_verses:
+        with open(yaml_file, 'a', encoding='utf-8') as f:
+            # Add blank line before new verses
+            f.write("\n")
 
-            # Write verse data
-            verse_data = existing_verses[key]
-            if isinstance(verse_data, dict):
-                for field_key, field_value in verse_data.items():
-                    if isinstance(field_value, str):
-                        if '\n' in field_value and field_value.strip():
-                            # Multi-line string - use literal style
-                            f.write(f"  {field_key}: |\n")
-                            for line in field_value.split('\n'):
-                                if line or field_value.endswith('\n'):  # Keep empty lines
-                                    f.write(f"    {line}\n")
-                        elif field_value:
-                            # Single line string
-                            f.write(f"  {field_key}: {yaml.dump(field_value, allow_unicode=True).strip()}\n")
-                        else:
-                            # Empty string
-                            f.write(f"  {field_key}: ''\n")
-                    else:
-                        # Other types
-                        f.write(f"  {field_key}: {yaml.dump(field_value, allow_unicode=True).strip()}\n")
-            else:
-                # Non-dict value
-                f.write(f"  {yaml.dump(verse_data, allow_unicode=True)}")
+            for i, verse_id in enumerate(new_verses):
+                # Write verse entry
+                f.write(f"{verse_id}:\n")
+                f.write(f"  devanagari: ''\n")
 
-            # Add blank line between verses (except after last verse)
-            if i < len(sorted_keys) - 1:
-                f.write("\n")
+                # Add blank line between verses (except after last)
+                if i < len(new_verses) - 1:
+                    f.write("\n")
 
     return added, skipped, format_used
 
