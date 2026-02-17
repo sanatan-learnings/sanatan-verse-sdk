@@ -641,6 +641,50 @@ Format your response exactly as above with clear section headers."""
         )
 
 
+def format_title_with_prefix(title: str, verse_type: str, verse_number: int, lang: str = 'en') -> str:
+    """
+    Format a title with verse type and number prefix.
+
+    Args:
+        title: Base descriptive title (e.g., "Ocean of Knowledge")
+        verse_type: Type of verse (e.g., 'shloka', 'chaupai', 'doha', 'verse')
+        verse_number: Sequence number for display
+        lang: Language code ('en' or 'hi')
+
+    Returns:
+        Formatted title with prefix (e.g., "Shloka 1: Ocean of Knowledge")
+    """
+    # Verse type translations
+    verse_type_labels = {
+        'en': {
+            'shloka': 'Shloka',
+            'chaupai': 'Chaupai',
+            'doha': 'Doha',
+            'verse': 'Verse',
+            'mantra': 'Mantra',
+            'stanza': 'Stanza',
+        },
+        'hi': {
+            'shloka': 'श्लोक',
+            'chaupai': 'चौपाई',
+            'doha': 'दोहा',
+            'verse': 'पद',
+            'mantra': 'मंत्र',
+            'stanza': 'पद',
+        }
+    }
+
+    # Get the label for this verse type, fallback to capitalized verse_type
+    verse_label = verse_type_labels.get(lang, {}).get(verse_type.lower(), verse_type.title())
+
+    # If title already starts with the verse type prefix, return as-is
+    if title.startswith(f"{verse_label} {verse_number}:"):
+        return title
+
+    # Format: "Shloka 1: Title" or "श्लोक 1: शीर्षक"
+    return f"{verse_label} {verse_number}: {title}"
+
+
 def create_verse_file_with_content(verse_file: Path, content: dict, collection: str, verse_num: int, verse_id: str = None, project_dir: Path = None) -> bool:
     """
     Create a new verse markdown file with generated content in complete chaupai format.
@@ -680,13 +724,28 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
             project_dir = verse_file.parent.parent.parent  # Go up from _verses/collection/file.md
         prev_id, next_id = get_navigation_from_sequence(collection, verse_id, project_dir)
 
+        # Format titles with verse type and number prefix
+        title_en_base = content.get('title_en', '')
+        title_hi_base = content.get('title_hi', '')
+
+        # Add prefix if title exists, otherwise use default format
+        if title_en_base:
+            title_en = format_title_with_prefix(title_en_base, verse_type, id_number, 'en')
+        else:
+            title_en = f'{verse_type.title()} {id_number}'
+
+        if title_hi_base:
+            title_hi = format_title_with_prefix(title_hi_base, verse_type, id_number, 'hi')
+        else:
+            title_hi = f'{verse_type} {id_number}'
+
         # Build complete frontmatter (chaupai format)
         frontmatter = {
             'layout': 'verse',
             'collection_key': collection,
             'permalink': f'/{collection}/{verse_id}/',
-            'title_en': content.get('title_en', f'{verse_type.title()} {id_number}'),
-            'title_hi': content.get('title_hi', f'{verse_type} {id_number}'),
+            'title_en': title_en,
+            'title_hi': title_hi,
             'chapter': chapter_number,  # Will be removed if None
             'verse_number': verse_num,
             'verse_type': verse_type,
@@ -841,14 +900,29 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
         project_dir = verse_file.parent.parent.parent  # Go up from _verses/collection/file.md
         prev_id, next_id = get_navigation_from_sequence(collection, verse_id, project_dir)
 
+        # Format titles with verse type and number prefix
+        title_en_base = content.get('title_en') or frontmatter.get('title_en', '')
+        title_hi_base = content.get('title_hi') or frontmatter.get('title_hi', '')
+
+        # Add prefix if title exists, otherwise use default format
+        if title_en_base:
+            title_en = format_title_with_prefix(title_en_base, verse_type, id_number, 'en')
+        else:
+            title_en = f'{verse_type.title()} {id_number}'
+
+        if title_hi_base:
+            title_hi = format_title_with_prefix(title_hi_base, verse_type, id_number, 'hi')
+        else:
+            title_hi = f'{verse_type} {id_number}'
+
         # Update frontmatter with ALL generated content (complete chaupai format)
         # Preserve existing metadata fields but add/update with new structure
         frontmatter.update({
             'layout': frontmatter.get('layout', 'verse'),
             'collection_key': collection,  # Use collection_key, not just collection
             'permalink': frontmatter.get('permalink', f'/{collection}/{verse_id}/'),
-            'title_en': content.get('title_en', frontmatter.get('title_en', f'{verse_type.title()} {id_number}')),
-            'title_hi': content.get('title_hi', frontmatter.get('title_hi', f'{verse_type} {id_number}')),
+            'title_en': title_en,
+            'title_hi': title_hi,
             'verse_number': verse_num,
             'verse_type': verse_type,
             'previous_verse': f'/{collection}/{prev_id}/' if prev_id else None,
