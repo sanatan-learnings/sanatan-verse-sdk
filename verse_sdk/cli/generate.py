@@ -10,7 +10,7 @@ This command is the one-stop solution for generating all content for a verse:
 - Update vector embeddings for semantic search
 
 Usage:
-    # Generate everything for a verse (default: image + audio + embeddings)
+    # Generate everything for a verse (default: image + audio, no embeddings)
     verse-generate --collection hanuman-chalisa --verse 15
 
     # Regenerate AI content only (no multimedia)
@@ -2106,17 +2106,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Complete workflow (default) - fetch text, generate media, update embeddings
+  # Default workflow - generate image + audio (no embeddings)
   verse-generate --collection hanuman-chalisa --verse 15
 
   # With custom theme
   verse-generate --collection hanuman-chalisa --verse 15 --theme kids-friendly
 
-  # Skip embeddings update (faster, but search won't include this verse)
-  verse-generate --collection hanuman-chalisa --verse 15 --no-update-embeddings
-
-  # Generate everything (default: image + audio + embeddings)
-  verse-generate --collection hanuman-chalisa --verse 15
+  # Generate image + audio + embeddings
+  verse-generate --collection hanuman-chalisa --verse 15 --embeddings
 
   # Generate only image
   verse-generate --collection sundar-kaand --verse 3 --image
@@ -2124,7 +2121,7 @@ Examples:
   # Generate only audio
   verse-generate --collection sankat-mochan-hanumanashtak --verse 5 --audio
 
-  # Generate image + audio (no embeddings)
+  # Generate image + audio (explicit, same as default)
   verse-generate --collection sundar-kaand --verse 3 --image --audio
 
   # Auto-generate next verse after the last generated verse
@@ -2154,7 +2151,8 @@ Note:
   - If data file has sequence, verse ID is mapped from sequence (e.g., position 15 → chaupai-11)
   - If no sequence exists, falls back to old behavior (scanning existing files)
   - Use --next to auto-generate the next verse in the sequence
-  - Default behavior: generates image + audio + embeddings
+  - Default behavior: generates image + audio (no embeddings)
+  - Use --embeddings to also update vector embeddings (or run verse-embeddings separately)
   - Use --regenerate-content ALONE to only regenerate text (no multimedia)
   - Add --image, --audio, or --embeddings to include specific media
   - Flags can be combined: --image --audio --embeddings
@@ -2436,7 +2434,7 @@ Environment Variables:
         print(f"  verse-generate --collection {args.collection} --next")
         print()
         print("Available options:")
-        print("  (no flags) : Generate image + audio + embeddings (default)")
+        print("  (no flags) : Generate image + audio (default, no embeddings)")
         print("  --image    : Generate image")
         print("  --audio    : Generate audio")
         print("  --embeddings : Update vector embeddings")
@@ -2454,7 +2452,7 @@ Environment Variables:
 
     # Determine what to generate
     # New simpler design:
-    # - No flags = generate everything (image, audio, embeddings)
+    # - No flags = generate image + audio (embeddings opt-in via --embeddings)
     # - --regenerate-content alone = regenerate text only
     # - --regenerate-content + media flags = regenerate text + specified media
     # - Media flags alone = generate specified media only
@@ -2462,10 +2460,10 @@ Environment Variables:
     has_media_flags = any([args.image, args.audio, args.update_embeddings])
 
     if not has_media_flags and not args.regenerate_content:
-        # No flags specified: default to generating everything
+        # No flags specified: default to image + audio (embeddings are opt-in via --embeddings)
         generate_image_flag = True
         generate_audio_flag = True
-        update_embeddings_flag = True
+        update_embeddings_flag = False
     else:
         # Use explicit flags
         generate_image_flag = args.image

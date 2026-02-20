@@ -16,13 +16,12 @@ The `verse-generate` command is a complete orchestrator for verse content genera
 - Automatically generates scene descriptions using GPT-4 (saved to `data/scenes/<collection>.md`)
 - Generates images using DALL-E 3 based on scene descriptions
 - Generates audio pronunciations using ElevenLabs (full-speed and slow-speed)
-- Updates vector embeddings for semantic search
+
+Embeddings are **not** updated by default. Use `--embeddings` to opt-in, or run `verse-embeddings` separately after batch generation.
 
 Additionally, you can regenerate AI content (transliteration, meaning, translation, story) from the canonical source using `--regenerate-content`.
 
 **Batch Processing**: Use range syntax `--verse M-N` (e.g., `1-10`) to generate multiple verses in one command.
-
-You can opt-out of specific steps using `--no-update-embeddings` flag or generate only specific components with `--image` or `--audio`.
 
 ## Options
 
@@ -40,7 +39,7 @@ You can opt-out of specific steps using `--no-update-embeddings` flag or generat
 - `--image` - Generate image only
 - `--audio` - Generate audio only
 - `--regenerate-content` - Regenerate AI content (transliteration, meaning, translation, story) from canonical Devanagari text in `data/verses/{collection}.yaml`
-- `--no-update-embeddings` - Skip updating embeddings (embeddings update is enabled by default)
+- `--embeddings` - Update vector embeddings after generation (opt-in; use `verse-embeddings` for batch updates)
 - `--theme NAME` - Image theme name (default: modern-minimalist)
 - `--verse-id ID` - Override verse identifier (e.g., chaupai_05, doha_01). Auto-detected if not specified
 - `--list-collections` - List all available collections
@@ -92,7 +91,8 @@ This automatically:
 3. Generates DALL-E 3 image using scene description (modern-minimalist theme)
 4. Generates full-speed audio pronunciation
 5. Generates slow-speed audio pronunciation (0.75x)
-6. Updates vector embeddings for semantic search
+
+Embeddings are **not** updated by default. Run `verse-embeddings` once after batch generation.
 
 ### Batch Processing
 
@@ -105,8 +105,9 @@ verse-generate --collection hanuman-chalisa --verse 1-10
 # Generate verses 5 through 20 with custom theme
 verse-generate --collection sundar-kaand --verse 5-20 --theme kids-friendly
 
-# Generate range without updating embeddings (faster)
-verse-generate --collection hanuman-chalisa --verse 1-10 --no-update-embeddings
+# Generate range, then update embeddings once at the end
+verse-generate --collection hanuman-chalisa --verse 1-10
+verse-embeddings --multi-collection --collections-file _data/collections.yml --verses-dir _verses --output data/embeddings.json
 
 # Generate range with content regeneration
 verse-generate --collection sundar-kaand --verse 1-5 --regenerate-content
@@ -118,12 +119,17 @@ verse-generate --collection sundar-kaand --verse 1-5 --regenerate-content
 - Continues on errors (doesn't stop entire batch)
 - Summary shows success/failure breakdown
 
-### Skip Embeddings Update
+### Update Embeddings
 
-Faster generation, but search won't include this verse:
+Embeddings are off by default. To update them after generation:
 
 ```bash
-verse-generate --collection hanuman-chalisa --verse 15 --no-update-embeddings
+# Include embeddings for a single verse
+verse-generate --collection hanuman-chalisa --verse 15 --embeddings
+
+# Or run verse-embeddings once after batch generation (recommended)
+verse-embeddings --multi-collection --collections-file _data/collections.yml \
+  --verses-dir _verses --output data/embeddings.json
 ```
 
 ### Custom Theme
@@ -158,8 +164,8 @@ verse-generate --collection sundar-kaand --verse 3 --regenerate-content
 # Regenerate AI content AND multimedia
 verse-generate --collection sundar-kaand --verse 3 --regenerate-content --all
 
-# Regenerate content without updating embeddings (faster)
-verse-generate --collection sundar-kaand --verse 3 --regenerate-content --no-update-embeddings
+# Regenerate content only
+verse-generate --collection sundar-kaand --verse 3 --regenerate-content
 ```
 
 This reads the canonical Devanagari text from `data/verses/{collection}.yaml` and uses GPT-4 to generate:
@@ -184,7 +190,7 @@ verse-generate --collection sankat-mochan-hanumanashtak --verse 7
 
 ## Generated Files
 
-When using `--all` (default), the command creates:
+When using default (or `--all`), the command creates:
 
 1. **Scene description**: `data/scenes/<collection-key>.md`
    - Automatically generated using GPT-4 from canonical Devanagari text
@@ -242,11 +248,11 @@ verse-generate --collection hanuman-chalisa --verse 15 --audio
 
 ## Notes
 
-- **Default behavior**: Complete workflow - generates image + audio with `modern-minimalist` theme, updates embeddings
+- **Default behavior**: Generates image + audio with `modern-minimalist` theme. Embeddings are **not** updated by default.
+- **Embeddings**: Use `--embeddings` to update after a single verse, or run `verse-embeddings` once after batch generation
 - **Batch processing**: Use range syntax `--verse M-N` to generate multiple verses (e.g., `1-10`, `5-20`)
 - **Scene descriptions**: Automatically generated using GPT-4 and saved to `data/scenes/<collection-key>.md`
   - Scene descriptions are always regenerated from the canonical Devanagari text for consistency
-- Use `--no-update-embeddings` to skip embeddings update (faster, but search won't include these verses)
 - Use `--image` or `--audio` to generate only specific components
 - Use `--theme` to change from the default `modern-minimalist` theme
 - Verse ID is automatically detected from existing verse files (e.g., if `chaupai_05.md` exists, uses `chaupai_05`)
@@ -255,8 +261,6 @@ verse-generate --collection hanuman-chalisa --verse 15 --audio
 - Theme configuration must exist in `data/themes/<collection-key>/<theme-name>.yml` for image generation
 - Audio generation reads from the `devanagari:` field in verse files
 - Only enabled collections (in `collections.yml`) can be processed
-- Embeddings update processes all collections, not just the current one
-- In batch operations, embeddings are updated once at the end for efficiency
 
 ## See Also
 
