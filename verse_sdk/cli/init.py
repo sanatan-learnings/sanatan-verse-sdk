@@ -313,21 +313,24 @@ verse-03:
     scenes_file = base_path / "data" / "scenes" / f"{collection}.yml"
     scenes_file.parent.mkdir(parents=True, exist_ok=True)
     if not scenes_file.exists():
-        scenes_content = f"""# Scene descriptions for {collection.replace('-', ' ').title()}
-#
-# Format: verse ID as key, scene description as value
-# Be specific and concrete - describe what should be visible in the image
-# Include: setting, characters, poses, lighting, mood, and visual elements
+        verse_entries = ""
+        for i in range(1, num_verses + 1):
+            verse_entries += f"  verse-{i:02d}:\n"
+            verse_entries += f"    title: \"[Brief title for verse {i}]\"\n"
+            verse_entries += f"    description: |\n"
+            verse_entries += f"      [Add scene description for verse {i}]\n"
+            if i < num_verses:
+                verse_entries += "\n"
+        scenes_content = f"""_meta:
+  collection: {collection}
+  description: Scene descriptions for {collection.replace('-', ' ').title()} image generation
 
-verse-01: |
-  [Add detailed scene description here]
+# Scene descriptions for each verse.
+# Be specific and concrete - describe what should be visible in the image.
+# Include: setting, characters, poses, lighting, mood, and visual elements.
 
-verse-02: |
-  [Add scene description for verse 2]
-
-verse-03: |
-  [Add scene description for verse 3]
-"""
+scenes:
+{verse_entries}"""
         scenes_file.write_text(scenes_content)
         print(f"✓ Created data/scenes/{collection}.yml")
 
