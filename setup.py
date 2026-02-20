@@ -49,6 +49,7 @@ setup(
             'verse-init=verse_sdk.cli.init:main',
             'verse-validate=verse_sdk.cli.validate:main',
             'verse-add=verse_sdk.cli.add:main',
+            'verse-puranic-context=verse_sdk.cli.puranic_context:main',
             'verse-help=verse_sdk.cli.help:main',
         ],
     },

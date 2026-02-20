@@ -2287,6 +2287,11 @@ Environment Variables:
         action="store_true",
         help="Update vector embeddings for semantic search"
     )
+    parser.add_argument(
+        "--puranic-context",
+        action="store_true",
+        help="Generate Puranic context box for the verse"
+    )
 
     # Legacy flag support
     parser.add_argument(
@@ -2457,7 +2462,7 @@ Environment Variables:
     # - --regenerate-content + media flags = regenerate text + specified media
     # - Media flags alone = generate specified media only
 
-    has_media_flags = any([args.image, args.audio, args.update_embeddings])
+    has_media_flags = any([args.image, args.audio, args.update_embeddings, args.puranic_context])
 
     if not has_media_flags and not args.regenerate_content:
         # No flags specified: default to image + audio (embeddings are opt-in via --embeddings)
@@ -2470,6 +2475,7 @@ Environment Variables:
         generate_audio_flag = args.audio
         update_embeddings_flag = args.update_embeddings
 
+    puranic_context_flag = args.puranic_context
     regenerate_content_flag = args.regenerate_content
 
     # Validate collection
@@ -2548,6 +2554,8 @@ Environment Variables:
         print("  ✓ Generate audio")
     if update_embeddings_flag:
         print("  ✓ Update embeddings")
+    if puranic_context_flag:
+        print("  ✓ Generate Puranic context")
 
     if args.dry_run:
         print("\n⚠ DRY-RUN MODE: No files will be created or API calls made")
@@ -2804,7 +2812,14 @@ Environment Variables:
             if generate_audio_flag:
                 results['audio'] = generate_audio(args.collection, verse_position, verse_id)
 
-            # Step 4: Update embeddings (only once at the end for batch)
+            # Step 4: Generate Puranic context
+            if puranic_context_flag:
+                from verse_sdk.cli.puranic_context import process_verse as generate_puranic_context_for_verse
+                verse_file_path = Path.cwd() / "_verses" / args.collection / f"{verse_id}.md"
+                result = generate_puranic_context_for_verse(verse_file_path, regenerate=False)
+                results['puranic_context'] = result in ('added', 'regenerated')
+
+            # Step 5: Update embeddings (only once at the end for batch)
             if update_embeddings_flag:
                 # For batch operations, only update embeddings after all verses
                 if len(verse_numbers) == 1 or idx == len(verse_numbers):
@@ -2869,6 +2884,10 @@ Environment Variables:
             status = "✓" if results['embeddings'] else "✗"
             cost_str = cost_tracker.format_cost(results.get('embeddings_cost', 0))
             print(f"  {status} Embeddings: {'Success' if results['embeddings'] else 'Failed'} ({cost_str})")
+
+        if puranic_context_flag:
+            status = "✓" if results.get('puranic_context') else "✗"
+            print(f"  {status} Puranic context: {'Success' if results.get('puranic_context') else 'Failed or skipped'}")
 
         # File paths and sizes
         print("\nGenerated Files:")
