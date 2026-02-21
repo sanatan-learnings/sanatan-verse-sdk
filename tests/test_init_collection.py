@@ -5,7 +5,10 @@ from pathlib import Path
 import yaml
 
 from verse_sdk.cli.init_collection import (
+    _about_paragraphs,
+    _about_section,
     detect_sections,
+    generate_full_text_html,
     generate_index_html,
     scaffold_collection,
 )
@@ -174,8 +177,118 @@ def test_generate_layout_frontmatter():
     assert "collection_key: test" in html
 
 
+def test_generate_coll_assign():
+    config = {"name_en": "Test", "permalink_base": "/bajrang-baan/"}
+    html = generate_index_html("bajrang-baan", config, [])
+    assert "site.data.collections.bajrang-baan" in html
+
+
+def test_generate_read_complete_button():
+    config = {"name_en": "Bajrang Baan", "name_hi": "बजरंग बाण", "permalink_base": "/bajrang-baan/"}
+    html = generate_index_html("bajrang-baan", config, [])
+    assert "btn-primary" in html
+    assert "full-text" in html
+    assert "Read Complete Bajrang Baan" in html
+
+
+def test_generate_book_button_uses_chalisa_path():
+    config = {"name_en": "Test", "permalink_base": "/test/"}
+    html = generate_index_html("my-col", config, [])
+    assert "/chalisa/book" in html
+    assert "btn-secondary" in html
+
+
+def test_generate_no_book_button_at_permalink_base():
+    """Generate Book should always link to /chalisa/book, not {permalink}/book."""
+    config = {"name_en": "Test", "permalink_base": "/test/"}
+    html = generate_index_html("my-col", config, [])
+    assert "/test/book" not in html
+
+
+def test_generate_about_section_placeholder():
+    config = {"name_en": "Test", "permalink_base": "/test/"}
+    html = generate_index_html("test", config, [])
+    assert "about-section-compact" in html
+    assert "<summary>" in html
+
+
+def test_generate_about_section_with_description():
+    config = {
+        "name_en": "Test",
+        "permalink_base": "/test/",
+        "description_en": "First paragraph.\n\nSecond paragraph.",
+        "description_hi": "पहला अनुच्छेद।\n\nदूसरा अनुच्छेद।",
+    }
+    html = generate_index_html("test", config, [])
+    assert "First paragraph." in html
+    assert "पहला अनुच्छेद।" in html
+    assert "Second paragraph." in html
+
+
+def test_about_paragraphs_list():
+    config = {"description_en": ["Para one", "Para two"]}
+    assert _about_paragraphs(config, "en") == ["Para one", "Para two"]
+
+
+def test_about_paragraphs_string():
+    config = {"description_en": "Para one\n\nPara two"}
+    assert _about_paragraphs(config, "en") == ["Para one", "Para two"]
+
+
+def test_about_paragraphs_missing():
+    assert _about_paragraphs({}, "en") == []
+
+
+def test_about_section_html_structure():
+    html = _about_section({})
+    assert "about-section-compact" in html
+    assert "▶" in html
+    assert "TODO" in html  # placeholder when no description
+
+
 # ---------------------------------------------------------------------------
-# scaffold_collection
+# generate_full_text_html
+# ---------------------------------------------------------------------------
+
+def test_full_text_frontmatter():
+    config = {"name_en": "Bajrang Baan", "name_hi": "बजरंग बाण", "permalink_base": "/bajrang-baan/"}
+    html = generate_full_text_html("bajrang-baan", config)
+    assert "layout: default" in html
+    assert "collection_key: bajrang-baan" in html
+    assert "Full Text" in html
+
+
+def test_full_text_includes_toggles():
+    config = {"name_en": "Test", "permalink_base": "/test/"}
+    html = generate_full_text_html("test", config)
+    assert "toggle-transliteration" in html
+    assert "toggle-translation" in html
+    assert "toggle-word-meanings" in html
+
+
+def test_full_text_includes_print_button():
+    config = {"name_en": "Test", "permalink_base": "/test/"}
+    html = generate_full_text_html("test", config)
+    assert "window.print()" in html
+
+
+def test_full_text_includes_back_link():
+    config = {"name_en": "Test", "permalink_base": "/test/"}
+    html = generate_full_text_html("test", config)
+    assert "/test/" in html
+    assert "Back to Index" in html
+
+
+def test_full_text_includes_toggle_js():
+    config = {"name_en": "Test", "permalink_base": "/test/"}
+    html = generate_full_text_html("test", config)
+    assert "toggleSection" in html
+    assert "devanagari-content" in html
+    assert "transliteration-content" in html
+
+
+# ---------------------------------------------------------------------------
+# scaffold_collection — full-text.html
 # ---------------------------------------------------------------------------
 
 def test_scaffold_creates_index_html(tmp_path):
@@ -192,6 +305,37 @@ def test_scaffold_creates_index_html(tmp_path):
     content = output.read_text()
     assert "bajrang-baan" in content
     assert "puranic-legend-compact" in content
+
+
+def test_scaffold_creates_full_text_html(tmp_path):
+    key = "bajrang-baan"
+    _make_collections_yml(tmp_path, key)
+    scaffold_collection(key, tmp_path)
+    full_text = tmp_path / key / "full-text.html"
+    assert full_text.exists()
+    content = full_text.read_text()
+    assert "full-text" in content
+    assert "toggle-transliteration" in content
+
+
+def test_scaffold_skips_full_text_without_overwrite(tmp_path):
+    key = "test-col"
+    _make_collections_yml(tmp_path, key)
+    full_text = tmp_path / key / "full-text.html"
+    full_text.parent.mkdir(parents=True)
+    full_text.write_text("original-full-text")
+    scaffold_collection(key, tmp_path, overwrite=False)
+    assert full_text.read_text() == "original-full-text"
+
+
+def test_scaffold_overwrites_full_text_with_flag(tmp_path):
+    key = "test-col"
+    _make_collections_yml(tmp_path, key)
+    full_text = tmp_path / key / "full-text.html"
+    full_text.parent.mkdir(parents=True)
+    full_text.write_text("original-full-text")
+    scaffold_collection(key, tmp_path, overwrite=True)
+    assert full_text.read_text() != "original-full-text"
 
 
 def test_scaffold_skips_existing_without_overwrite(tmp_path):

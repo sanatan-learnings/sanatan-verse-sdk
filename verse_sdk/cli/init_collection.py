@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 """
-Scaffold a collection index page (index.html) from _data/collections.yml
-and the existing verse files in _verses/{collection}/.
+Scaffold a collection index page (index.html) and full-text reading page
+(full-text.html) from _data/collections.yml and the existing verse files
+in _verses/{collection}/.
 
-The generated page includes:
+The generated index.html includes:
 - Hero section with title image
+- Read Complete (btn-primary) and Generate Book (btn-secondary) quick-actions
+- Collapsible About section seeded from collections.yml description fields
 - puranic-legend-compact notice
 - Verse grid with has-puranic-context and puranic-badge on every card
 - Section headers auto-detected from verse file prefixes (doha/chaupai/pada/etc.)
+
+The generated full-text.html includes:
+- All verses in reading order on one page
+- Toggles for transliteration / translation / word-meanings
+- Print button
 
 Usage:
     verse-init-collection --collection hanuman-chalisa
@@ -225,15 +233,62 @@ def _card_block(var: str, num_en: str, num_hi: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Main generator
+# About section builder
+# ---------------------------------------------------------------------------
+
+def _about_paragraphs(config: Dict, lang: str) -> List[str]:
+    """Return list of paragraph strings for the given lang ('en' or 'hi')."""
+    key = f"description_{lang}"
+    raw = config.get(key)
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return [str(p) for p in raw if p]
+    # Single string — split on blank lines
+    return [p.strip() for p in str(raw).split("\n\n") if p.strip()]
+
+
+def _about_section(config: Dict) -> str:
+    """Build the <details class="about-section-compact"> HTML block."""
+    en_paras = _about_paragraphs(config, "en")
+    hi_paras = _about_paragraphs(config, "hi")
+
+    # Zip by paragraph index; pad shorter list with empty strings
+    count = max(len(en_paras), len(hi_paras), 1)
+    en_paras += [""] * (count - len(en_paras))
+    hi_paras += [""] * (count - len(hi_paras))
+
+    lines = []
+    for en, hi in zip(en_paras, hi_paras):
+        en_span = f'<span data-lang="en">{en}</span>' if en else ""
+        hi_span = f'<span data-lang="hi">{hi}</span>' if hi else ""
+        if en_span or hi_span:
+            lines.append(f"            <p>{en_span}{hi_span}</p>")
+
+    if not lines:
+        lines.append('            <!-- TODO: add description_en / description_hi to _data/collections.yml -->')
+
+    inner = "\n".join(lines)
+    return (
+        '        <details class="about-section-compact">\n'
+        '            <summary>▶ <span data-lang="en">About</span>'
+        '<span data-lang="hi">परिचय</span></summary>\n'
+        f"{inner}\n"
+        "        </details>"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Main generators
 # ---------------------------------------------------------------------------
 
 def generate_index_html(collection_key: str, config: Dict, sections: List[Dict]) -> str:
     """Assemble the complete index.html Liquid template."""
     name_en = config.get("name_en", collection_key.replace("-", " ").title())
     name_hi = config.get("name_hi", "")
-    coll_icon = config.get("icon", "📿")
     permalink_base = config.get("permalink_base", f"/{collection_key}/").rstrip("/") + "/"
+
+    about_html = _about_section(config)
 
     # Build section blocks
     blocks: List[str] = []
@@ -257,23 +312,111 @@ collection_key: {collection_key}
 ---
 {{% assign t_en = site.data.translations.en %}}
 {{% assign t_hi = site.data.translations.hi %}}
+{{% assign coll = site.data.collections.{collection_key} %}}
 
 <div class="hero-section">
     <div class="title-image-container">
-        <img src="{{{{ '/images/{collection_key}/modern-minimalist/title-page.png' | relative_url }}}}" alt="{name_en} Title Page" class="title-page-image" data-themed-image="title-page.png">
+        <img src="{{{{ '/images/{collection_key}/modern-minimalist/title-page.png' | relative_url }}}}" alt="{name_en} Title Page" class="title-page-image">
     </div>
     <div class="quick-actions">
-        <a href="{{{{ '{permalink_base}book' | relative_url }}}}?collection={collection_key}" class="btn-secondary">📕 <span data-lang="en">Generate Book</span><span data-lang="hi">पुस्तक बनाएं</span></a>
+        <a href="{{{{ '{permalink_base}full-text' | relative_url }}}}" class="btn-primary">📖 <span data-lang="en">Read Complete {name_en}</span><span data-lang="hi">संपूर्ण {name_hi} पढ़ें</span></a>
+        <a href="{{{{ '/chalisa/book' | relative_url }}}}?collection={collection_key}" class="btn-secondary">📕 <span data-lang="en">Generate Book</span><span data-lang="hi">पुस्तक बनाएं</span></a>
     </div>
     <div class="collection-meta">
+{about_html}
         <span class="puranic-legend-compact">📚 <span data-lang="en">Some verses have Puranic stories</span><span data-lang="hi">कुछ पदों में पौराणिक कथाएं हैं</span></span>
     </div>
 </div>
 
 <section class="verse-navigation">
-    <h2>{coll_icon} <span data-lang="en">{name_en}</span><span data-lang="hi">{name_hi}</span></h2>
 {sections_html}
 </section>
+"""
+
+
+def generate_full_text_html(collection_key: str, config: Dict) -> str:
+    """Assemble the full-text.html Liquid template (single-page reading view)."""
+    name_en = config.get("name_en", collection_key.replace("-", " ").title())
+    name_hi = config.get("name_hi", "")
+    permalink_base = config.get("permalink_base", f"/{collection_key}/").rstrip("/") + "/"
+
+    return f"""---
+layout: default
+title: "Full Text – {name_en}"
+collection_key: {collection_key}
+---
+{{% assign t_en = site.data.translations.en %}}
+{{% assign t_hi = site.data.translations.hi %}}
+{{% assign verses = site.verses | where: "collection_key", "{collection_key}" | sort: "verse_number" %}}
+
+<div class="full-text-header">
+    <h1><span data-lang="en">Full Text – {name_en}</span><span data-lang="hi">संपूर्ण पाठ – {name_hi}</span></h1>
+    <div class="full-text-controls">
+        <button class="btn-secondary print-btn" onclick="window.print()">🖨️ <span data-lang="en">Print</span><span data-lang="hi">प्रिंट</span></button>
+        <a href="{{{{ '{permalink_base}' | relative_url }}}}" class="btn-secondary">← <span data-lang="en">Back to Index</span><span data-lang="hi">सूची पर वापस</span></a>
+    </div>
+    <div class="full-text-toggles">
+        <label><input type="checkbox" id="toggle-devanagari" checked onchange="toggleSection('devanagari', this.checked)"> <span data-lang="en">Devanagari</span><span data-lang="hi">देवनागरी</span></label>
+        <label><input type="checkbox" id="toggle-transliteration" checked onchange="toggleSection('transliteration', this.checked)"> <span data-lang="en">Transliteration</span><span data-lang="hi">लिप्यंतरण</span></label>
+        <label><input type="checkbox" id="toggle-translation" checked onchange="toggleSection('translation', this.checked)"> <span data-lang="en">Translation</span><span data-lang="hi">अनुवाद</span></label>
+        <label><input type="checkbox" id="toggle-word-meanings" onchange="toggleSection('word-meanings', this.checked)"> <span data-lang="en">Word Meanings</span><span data-lang="hi">शब्दार्थ</span></label>
+    </div>
+</div>
+
+<div class="full-text-page">
+    {{% assign prev_type = "" %}}
+    {{% for verse in verses %}}
+        {{% if verse.verse_type != prev_type %}}
+            {{% unless prev_type == "" %}}</div></div>{{% endunless %}}
+            <div class="verse-section">
+            <h3 class="section-header">
+                {{% assign vt = verse.verse_type %}}
+                {{% if vt == "chaupai" %}}<span data-lang="en">📿 Chaupais</span><span data-lang="hi">📿 चौपाई</span>
+                {{% elsif vt == "doha" %}}<span data-lang="en">🪷 Dohas</span><span data-lang="hi">🪷 दोहा</span>
+                {{% elsif vt == "shloka" %}}<span data-lang="en">📖 Shlokas</span><span data-lang="hi">📖 श्लोक</span>
+                {{% elsif vt == "pada" %}}<span data-lang="en">🎵 Padas</span><span data-lang="hi">🎵 पद</span>
+                {{% else %}}<span data-lang="en">{{{{ verse.verse_type | capitalize }}}}</span><span data-lang="hi">{{{{ verse.verse_type | capitalize }}}}</span>
+                {{% endif %}}
+            </h3>
+            <div class="full-text-verses">
+        {{% endif %}}
+        <div class="full-text-verse" id="{{{{ verse.slug }}}}">
+            <div class="verse-label">
+                <a href="{{{{ verse.url | relative_url }}}}">
+                    <span data-lang="en">{{{{ verse.title_en }}}}</span>
+                    <span data-lang="hi">{{{{ verse.title_hi }}}}</span>
+                </a>
+                {{% if verse.puranic_context %}}<span class="puranic-badge"><span class="badge-icon">📚</span></span>{{% endif %}}
+            </div>
+            <div class="devanagari-content">{{{{ verse.devanagari }}}}</div>
+            <div class="transliteration-content">{{{{ verse.transliteration }}}}</div>
+            <div class="translation-content">
+                {{% if verse.translation.en %}}<p class="translation-en" data-lang="en">{{{{ verse.translation.en }}}}</p>{{% endif %}}
+                {{% if verse.translation.hi %}}<p class="translation-hi" data-lang="hi">{{{{ verse.translation.hi }}}}</p>{{% endif %}}
+                {{% if verse.interpretive_meaning.en %}}<p class="meaning-en" data-lang="en">{{{{ verse.interpretive_meaning.en }}}}</p>{{% endif %}}
+            </div>
+            {{% if verse.word_meanings.size > 0 %}}
+            <div class="word-meanings-content">
+                <dl>
+                {{% for wm in verse.word_meanings %}}
+                    <dt>{{{{ wm.word }}}}</dt><dd><span data-lang="en">{{{{ wm.meaning_en }}}}</span><span data-lang="hi">{{{{ wm.meaning_hi }}}}</span></dd>
+                {{% endfor %}}
+                </dl>
+            </div>
+            {{% endif %}}
+        </div>
+        {{% assign prev_type = verse.verse_type %}}
+    {{% endfor %}}
+    {{% unless prev_type == "" %}}</div></div>{{% endunless %}}
+</div>
+
+<script>
+function toggleSection(cls, show) {{
+    document.querySelectorAll('.' + cls + '-content').forEach(function(el) {{
+        el.style.display = show ? '' : 'none';
+    }});
+}}
+</script>
 """
 
 
@@ -309,7 +452,7 @@ def _load_sequence(collection_key: str, project_dir: Path) -> Optional[List[str]
 
 def scaffold_collection(collection_key: str, project_dir: Path, overwrite: bool = False) -> bool:
     """
-    Generate index.html for one collection. Returns True on success.
+    Generate index.html and full-text.html for one collection. Returns True on success.
     """
     collections = load_collections(project_dir)
     if collection_key not in collections:
@@ -319,29 +462,43 @@ def scaffold_collection(collection_key: str, project_dir: Path, overwrite: bool 
     config = collections[collection_key]
     permalink_base = config.get("permalink_base", f"/{collection_key}/")
     output_dir_name = permalink_base.strip("/")
-    output_file = project_dir / output_dir_name / "index.html"
+    output_dir = project_dir / output_dir_name
+    output_file = output_dir / "index.html"
 
     if output_file.exists() and not overwrite:
         print(f"  ⚠ Skipped {output_file} (already exists — use --overwrite to regenerate)")
-        return True
+    else:
+        verses_dir = project_dir / "_verses" / collection_key
+        sequence = _load_sequence(collection_key, project_dir)
+        sections = detect_sections(verses_dir, sequence=sequence)
 
-    verses_dir = project_dir / "_verses" / collection_key
-    sequence = _load_sequence(collection_key, project_dir)
-    sections = detect_sections(verses_dir, sequence=sequence)
+        if not sections:
+            print(f"  ⚠ No verse files found in {verses_dir} — generating template with empty sections")
 
-    if not sections:
-        print(f"  ⚠ No verse files found in {verses_dir} — generating template with empty sections")
+        html = generate_index_html(collection_key, config, sections)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_file.write_text(html, encoding="utf-8")
 
-    html = generate_index_html(collection_key, config, sections)
+        verse_count = sum(len(s["verse_ids"]) for s in sections)
+        section_count = len(sections)
+        print(f"  ✓ Wrote {output_file} ({section_count} section(s), {verse_count} verse(s))")
 
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    output_file.write_text(html, encoding="utf-8")
-
-    verse_count = sum(len(s["verse_ids"]) for s in sections)
-    section_count = len(sections)
-    action = "Regenerated" if output_file.exists() else "Created"
-    print(f"  ✓ {action} {output_file} ({section_count} section(s), {verse_count} verse(s))")
+    _scaffold_full_text(collection_key, config, output_dir, overwrite)
     return True
+
+
+def _scaffold_full_text(
+    collection_key: str, config: Dict, output_dir: Path, overwrite: bool
+) -> None:
+    """Write full-text.html alongside index.html."""
+    full_text_file = output_dir / "full-text.html"
+    if full_text_file.exists() and not overwrite:
+        print(f"  ⚠ Skipped {full_text_file} (already exists — use --overwrite to regenerate)")
+        return
+    html = generate_full_text_html(collection_key, config)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    full_text_file.write_text(html, encoding="utf-8")
+    print(f"  ✓ Wrote {full_text_file}")
 
 
 # ---------------------------------------------------------------------------
