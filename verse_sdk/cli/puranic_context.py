@@ -91,7 +91,9 @@ Rules:
     vague placeholder — omit the entire entry instead
   * Do NOT cite scriptures that were not provided in the retrieved episodes
     (e.g. do not cite Ramayana or Mahabharata unless those episodes were retrieved)
-  * If no retrieved episode provides a direct, citable reference for an entry, return []"""
+  * If no retrieved episode provides a direct, citable reference for an entry, return []
+  * Do NOT generate entries from your general knowledge or other scriptures —
+    every entry must be derivable from the episodes listed above
 
 
 # ---------------------------------------------------------------------------
@@ -377,32 +379,117 @@ Return [] if the verse has no meaningful Puranic content."""
 
 
 _VAGUE_SECTIONS = {
-    "not directly mentioned", "not mentioned", "unknown", "various",
-    "n/a", "na", "none", "unclear", "unspecified", "not specified",
-    "not available", "not applicable",
+    "not directly mentioned", "not mentioned", "not explicitly mentioned",
+    "not directly cited", "not explicitly cited",
+    "not directly applicable", "not directly applicable",
+    "not directly referenced", "not explicitly referenced",
+    "not directly stated", "not explicitly stated",
+    "unknown", "various", "n/a", "na", "none", "unclear",
+    "unspecified", "not specified", "not available", "not applicable",
 }
 
 
-def _reject_uncited_entries(entries: List[Dict]) -> List[Dict]:
+def _reject_uncited_entries(
+    entries: List[Dict],
+    indexed_source_names: Optional[List[str]] = None,
+) -> List[Dict]:
     """
-    Drop any context entry where every source_texts item has a missing or
-    vague section — these are hallucinated references.
+    Drop any context entry where every source_texts item has:
+    - A missing or vague section (placeholder phrases or bare numbers), OR
+    - A source name not found in the indexed sources (cross-scripture hallucination).
     """
+    allowed_names: Optional[set] = None
+    if indexed_source_names:
+        allowed_names = {n.lower() for n in indexed_source_names}
+
     kept = []
     for entry in entries:
         source_texts = entry.get("source_texts") or []
-        valid = [
-            s for s in source_texts
-            if isinstance(s, dict)
-            and str(s.get("section", "")).strip().lower() not in _VAGUE_SECTIONS
-            and str(s.get("section", "")).strip() != ""
-        ]
+        valid = []
+        for s in source_texts:
+            if not isinstance(s, dict):
+                continue
+            section = str(s.get("section", "")).strip()
+            # Reject vague/placeholder sections
+            if section == "" or section.lower() in _VAGUE_SECTIONS:
+                continue
+            # Reject bare numeric sections ("71" alone — no Purana name)
+            if section.isdigit():
+                continue
+            # Reject if cited text is not one of the indexed sources
+            if allowed_names is not None:
+                text_name = str(s.get("text", "")).strip().lower()
+                if text_name and not any(
+                    allowed in text_name or text_name in allowed
+                    for allowed in allowed_names
+                ):
+                    continue
+            valid.append(s)
+
         if valid:
             entry["source_texts"] = valid
             kept.append(entry)
         else:
             ep_id = entry.get("id", "?")
-            print(f"    ⚠ Dropped entry '{ep_id}': no citable section reference", file=sys.stderr)
+            print(f"    ⚠ Dropped entry '{ep_id}': no citable section reference from indexed sources", file=sys.stderr)
+    return kept
+
+
+def _filter_by_subject_participation(
+    entries: List[Dict],
+    subject: str,
+    subject_type: str,
+    client,
+) -> List[Dict]:
+    """
+    Use GPT-4o-mini to verify each entry involves the subject as a direct
+    participant (not merely mentioned or symbolically referenced).
+    Rejects entries where the subject is only thematically connected.
+    """
+    if not entries:
+        return entries
+
+    kept = []
+    for entry in entries:
+        ep_id = entry.get("id", "?")
+        title = entry.get("title", {})
+        if isinstance(title, dict):
+            title = title.get("en", "")
+        summary = entry.get("story_summary", {})
+        if isinstance(summary, dict):
+            summary = summary.get("en", "")
+
+        try:
+            resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Does the following story directly involve the {subject_type} {subject} "
+                            f"as an active participant (not merely mentioned, symbolically referenced, "
+                            f"or only thematically connected)?\n\n"
+                            f"Title: {title}\n"
+                            f"Summary: {summary}\n\n"
+                            f"Answer with only 'yes' or 'no'."
+                        ),
+                    }
+                ],
+                temperature=0,
+                max_tokens=5,
+            )
+            answer = resp.choices[0].message.content.strip().lower()
+            if answer.startswith("yes"):
+                kept.append(entry)
+            else:
+                print(
+                    f"    ⚠ Dropped entry '{ep_id}': {subject} is not a direct participant",
+                    file=sys.stderr,
+                )
+        except Exception as e:
+            print(f"    ⚠ Subject validation failed for '{ep_id}': {e} — keeping entry", file=sys.stderr)
+            kept.append(entry)
+
     return kept
 
 
@@ -452,7 +539,17 @@ def generate_puranic_context(
         if not isinstance(parsed, list):
             print(f"  ⚠ Unexpected response format (not a list)", file=sys.stderr)
             return None
-        return _reject_uncited_entries(parsed)
+
+        # Fix 1+3: reject vague sections and cross-scripture citations
+        result = _reject_uncited_entries(parsed, indexed_source_names=indexed_source_names)
+
+        # Fix 2: reject entries where subject is not a direct participant
+        if subject and result:
+            label = subject_type or "deity"
+            print(f"    → Validating subject participation for {len(result)} entr{'y' if len(result) == 1 else 'ies'}...", file=sys.stderr)
+            result = _filter_by_subject_participation(result, subject, label, client)
+
+        return result
 
     except yaml.YAMLError as e:
         print(f"  ✗ YAML parse error in AI response: {e}", file=sys.stderr)
