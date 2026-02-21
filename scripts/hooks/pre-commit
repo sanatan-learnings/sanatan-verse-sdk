@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# pre-commit hook: run lint + tests before every commit.
+# Install: bash scripts/install-hooks.sh
+set -euo pipefail
+
+# Use project venv if available, otherwise fall back to system binaries.
+if [ -f ".venv/bin/ruff" ]; then
+  RUFF=".venv/bin/ruff"
+  PYTEST=".venv/bin/pytest"
+else
+  RUFF="ruff"
+  PYTEST="pytest"
+fi
+
+echo "--- pre-commit checks ---"
+
+echo "lint (ruff)..."
+$RUFF check verse_sdk/ tests/ || {
+  echo "Lint failed. Fix errors before committing."
+  exit 1
+}
+
+echo "tests (pytest)..."
+$PYTEST tests/ -q || {
+  echo "Tests failed. Fix failures before committing."
+  exit 1
+}
+
+echo "All checks passed."
