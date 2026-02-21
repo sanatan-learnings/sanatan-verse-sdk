@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Check all modules import cleanly
+        run: |
+          python -c "import verse_sdk.cli.puranic_context; print('puranic_context OK')"
+          python -c "import verse_sdk.cli.index_sources; print('index_sources OK')"
+          python -c "import verse_sdk.cli.validate; print('validate OK')"
+          python -c "import verse_sdk.cli.init; print('init OK')"
+          python -c "import verse_sdk.cli.help; print('help OK')"
+          python -c "import verse_sdk.cli.generate; print('generate OK')"
+          python -c "import verse_sdk.cli.translate; print('translate OK')"
+          python -c "import verse_sdk.cli.status; print('status OK')"
+          python -c "import verse_sdk.cli.sync; print('sync OK')"
+          python -c "import verse_sdk.cli.add; print('add OK')"
+          python -c "import verse_sdk.embeddings.generate_embeddings; print('generate_embeddings OK')"
+
+      - name: Check package builds
+        run: |
+          pip install build
+          python -m build --sdist --wheel
+          echo "Build OK"
