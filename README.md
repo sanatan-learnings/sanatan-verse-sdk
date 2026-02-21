@@ -82,6 +82,96 @@ Each verse generation creates:
 
 **Text Source**: Canonical Devanagari text from `data/verses/{collection}.yaml` ([Local Verses Guide](docs/local-verses.md))
 
+## Puranic Context Generation
+
+Enrich verse pages with grounded story references from indexed sacred texts. Two-stage workflow:
+
+### Stage 1 — Index a Source Text
+
+```bash
+verse-index-sources --file data/sources/ananda-ramayana.txt
+```
+
+This command:
+1. Splits the source text into ~4000-char chunks
+2. Parses each chunk into discrete named episodes (keywords, type, summary in English + Hindi)
+3. Generates embeddings for each episode
+4. Writes outputs:
+   - `data/puranic-index/{key}.yml` — human-readable episode index with `_meta` section
+   - `data/embeddings/{key}.json` — embedding vectors for RAG retrieval
+   - `data/puranic-references.yml` — registry of indexed sources
+
+Only needs to run once per source, or when the source file changes.
+
+```bash
+# Use Bedrock Cohere for better Sanskrit/Hindi accuracy
+verse-index-sources --file data/sources/shiv-puran.txt --provider bedrock-cohere
+
+# Larger chunk size for dense Puranic prose
+verse-index-sources --file data/sources/valmiki-ramayana.pdf --chunk-size 6000
+```
+
+### Stage 2 — Generate Puranic Context per Verse
+
+```bash
+verse-puranic-context --collection hanuman-chalisa --all
+```
+
+For each verse this command:
+1. Embeds the verse text using the same provider as the indexed source
+2. Runs cosine similarity search across all indexed sources to find the most relevant episodes
+3. Filters to episodes involving the collection's subject (configured in `_data/collections.yml`)
+4. Passes top episodes + verse text to GPT-4o with citation constraints
+5. Post-validates each entry: drops entries where the subject is not an active participant
+6. Writes `puranic_context:` block into the verse's `.md` frontmatter
+
+```bash
+# Skip verses that already have context (default)
+verse-puranic-context --collection hanuman-chalisa --all
+
+# Regenerate all existing entries
+verse-puranic-context --collection hanuman-chalisa --all --regenerate
+
+# Single verse
+verse-puranic-context --collection hanuman-chalisa --verse chaupai-06
+```
+
+### Collection Subject Configuration
+
+The subject filter is read automatically from `_data/collections.yml` — no CLI flag needed:
+
+```yaml
+hanuman-chalisa:
+  enabled: true
+  name:
+    en: Hanuman Chalisa
+    hi: हनुमान चालीसा
+  subject: Hanuman       # primary deity/subject of this collection
+  subject_type: deity    # deity | avatar | concept | figure
+  permalink_base: /hanuman-chalisa
+  total_verses: 43
+```
+
+### Multiple Sources
+
+Multiple indexed sources are automatically combined in RAG retrieval:
+
+```
+data/sources/
+  shiv-puran-part1.txt
+  ananda-ramayana.txt        ← add new sources here
+
+data/puranic-index/
+  shiv-puran-part1.yml       ← auto-generated episode index
+  ananda-ramayana.yml
+
+data/embeddings/
+  shiv-puran-part1.json      ← auto-generated embedding vectors
+  ananda-ramayana.json
+```
+
+See [verse-index-sources](docs/commands/verse-index-sources.md) and [verse-puranic-context](docs/commands/verse-puranic-context.md) for full documentation.
+
 ## Installation
 
 ```bash

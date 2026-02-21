@@ -111,60 +111,12 @@ verse-puranic-context                 ← uses index + embeddings
 
 ## Commands
 
-### `verse-index-sources`
+See the command reference docs for full usage:
 
-Indexes a source text into structured YAML episodes and embeddings.
+- [`verse-index-sources`](commands/verse-index-sources.md) — index source texts into episodes + embeddings
+- [`verse-puranic-context`](commands/verse-puranic-context.md) — generate `puranic_context` frontmatter entries
 
-```bash
-# Index a specific source
-verse-index-sources --file data/sources/valmiki-ramayana.pdf
-
-# Re-index (overwrite existing index + embeddings)
-verse-index-sources --file data/sources/valmiki-ramayana.pdf --force
-```
-
-**Steps:**
-1. Detect format from extension (pdf / txt / md)
-2. Extract text (pdfplumber for PDF, direct read for txt/md)
-3. Chunk text into sections
-4. GPT-4 structures each chunk into YAML episodes
-5. Embed each episode using Bedrock Cohere multilingual
-6. Write `data/puranic-index/<key>.yml`
-7. Write `data/embeddings/<key>.json`
-8. Update `data/puranic-references.yml` on success
-
-### `verse-puranic-context`
-
-Generates `puranic_context` frontmatter entries for verse files.
-
-```bash
-# Single verse
-verse-puranic-context --collection hanuman-chalisa --verse chaupai-15
-
-# All verses missing context
-verse-puranic-context --collection bajrang-baan --all
-
-# Force regenerate existing entries
-verse-puranic-context --collection sundar-kaand --all --regenerate
-```
-
-**Steps:**
-1. Load all `enabled: true` sources from `data/puranic-references.yml`
-2. If no sources indexed → prompt:
-   ```
-   ⚠ No sources indexed. Run verse-index-sources first.
-   Continue with GPT-4 free recall (lower accuracy)? [y/N]
-   ```
-3. Embed the verse text using Bedrock Cohere
-4. Similarity search against `data/embeddings/<key>.json` → top 5-10 episodes
-5. Send verse content + retrieved episodes to GPT-4
-6. GPT-4 generates `puranic_context` entries mapped to the YAML schema
-7. Inject `puranic_context` block into verse frontmatter
-
-**As a flag on `verse-generate`:**
-```bash
-verse-generate --collection sundar-kaand --next --puranic-context
-```
+And the [README Puranic Context section](../README.md#puranic-context-generation) for the end-to-end workflow.
 
 ## `puranic_context` YAML Schema (in verse frontmatter)
 
@@ -195,5 +147,5 @@ puranic_context:
 ## See Also
 
 - [verse-embeddings](commands/verse-embeddings.md) — verse semantic search embeddings
-- [Issue #1](https://github.com/sanatan-learnings/sanatan-verse-sdk/issues/1) — Bedrock Cohere multilingual embeddings
-- [Issue #14](https://github.com/sanatan-learnings/sanatan-verse-sdk/issues/14) — verse-puranic-context command
+- [verse-index-sources](commands/verse-index-sources.md) — full command reference
+- [verse-puranic-context](commands/verse-puranic-context.md) — full command reference
