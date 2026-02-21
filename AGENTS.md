@@ -5,14 +5,10 @@
 When the user asks to publish/release, bump the version in `setup.py`, commit, then run:
 
 ```bash
-# Build
-source .venv/bin/activate && python -m build
+# Build, upload to PyPI, commit version bump, create + push git tag
+bash scripts/publish.sh --yes --skip-testpypi
 
-# Publish to PyPI
-twine upload dist/sanatan_verse_sdk-X.Y.Z*
-
-# Tag and GitHub release
-git tag vX.Y.Z && git push origin vX.Y.Z
+# Create GitHub release
 gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."
 ```
 
