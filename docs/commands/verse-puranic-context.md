@@ -26,6 +26,8 @@ verse-puranic-context --collection COLLECTION (--verse ID | --all) [OPTIONS]
 ### Optional
 
 - `--regenerate` - Overwrite existing `puranic_context` entries (default: skip verses that already have context)
+- `--subject NAME` - Filter retrieved episodes to those involving this subject (e.g. `Hanuman`). See [Subject Filtering](#subject-filtering) below.
+- `--subject-type TYPE` - Type label for the subject used in the GPT-4o prompt (default: `deity`)
 - `--project-dir PATH` - Project directory (default: current directory)
 
 ## Examples
@@ -42,6 +44,35 @@ verse-puranic-context --collection hanuman-chalisa --verse chaupai-18 --regenera
 
 # Regenerate all verses in a collection
 verse-puranic-context --collection sundar-kaand --all --regenerate
+
+# Filter context to a specific deity (reduces cross-deity noise)
+verse-puranic-context --collection hanuman-chalisa --all --subject Hanuman
+
+# With an explicit subject type
+verse-puranic-context --collection hanuman-chalisa --all --subject Hanuman --subject-type deity
+```
+
+## Subject Filtering
+
+When indexing a broad source like Shiv Puran, RAG retrieval can surface episodes about Parvati, Shiva, or Nandi for verses that are specifically about Hanuman. Use `--subject` to keep context relevant.
+
+```bash
+verse-puranic-context --collection hanuman-chalisa --all --subject Hanuman
+```
+
+**What it does in two layers:**
+
+1. **Pre-filter (keyword):** After RAG retrieval, drops episodes where the subject name does not appear in the episode's keywords, id, or summary. For example, a Parvati appearance story will be dropped for `--subject Hanuman`.
+
+2. **Prompt constraint (LLM):** Instructs GPT-4o to only generate `puranic_context` entries where the subject is a direct participant, catching cases the keyword filter misses.
+
+**Fallback:** If the keyword filter removes all retrieved episodes (e.g. the subject name is not explicitly mentioned in the indexed text), it falls back to the full retrieved set so generation still runs with the prompt constraint applied.
+
+**`--subject-type`** provides a label for the prompt (default: `deity`). Use other values for non-deity subjects:
+
+```bash
+verse-puranic-context --collection upanishads --all --subject Brahman --subject-type concept
+verse-puranic-context --collection ramayana --all --subject Rama --subject-type avatar
 ```
 
 ## Output
@@ -67,8 +98,8 @@ puranic_context:
       en: "Chanting this verse invokes Hanuman's strength in times of difficulty..."
       hi: "इस चौपाई का पाठ कठिन समय में हनुमान की शक्ति का आह्वान करता है..."
     source_texts:
-      - text: Valmiki Ramayana
-        section: Sundara Kanda
+      - text: Shiv Puran
+        section: Part 1
     related_verses: []
 ```
 
@@ -84,26 +115,26 @@ puranic_context:
 | `story_summary` | object | 2-4 sentence summary (en + hi) |
 | `theological_significance` | object | Spiritual meaning (en + hi) |
 | `practical_application` | object | Practical use (en + hi) |
-| `source_texts` | list | Referenced scriptures |
+| `source_texts` | list | Indexed sources only (constrained to avoid hallucination) |
 | `related_verses` | list | Cross-references to other verses |
 
 ## RAG Workflow
 
 ```bash
 # 1. Index source texts first
-verse-index-sources --file data/sources/valmiki-ramayana.pdf
+verse-index-sources --file data/sources/shiv-puran-part1.txt
 
-# 2. Generate context (RAG-grounded)
-verse-puranic-context --collection hanuman-chalisa --all
+# 2. Generate context filtered to the collection's primary deity
+verse-puranic-context --collection hanuman-chalisa --all --subject Hanuman
 ```
 
-When RAG sources are available, each verse is embedded with Bedrock Cohere (`search_query` input type) and matched against indexed episodes to select the top-8 most relevant passages as grounding context.
+Each verse is embedded using the same provider as the indexed source (detected from `_meta.embedding_provider`) and matched against indexed episodes to select the top-8 most relevant passages as grounding context.
 
 ## Requirements
 
 - `OPENAI_API_KEY` environment variable
-- AWS credentials (for RAG embedding via Bedrock Cohere)
 - Verse files in `_verses/<collection>/<verse-id>.md` with YAML frontmatter
+- AWS credentials only if using `bedrock-cohere` indexed sources
 
 ## See Also
 
