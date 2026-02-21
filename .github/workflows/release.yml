@@ -1,9 +1,11 @@
-name: Create GitHub Release
+name: Publish Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.30.0)'
+        required: true
 
 jobs:
   release:
@@ -15,17 +17,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get previous tag
-        id: prev_tag
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Tag release
         run: |
-          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -1)
-          echo "tag=${PREV}" >> $GITHUB_OUTPUT
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ github.event.inputs.version }}"
+          git push origin "v${{ github.event.inputs.version }}"
+
+      - name: Build distribution
+        run: python -m build
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*
 
       - name: Build release notes
         id: notes
         run: |
-          VERSION="${{ github.ref_name }}"
-          PREV="${{ steps.prev_tag.outputs.tag }}"
+          VERSION="v${{ github.event.inputs.version }}"
+          PREV=$(git tag --sort=-version:refname | grep -v "^${VERSION}$" | head -1)
 
           if [ -n "$PREV" ]; then
             COMMITS=$(git log ${PREV}..${VERSION} --format="- %s" --no-merges | grep -v "^- Bump version")
@@ -39,7 +58,7 @@ ${COMMITS}
 
 ## Install
 \`\`\`
-pip install sanatan-verse-sdk==${VERSION#v}
+pip install sanatan-verse-sdk==${{ github.event.inputs.version }}
 \`\`\`"
 
           echo "notes<<EOF" >> $GITHUB_OUTPUT
@@ -49,7 +68,7 @@ pip install sanatan-verse-sdk==${VERSION#v}
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          tag_name: v${{ github.event.inputs.version }}
+          name: v${{ github.event.inputs.version }}
           body: ${{ steps.notes.outputs.notes }}
           make_latest: true
