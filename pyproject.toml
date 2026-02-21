@@ -1,0 +1,23 @@
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",   # line too long — enforce via line-length only
+    "E741",   # ambiguous variable name (l, O, I)
+    "F401",   # imported but unused — too noisy for CLI scripts with conditional imports
+    "F841",   # local variable assigned but never used — intentional in subprocess check=True patterns
+    "W291",   # trailing whitespace
+    "W293",   # whitespace before ':'
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F811"]  # allow redefinition in tests
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "--tb=short -q"

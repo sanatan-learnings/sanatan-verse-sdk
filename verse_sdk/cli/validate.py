@@ -22,14 +22,15 @@ Usage:
     verse-validate --format json
 """
 
-import os
-import sys
 import argparse
-import yaml
 import json
+import os
 import re
+import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
+
+import yaml
 
 try:
     from dotenv import load_dotenv
@@ -510,16 +511,16 @@ ELEVENLABS_API_KEY=your_elevenlabs_key_here
                                 if not dry_run:
                                     # Create template with entries for each verse file
                                     template_content = f"# Canonical verse text for {collection_key}\n"
-                                    template_content += f"# Edit this file to add the original Devanagari text for each verse\n\n"
+                                    template_content += "# Edit this file to add the original Devanagari text for each verse\n\n"
 
                                     for verse_file in verse_files:
                                         # Extract verse number/id from filename (e.g., verse-01.md -> verse-01)
                                         verse_id = verse_file.stem
                                         template_content += f"{verse_id}:\n"
-                                        template_content += f"  devanagari: |\n"
-                                        template_content += f"    # Add Devanagari text here\n"
-                                        template_content += f"  transliteration: |\n"
-                                        template_content += f"    # Add transliteration here (optional)\n\n"
+                                        template_content += "  devanagari: |\n"
+                                        template_content += "    # Add Devanagari text here\n"
+                                        template_content += "  transliteration: |\n"
+                                        template_content += "    # Add transliteration here (optional)\n\n"
 
                                     canonical_file.write_text(template_content)
 
@@ -829,7 +830,7 @@ For more information:
                 for action in actions:
                     print(f"  {'→' if args.dry_run else '✓'} {action}")
             else:
-                print(f"  ✓ No issues to fix")
+                print("  ✓ No issues to fix")
             print()
         elif args.dry_run:
             print("⚠️  Note: --dry-run requires --fix flag")

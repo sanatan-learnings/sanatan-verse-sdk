@@ -19,11 +19,11 @@ Usage:
     verse-init --minimal
 """
 
+import argparse
 import os
 import sys
-import argparse
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 # Template files content
 ENV_EXAMPLE_CONTENT = """# OpenAI API Key (for images, embeddings, and content generation)
@@ -338,7 +338,7 @@ verse-03:
         for i in range(1, num_verses + 1):
             verse_entries += f"  verse-{i:02d}:\n"
             verse_entries += f"    title: \"[Brief title for verse {i}]\"\n"
-            verse_entries += f"    description: |\n"
+            verse_entries += "    description: |\n"
             verse_entries += f"      [Add scene description for verse {i}]\n"
             if i < num_verses:
                 verse_entries += "\n"
@@ -376,7 +376,7 @@ scenes:
             print(f"✓ Added {collection} to _data/collections.yml")
 
     print(f"\n✅ Collection '{collection}' created with {num_verses} sample verses")
-    print(f"   Next steps:")
+    print("   Next steps:")
     print(f"   1. Add canonical text to data/verses/{collection}.yaml")
     print(f"   2. Edit verse files in _verses/{collection}/")
     print(f"   3. Customize theme in data/themes/{collection}/modern-minimalist.yml")
@@ -414,7 +414,7 @@ def init_project(
             if response.lower() != 'y':
                 print("Aborted.")
                 sys.exit(0)
-        print(f"📁 Initializing project in current directory")
+        print("📁 Initializing project in current directory")
 
     print()
 

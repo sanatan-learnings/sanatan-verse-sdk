@@ -21,14 +21,14 @@ Output:
     ... (86 files total for 43 verses)
 """
 
+import argparse
 import os
+import re
+import subprocess
 import sys
 import time
-import subprocess
 from pathlib import Path
 from typing import Dict, Optional
-import argparse
-import re
 
 try:
     from elevenlabs import VoiceSettings
@@ -177,11 +177,11 @@ class AudioGenerator:
             else:
                 # No devanagari field found - warn user
                 print(f"  ⚠ Warning: No 'devanagari' field found in {verse_file.name}")
-                print(f"    Expected one of these formats in frontmatter:")
-                print(f"      devanagari: text")
-                print(f"      devanagari: 'text'")
-                print(f"      devanagari: |")
-                print(f"        text")
+                print("    Expected one of these formats in frontmatter:")
+                print("      devanagari: text")
+                print("      devanagari: 'text'")
+                print("      devanagari: |")
+                print("        text")
 
         print(f"✓ Parsed {len(verses)} verses from {self.verses_dir}")
         return verses
@@ -242,11 +242,11 @@ class AudioGenerator:
 
                 # Verify we received data from the API
                 if bytes_written == 0:
-                    print(f"  ✗ Error: ElevenLabs API returned empty audio stream")
-                    print(f"    This may indicate:")
-                    print(f"      - API quota exceeded")
-                    print(f"      - Invalid API key or voice ID")
-                    print(f"      - Text cannot be processed")
+                    print("  ✗ Error: ElevenLabs API returned empty audio stream")
+                    print("    This may indicate:")
+                    print("      - API quota exceeded")
+                    print("      - Invalid API key or voice ID")
+                    print("      - Text cannot be processed")
                     if temp_path.exists():
                         temp_path.unlink()
                     return False
@@ -268,10 +268,10 @@ class AudioGenerator:
                 file_size = output_path.stat().st_size
                 if file_size == 0:
                     print(f"  ✗ Error: Generated file is empty (0 bytes): {output_path.name}")
-                    print(f"    This may indicate:")
-                    print(f"      - Empty response from ElevenLabs API")
-                    print(f"      - Network interruption during download")
-                    print(f"      - API quota exceeded")
+                    print("    This may indicate:")
+                    print("      - Empty response from ElevenLabs API")
+                    print("      - Network interruption during download")
+                    print("      - API quota exceeded")
                     # Delete the empty file
                     output_path.unlink()
                     return False
@@ -368,7 +368,7 @@ class AudioGenerator:
             print(f"\n🎙️  Preparing to regenerate {len(regenerate_files)} file(s)...\n")
             deleted_count = 0
             for filename in regenerate_files:
-                file_path = AUDIO_DIR / filename
+                file_path = self.audio_dir / filename
                 if file_path.exists():
                     file_path.unlink()
                     print(f"  ✓ Deleted: {filename}")
@@ -378,7 +378,7 @@ class AudioGenerator:
 
             if deleted_count > 0:
                 print(f"\n✓ Deleted {deleted_count} existing file(s).")
-            print(f"→ Will now regenerate missing files...\n")
+            print("→ Will now regenerate missing files...\n")
 
         total_files = len(verses) * 2  # full and slow for each verse
         generated = 0
@@ -447,8 +447,8 @@ class AudioGenerator:
                 time.sleep(1)
 
         # Summary
-        print(f"\n" + "="*60)
-        print(f"✓ Generation complete!")
+        print("\n" + "="*60)
+        print("✓ Generation complete!")
         print(f"  Generated: {generated}/{total_files}")
         print(f"  Skipped:   {skipped}/{total_files} (already existed)")
         print(f"  Failed:    {failed}/{total_files}")
@@ -463,7 +463,7 @@ def validate_collection(collection: str, project_dir: Path = PROJECT_DIR) -> boo
     verses_dir = project_dir / "_verses" / collection
     if not verses_dir.exists():
         print(f"✗ Error: Collection directory not found: {verses_dir}")
-        print(f"\nAvailable collections:")
+        print("\nAvailable collections:")
         list_collections()
         return False
 

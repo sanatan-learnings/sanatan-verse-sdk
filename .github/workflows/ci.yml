@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 jobs:
-  validate:
+  lint-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,25 +14,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install package
-        run: pip install -e .
-
-      - name: Check all modules import cleanly
+      - name: Install package and dev dependencies
         run: |
-          python -c "import verse_sdk.cli.puranic_context; print('puranic_context OK')"
-          python -c "import verse_sdk.cli.index_sources; print('index_sources OK')"
-          python -c "import verse_sdk.cli.validate; print('validate OK')"
-          python -c "import verse_sdk.cli.init; print('init OK')"
-          python -c "import verse_sdk.cli.help; print('help OK')"
-          python -c "import verse_sdk.cli.generate; print('generate OK')"
-          python -c "import verse_sdk.cli.translate; print('translate OK')"
-          python -c "import verse_sdk.cli.status; print('status OK')"
-          python -c "import verse_sdk.cli.sync; print('sync OK')"
-          python -c "import verse_sdk.cli.add; print('add OK')"
-          python -c "import verse_sdk.embeddings.generate_embeddings; print('generate_embeddings OK')"
+          pip install -e .
+          pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check verse_sdk/ tests/
+
+      - name: Test (pytest)
+        run: pytest tests/ --tb=short -q
 
       - name: Check package builds
         run: |
           pip install build
           python -m build --sdist --wheel
-          echo "Build OK"

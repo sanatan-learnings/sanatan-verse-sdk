@@ -24,13 +24,14 @@ Requirements:
     - OPENAI_API_KEY environment variable
 """
 
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
-import yaml
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+import yaml
 
 try:
     from dotenv import load_dotenv
@@ -329,7 +330,7 @@ def embed_verse_for_search(
     Returns the embedding vector or None on failure.
     """
     try:
-        from verse_sdk.embeddings.generate_embeddings import initialize_provider, get_bedrock_embedding
+        from verse_sdk.embeddings.generate_embeddings import get_bedrock_embedding, initialize_provider
     except ImportError as e:
         print(f"  Warning: Could not import embedding module: {e}", file=sys.stderr)
         return None
@@ -585,7 +586,7 @@ def generate_puranic_context(
         if parsed is None:
             return []
         if not isinstance(parsed, list):
-            print(f"  ⚠ Unexpected response format (not a list)", file=sys.stderr)
+            print("  ⚠ Unexpected response format (not a list)", file=sys.stderr)
             return None
 
         # Fix 1+3: reject vague sections and cross-scripture citations
@@ -679,7 +680,7 @@ def process_verse(
             print(f"  ⚠ {verse_id}: Could not embed verse for search, falling back to free recall")
     else:
         print(f"  ⚠ {verse_id}: No indexed Puranic sources found.")
-        print(f"    Run 'verse-index-sources --file data/sources/<file>' to index source documents.")
+        print("    Run 'verse-index-sources --file data/sources/<file>' to index source documents.")
         answer = input("    Continue with GPT-4 free recall? [y/N] ").strip().lower()
         if answer != "y":
             print(f"  ⊘ {verse_id}: Skipped")
@@ -807,11 +808,11 @@ Note:
     if sources and not subject:
         print(f"✗ Error: Indexed sources are available but 'subject' is not configured for collection '{args.collection}'.")
         print(f"  Add the following to _data/collections.yml under '{args.collection}':")
-        print(f"")
-        print(f"    subject: <primary deity or subject>   # e.g. Hanuman")
-        print(f"    subject_type: deity                   # e.g. deity, avatar, concept")
-        print(f"")
-        print(f"  This is required to filter RAG results and validate context entries.")
+        print("")
+        print("    subject: <primary deity or subject>   # e.g. Hanuman")
+        print("    subject_type: deity                   # e.g. deity, avatar, concept")
+        print("")
+        print("  This is required to filter RAG results and validate context entries.")
         sys.exit(1)
 
     print()
@@ -826,7 +827,7 @@ Note:
     if sources:
         print(f"RAG sources: {len(sources)} indexed ({', '.join(sources.keys())})")
     else:
-        print(f"RAG sources: none (will prompt for free-recall fallback)")
+        print("RAG sources: none (will prompt for free-recall fallback)")
     print()
 
     counts = {'added': 0, 'regenerated': 0, 'skipped': 0, 'empty': 0, 'error': 0}

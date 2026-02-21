@@ -15,13 +15,14 @@ Usage as script:
     python -m verse_sdk.embeddings.generate_embeddings --provider huggingface
 """
 
+import argparse
+import json
 import os
 import sys
-import json
 import time
-import argparse
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 import yaml
 
 try:
@@ -156,7 +157,7 @@ def initialize_provider(provider_name):
 
         print(f"Loading model {config['model']}...")
         model = SentenceTransformer(config['model'])
-        print(f"✓ Model loaded successfully")
+        print("✓ Model loaded successfully")
 
         return get_huggingface_embedding, model, config
 
@@ -317,7 +318,7 @@ def process_verse_file(file_path, embed_func, client_or_model, config, collectio
     # Get embeddings
     backend = config.get('backend', 'openai')
 
-    print(f"  Getting English embedding...")
+    print("  Getting English embedding...")
     if backend == 'bedrock':
         emb_en = embed_func(doc_en, client_or_model, config)
     elif backend == 'openai':
@@ -328,7 +329,7 @@ def process_verse_file(file_path, embed_func, client_or_model, config, collectio
     if backend in ('openai', 'bedrock'):
         time.sleep(0.1)
 
-    print(f"  Getting Hindi embedding...")
+    print("  Getting Hindi embedding...")
     if backend == 'bedrock':
         emb_hi = embed_func(doc_hi, client_or_model, config)
     elif backend == 'openai':
@@ -547,11 +548,11 @@ Examples:
     print(f"Dimensions: {config['dimensions']}")
 
     if multi_collection:
-        print(f"Mode: Multi-collection")
+        print("Mode: Multi-collection")
         print(f"Collections file: {collections_file}")
         print(f"Base verses directory: {verses_dir}")
     else:
-        print(f"Mode: Single collection")
+        print("Mode: Single collection")
         print(f"Verses directory: {verses_dir}")
 
     print(f"Output file: {output_file}")
@@ -603,7 +604,7 @@ Examples:
         cost = (approx_tokens / 1_000_000) * config['cost_per_1m']
         print(f"Approximate cost: ${cost:.4f} ({config['model']} @ ${config['cost_per_1m']}/1M tokens)")
     else:
-        print(f"Cost: FREE (local model)")
+        print("Cost: FREE (local model)")
     print()
 
 
