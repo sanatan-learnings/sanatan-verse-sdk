@@ -81,7 +81,7 @@ def get_huggingface_embedding(text, model_instance):
         return None
 
 
-def get_bedrock_embedding(text, client, config):
+def get_bedrock_embedding(text, client, config, input_type="search_document"):
     """Get embedding from Amazon Bedrock Cohere multilingual model."""
     import json
     try:
@@ -89,7 +89,7 @@ def get_bedrock_embedding(text, client, config):
             modelId=config['model'],
             body=json.dumps({
                 "texts": [text],
-                "input_type": "search_document"
+                "input_type": input_type
             }),
             contentType='application/json',
             accept='application/json'

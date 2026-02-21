@@ -23,3 +23,9 @@ beautifulsoup4>=4.12.0
 
 # AWS SDK for Amazon Bedrock (Cohere multilingual embeddings)
 boto3>=1.34.0
+
+# PDF text extraction for source indexing
+pdfplumber>=0.10.0
+
+# Cosine similarity for embedding search
+numpy>=1.24.0

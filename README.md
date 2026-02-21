@@ -101,6 +101,10 @@ pip install sanatan-verse-sdk
 - **[verse-audio](docs/commands/verse-audio.md)** - Generate audio pronunciations using ElevenLabs
 - **[verse-embeddings](docs/commands/verse-embeddings.md)** - Generate vector embeddings for semantic search ([multi-collection guide](docs/multi-collection.md))
 
+### Puranic Context
+- **[verse-index-sources](docs/commands/verse-index-sources.md)** - Index Puranic source texts (PDFs, TXTs) into episodes and embeddings for RAG retrieval
+- **[verse-puranic-context](docs/commands/verse-puranic-context.md)** - Generate Puranic context boxes for verses (RAG-grounded or GPT-4o free recall)
+
 ### Project Management
 - **[verse-add](docs/commands/verse-add.md)** - Add new verse entries to collections (supports multi-chapter formats)
 - **[verse-status](docs/commands/verse-status.md)** - Check status, completion, and validate text against canonical source

@@ -6,6 +6,10 @@ This command uses AI to identify relevant Puranic references (stories, character
 concepts, etymologies) and injects a puranic_context block into the verse
 file's frontmatter.
 
+When indexed sources are available (data/puranic-references.yml + data/puranic-index/),
+retrieval-augmented generation (RAG) is used to ground the context in actual source
+texts. Otherwise, GPT-4 free recall is used as a fallback.
+
 Usage:
     # Generate for a specific verse
     verse-puranic-context --collection hanuman-chalisa --verse chaupai-15
@@ -22,6 +26,7 @@ Requirements:
 
 import os
 import sys
+import json
 import argparse
 import yaml
 from pathlib import Path
@@ -81,6 +86,10 @@ Rules:
 - Return ONLY valid YAML — no markdown fences, no explanation"""
 
 
+# ---------------------------------------------------------------------------
+# File I/O helpers
+# ---------------------------------------------------------------------------
+
 def parse_verse_file(verse_file: Path) -> Tuple[Optional[Dict], Optional[str]]:
     """Parse verse frontmatter and body. Returns (frontmatter, body)."""
     if not verse_file.exists():
@@ -113,13 +122,161 @@ def update_verse_file(verse_file: Path, frontmatter: Dict, body: str) -> bool:
         return False
 
 
+# ---------------------------------------------------------------------------
+# RAG helpers
+# ---------------------------------------------------------------------------
+
+def load_puranic_references(project_dir: Path) -> Dict:
+    """Load data/puranic-references.yml, return {} if not found."""
+    ref_file = project_dir / "data" / "puranic-references.yml"
+    if not ref_file.exists():
+        return {}
+    try:
+        with open(ref_file, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return {k: v for k, v in data.items() if v.get("enabled", False)}
+    except Exception as e:
+        print(f"  Warning: Could not load puranic-references.yml: {e}", file=sys.stderr)
+        return {}
+
+
+def load_episode_index(key: str, project_dir: Path) -> List[Dict]:
+    """Load data/puranic-index/<key>.yml, return [] if not found."""
+    index_file = project_dir / "data" / "puranic-index" / f"{key}.yml"
+    if not index_file.exists():
+        return []
+    try:
+        with open(index_file, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or []
+    except Exception as e:
+        print(f"  Warning: Could not load episode index for '{key}': {e}", file=sys.stderr)
+        return []
+
+
+def load_episode_embeddings(key: str, project_dir: Path) -> List[Dict]:
+    """Load data/embeddings/<key>.json, return [] if not found."""
+    emb_file = project_dir / "data" / "embeddings" / f"{key}.json"
+    if not emb_file.exists():
+        return []
+    try:
+        with open(emb_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("episodes", [])
+    except Exception as e:
+        print(f"  Warning: Could not load embeddings for '{key}': {e}", file=sys.stderr)
+        return []
+
+
+def cosine_similarity(a: List[float], b: List[float]) -> float:
+    """Dot product of two L2-normalised vectors (Cohere embeddings are normalised)."""
+    try:
+        import numpy as np
+        return float(np.dot(a, b))
+    except ImportError:
+        # Pure-Python fallback
+        dot = sum(x * y for x, y in zip(a, b))
+        return dot
+
+
+def search_episodes(
+    query_embedding: List[float],
+    all_episodes: List[Dict],
+    all_embeddings: List[Dict],
+    top_k: int = 8,
+) -> List[Dict]:
+    """Return the top-k episodes by cosine similarity to the query embedding."""
+    # Build a lookup from episode id → embedding vector
+    emb_by_id: Dict[str, List[float]] = {
+        e["id"]: e["embedding"] for e in all_embeddings if "id" in e and "embedding" in e
+    }
+
+    scored = []
+    for ep in all_episodes:
+        ep_id = ep.get("id", "")
+        if ep_id not in emb_by_id:
+            continue
+        score = cosine_similarity(query_embedding, emb_by_id[ep_id])
+        scored.append((score, ep))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [ep for _, ep in scored[:top_k]]
+
+
+def embed_verse_for_search(frontmatter: Dict, verse_id: str, project_dir: Path) -> Optional[List[float]]:
+    """
+    Embed the verse using Bedrock Cohere with input_type='search_query'.
+    Returns the embedding vector or None on failure.
+    """
+    try:
+        from verse_sdk.embeddings.generate_embeddings import initialize_provider, get_bedrock_embedding
+    except ImportError as e:
+        print(f"  Warning: Could not import embedding module: {e}", file=sys.stderr)
+        return None
+
+    # Build search text from verse fields
+    parts = []
+    for field in ("devanagari", "transliteration"):
+        val = frontmatter.get(field)
+        if val:
+            parts.append(str(val))
+    for field in ("translation", "interpretive_meaning", "literal_translation"):
+        val = frontmatter.get(field)
+        if isinstance(val, dict):
+            val = val.get("en", "")
+        if val:
+            parts.append(str(val)[:300])
+    if not parts:
+        parts.append(verse_id)
+
+    text = " ".join(parts)
+
+    try:
+        embed_fn, client, config = initialize_provider("bedrock-cohere")
+        backend = config.get("backend", "openai")
+        if backend == "bedrock":
+            return get_bedrock_embedding(text, client, config, input_type="search_query")
+        elif backend == "openai":
+            return embed_fn(text, client, config["model"])
+        else:
+            return embed_fn(text, client)
+    except Exception as e:
+        print(f"  Warning: Embedding failed for verse '{verse_id}': {e}", file=sys.stderr)
+        return None
+
+
+def format_retrieved_episodes(episodes: List[Dict]) -> str:
+    """Format retrieved episodes into a readable context block for the prompt."""
+    if not episodes:
+        return ""
+    lines = ["Relevant Puranic sources (use these as grounding material):"]
+    for i, ep in enumerate(episodes, 1):
+        ep_id = ep.get("id", f"episode-{i}")
+        summary = ep.get("summary_en", "")
+        keywords = ep.get("keywords", [])
+        source = ep.get("source", {})
+        book = source.get("book", "") if isinstance(source, dict) else ""
+        sarga = source.get("sarga", "") if isinstance(source, dict) else ""
+        source_ref = f"{book}" + (f", {sarga}" if sarga else "")
+        lines.append(f"\n[{i}] {ep_id}")
+        if source_ref:
+            lines.append(f"    Source: {source_ref}")
+        if keywords:
+            lines.append(f"    Keywords: {', '.join(keywords)}")
+        if summary:
+            lines.append(f"    Summary: {summary}")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Prompt builder + GPT-4 call
+# ---------------------------------------------------------------------------
+
 def build_prompt(frontmatter: Dict, verse_id: str) -> str:
     """Build the user prompt from verse frontmatter fields."""
     devanagari = frontmatter.get('devanagari', '')
     transliteration = frontmatter.get('transliteration', '')
     title_en = frontmatter.get('title_en', verse_id)
 
-    # Collect meaning fields
     meaning_parts = []
     for field in ('translation', 'interpretive_meaning', 'literal_translation'):
         val = frontmatter.get(field)
@@ -148,16 +305,23 @@ Return [] if the verse has no meaningful Puranic content."""
     return prompt
 
 
-def generate_puranic_context(frontmatter: Dict, verse_id: str) -> Optional[List]:
-    """Call GPT-4 to generate puranic_context entries. Returns a list or None on error."""
+def generate_puranic_context(
+    frontmatter: Dict, verse_id: str, retrieved_episodes: Optional[List[Dict]] = None
+) -> Optional[List]:
+    """Call GPT-4o to generate puranic_context entries. Returns a list or None on error."""
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     prompt = build_prompt(frontmatter, verse_id)
+
+    system = SYSTEM_PROMPT
+    if retrieved_episodes:
+        context_block = format_retrieved_episodes(retrieved_episodes)
+        system = SYSTEM_PROMPT + "\n\n" + context_block
 
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.3,
@@ -186,12 +350,21 @@ def generate_puranic_context(frontmatter: Dict, verse_id: str) -> Optional[List]
         return None
 
 
-def process_verse(verse_file: Path, regenerate: bool = False) -> str:
+# ---------------------------------------------------------------------------
+# Core processing
+# ---------------------------------------------------------------------------
+
+def process_verse(
+    verse_file: Path, regenerate: bool = False, project_dir: Optional[Path] = None
+) -> str:
     """
     Process a single verse file.
 
     Returns: 'added' | 'skipped' | 'regenerated' | 'empty' | 'error'
     """
+    if project_dir is None:
+        project_dir = Path.cwd()
+
     frontmatter, body = parse_verse_file(verse_file)
     if frontmatter is None:
         return 'error'
@@ -203,8 +376,38 @@ def process_verse(verse_file: Path, regenerate: bool = False) -> str:
         print(f"  ⊘ {verse_id}: Already has puranic_context, skipping (use --regenerate to overwrite)")
         return 'skipped'
 
-    print(f"  → {verse_id}: Generating Puranic context...")
-    entries = generate_puranic_context(frontmatter, verse_id)
+    # --- RAG: try to retrieve grounding context ---
+    retrieved_episodes: Optional[List[Dict]] = None
+    sources = load_puranic_references(project_dir)
+
+    if sources:
+        print(f"  → {verse_id}: Embedding verse for RAG search ({len(sources)} source(s))...")
+        query_embedding = embed_verse_for_search(frontmatter, verse_id, project_dir)
+
+        if query_embedding:
+            all_episodes: List[Dict] = []
+            all_embeddings: List[Dict] = []
+            for key in sources:
+                all_episodes.extend(load_episode_index(key, project_dir))
+                all_embeddings.extend(load_episode_embeddings(key, project_dir))
+
+            if all_episodes and all_embeddings:
+                retrieved_episodes = search_episodes(query_embedding, all_episodes, all_embeddings)
+                print(f"  → {verse_id}: Retrieved {len(retrieved_episodes)} relevant episode(s)")
+            else:
+                print(f"  ⚠ {verse_id}: Sources registered but no indexed episodes found")
+        else:
+            print(f"  ⚠ {verse_id}: Could not embed verse for search, falling back to free recall")
+    else:
+        print(f"  ⚠ {verse_id}: No indexed Puranic sources found.")
+        print(f"    Run 'verse-index-sources --file data/sources/<file>' to index source documents.")
+        answer = input("    Continue with GPT-4 free recall? [y/N] ").strip().lower()
+        if answer != "y":
+            print(f"  ⊘ {verse_id}: Skipped")
+            return 'skipped'
+
+    print(f"  → {verse_id}: Generating Puranic context{'  (RAG-grounded)' if retrieved_episodes else ''}...")
+    entries = generate_puranic_context(frontmatter, verse_id, retrieved_episodes=retrieved_episodes)
 
     if entries is None:
         return 'error'
@@ -221,6 +424,10 @@ def process_verse(verse_file: Path, regenerate: bool = False) -> str:
     print(f"  ✓ {verse_id}: {len(entries)} context entr{'y' if len(entries) == 1 else 'ies'} {action}")
     return action
 
+
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
 
 def main():
     """Main entry point for verse-puranic-context command."""
@@ -242,8 +449,9 @@ Examples:
   verse-puranic-context --collection sundar-kaand --all --regenerate
 
 Note:
+  - Uses RAG retrieval when indexed sources are available (data/puranic-references.yml)
+  - Falls back to GPT-4 free recall with confirmation prompt if no sources indexed
   - Skips verses that already have puranic_context (use --regenerate to overwrite)
-  - Skips verses with no meaningful Puranic content (short invocations, etc.)
   - Requires OPENAI_API_KEY environment variable
         """
     )
@@ -303,6 +511,9 @@ Note:
             sys.exit(1)
         verse_files = [verse_file]
 
+    # Report indexed sources status
+    sources = load_puranic_references(args.project_dir)
+
     print()
     print("=" * 60)
     print("PURANIC CONTEXT GENERATION")
@@ -310,13 +521,17 @@ Note:
     print(f"\nCollection : {args.collection}")
     print(f"Verses     : {'all (' + str(len(verse_files)) + ')' if args.all else args.verse}")
     print(f"Regenerate : {'yes' if args.regenerate else 'no (skip existing)'}")
+    if sources:
+        print(f"RAG sources: {len(sources)} indexed ({', '.join(sources.keys())})")
+    else:
+        print(f"RAG sources: none (will prompt for free-recall fallback)")
     print()
 
     counts = {'added': 0, 'regenerated': 0, 'skipped': 0, 'empty': 0, 'error': 0}
 
     try:
         for verse_file in verse_files:
-            result = process_verse(verse_file, regenerate=args.regenerate)
+            result = process_verse(verse_file, regenerate=args.regenerate, project_dir=args.project_dir)
             counts[result] = counts.get(result, 0) + 1
     except KeyboardInterrupt:
         print("\n\n⚠ Interrupted by user")
