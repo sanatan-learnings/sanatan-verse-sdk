@@ -328,7 +328,10 @@ Return [] if the verse has no meaningful Puranic content."""
 
 
 def generate_puranic_context(
-    frontmatter: Dict, verse_id: str, retrieved_episodes: Optional[List[Dict]] = None
+    frontmatter: Dict,
+    verse_id: str,
+    retrieved_episodes: Optional[List[Dict]] = None,
+    indexed_source_names: Optional[List[str]] = None,
 ) -> Optional[List]:
     """Call GPT-4o to generate puranic_context entries. Returns a list or None on error."""
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -338,6 +341,9 @@ def generate_puranic_context(
     if retrieved_episodes:
         context_block = format_retrieved_episodes(retrieved_episodes)
         system = SYSTEM_PROMPT + "\n\n" + context_block
+    if indexed_source_names:
+        names = ", ".join(indexed_source_names)
+        system += f"\n\nIMPORTANT: The source_texts field must only cite the following indexed sources: {names}. Do not cite any other texts."
 
     try:
         response = client.chat.completions.create(
@@ -436,8 +442,14 @@ def process_verse(
             print(f"  ⊘ {verse_id}: Skipped")
             return 'skipped'
 
+    indexed_source_names = [v.get("name", k) for k, v in sources.items()] if sources else None
+
     print(f"  → {verse_id}: Generating Puranic context{'  (RAG-grounded)' if retrieved_episodes else ''}...")
-    entries = generate_puranic_context(frontmatter, verse_id, retrieved_episodes=retrieved_episodes)
+    entries = generate_puranic_context(
+        frontmatter, verse_id,
+        retrieved_episodes=retrieved_episodes,
+        indexed_source_names=indexed_source_names,
+    )
 
     if entries is None:
         return 'error'
