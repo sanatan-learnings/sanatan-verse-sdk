@@ -192,7 +192,8 @@ Project structure issues
 your-project/
 ├── .env                                  # API keys
 ├── _data/
-│   └── collections.yml                   # Collection registry
+│   ├── collections.yml                   # Collection registry
+│   └── verse-config.yml                  # Project-level defaults (subject, subject_type)
 ├── _verses/
 │   └── <collection-key>/                 # Verse markdown files
 │       ├── verse-01.md

@@ -136,26 +136,51 @@ def update_verse_file(verse_file: Path, frontmatter: Dict, body: str) -> bool:
 # RAG helpers
 # ---------------------------------------------------------------------------
 
+def load_project_defaults(project_dir: Path) -> Dict:
+    """
+    Load defaults from _data/verse-config.yml.
+    Returns the contents of the 'defaults' key, or {} if not found.
+    """
+    config_file = project_dir / "_data" / "verse-config.yml"
+    if not config_file.exists():
+        return {}
+    try:
+        with open(config_file, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return data.get("defaults") or {}
+    except Exception as e:
+        print(f"  Warning: Could not read verse-config.yml: {e}", file=sys.stderr)
+        return {}
+
+
 def load_collection_subject(collection_key: str, project_dir: Path) -> Tuple[Optional[str], str]:
     """
-    Read subject and subject_type for a collection from _data/collections.yml.
-    Returns (subject, subject_type). subject is None if not configured.
+    Resolve subject and subject_type for a collection using the hierarchy:
+      1. Collection-level subject in _data/collections.yml  (highest priority)
+      2. Project-level defaults.subject in _data/verse-config.yml
+      3. None  (caller should error when indexed sources exist)
+    Returns (subject, subject_type).
     """
+    # 1. Collection-level
     collections_file = project_dir / "_data" / "collections.yml"
-    if not collections_file.exists():
-        return None, "deity"
-    try:
-        with open(collections_file, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-        config = data.get(collection_key, {})
-        if not isinstance(config, dict):
-            return None, "deity"
-        subject = config.get("subject") or None
-        subject_type = config.get("subject_type") or "deity"
-        return subject, subject_type
-    except Exception as e:
-        print(f"  Warning: Could not read collections.yml: {e}", file=sys.stderr)
-        return None, "deity"
+    if collections_file.exists():
+        try:
+            with open(collections_file, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            config = data.get(collection_key, {})
+            if isinstance(config, dict):
+                subject = config.get("subject") or None
+                subject_type = config.get("subject_type") or None
+                if subject:
+                    return subject, subject_type or "deity"
+        except Exception as e:
+            print(f"  Warning: Could not read collections.yml: {e}", file=sys.stderr)
+
+    # 2. Project-level defaults
+    defaults = load_project_defaults(project_dir)
+    subject = defaults.get("subject") or None
+    subject_type = defaults.get("subject_type") or "deity"
+    return subject, subject_type
 
 
 def load_puranic_references(project_dir: Path) -> Dict:

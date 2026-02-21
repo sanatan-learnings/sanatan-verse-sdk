@@ -138,25 +138,39 @@ verse-puranic-context --collection hanuman-chalisa --verse chaupai-06
 
 ### Collection Subject Configuration
 
-The subject filter is read automatically from `_data/collections.yml` — no CLI flag needed:
+The subject filter is resolved via a two-level hierarchy — no CLI flag needed:
+
+**Option A — Project-level default** (single-subject projects): set once in `_data/verse-config.yml`, applies to all collections:
 
 ```yaml
-hanuman-chalisa:
-  enabled: true
-  name:
-    en: Hanuman Chalisa
-    hi: हनुमान चालीसा
-  subject: Hanuman       # primary deity/subject of this collection
-  subject_type: deity    # deity | avatar | concept | figure
-  permalink_base: /hanuman-chalisa
-  total_verses: 43
+# _data/verse-config.yml
+defaults:
+  subject: Hanuman
+  subject_type: deity
 ```
+
+**Option B — Collection-level override**: set per collection in `_data/collections.yml` (takes priority over project default):
+
+```yaml
+# _data/collections.yml
+hanuman-chalisa:
+  subject: Hanuman      # overrides or supplements project default
+  subject_type: deity
+
+krishna-bhajans:
+  subject: Krishna      # different subject for this collection
+  subject_type: deity
+```
+
+Resolution order: collection-level → project default → error if neither is set and indexed sources exist.
 
 ### Multiple Sources
 
 Multiple indexed sources are automatically combined in RAG retrieval:
 
 ```
+_data/verse-config.yml         ← set defaults.subject here
+
 data/sources/
   shiv-puran-part1.txt
   ananda-ramayana.txt        ← add new sources here

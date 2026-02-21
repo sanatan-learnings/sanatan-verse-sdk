@@ -47,6 +47,21 @@ COLLECTIONS_YML_CONTENT = """# Collection registry
 #   subdirectory: "hanuman-chalisa"
 #   permalink_base: "/hanuman-chalisa"
 #   total_verses: 43
+#   # subject and subject_type are optional here if set in _data/verse-config.yml defaults
+#   # subject: Hanuman
+#   # subject_type: deity
+"""
+
+VERSE_CONFIG_CONTENT = """# Project-level configuration for sanatan-verse-sdk
+# These defaults apply to all collections unless overridden at the collection level.
+
+defaults:
+  # subject: Hanuman        # primary deity / subject of this project
+  # subject_type: deity     # deity | avatar | concept | figure
+
+  # subject and subject_type are used by verse-puranic-context to filter
+  # RAG retrieval to episodes where the subject is a direct participant.
+  # Collections can override by setting subject / subject_type in collections.yml.
 """
 
 GITIGNORE_CONTENT = """# Generated content
@@ -114,7 +129,8 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
 ```
 {project_name}/
 ├── _data/
-│   └── collections.yml          # Collection registry
+│   ├── collections.yml          # Collection registry
+│   └── verse-config.yml         # Project-level defaults (subject, subject_type)
 ├── _verses/
 │   └── <collection-key>/        # Verse markdown files
 ├── data/
@@ -207,6 +223,7 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
     files = {
         ".env.example": ENV_EXAMPLE_CONTENT,
         "_data/collections.yml": COLLECTIONS_YML_CONTENT,
+        "_data/verse-config.yml": VERSE_CONFIG_CONTENT,
         ".gitignore": GITIGNORE_CONTENT,
         "README.md": README_TEMPLATE.format(project_name=project_name),
     }

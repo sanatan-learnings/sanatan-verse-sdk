@@ -89,8 +89,61 @@ class ProjectValidator:
             else:
                 self.warnings.append(f"⚠️  {dir_name}/ directory missing (optional) - {description}")
 
+    def _resolve_subject(self, collection_key: str) -> Optional[str]:
+        """
+        Resolve subject for a collection using the same hierarchy as verse-puranic-context:
+          1. collection-level subject in _data/collections.yml
+          2. project-level defaults.subject in _data/verse-config.yml
+        Returns the subject string or None.
+        """
+        # 1. Collection-level
+        collections_file = self.project_dir / "_data" / "collections.yml"
+        if collections_file.exists():
+            try:
+                with open(collections_file, 'r') as f:
+                    data = yaml.safe_load(f) or {}
+                config = data.get(collection_key, {})
+                if isinstance(config, dict) and config.get("subject"):
+                    return config["subject"]
+            except Exception:
+                pass
+
+        # 2. Project defaults
+        config_file = self.project_dir / "_data" / "verse-config.yml"
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    data = yaml.safe_load(f) or {}
+                subject = (data.get("defaults") or {}).get("subject")
+                if subject:
+                    return subject
+            except Exception:
+                pass
+
+        return None
+
     def validate_configuration_files(self) -> None:
         """Validate configuration files."""
+        # Check verse-config.yml (project defaults)
+        verse_config_file = self.project_dir / "_data" / "verse-config.yml"
+        if verse_config_file.exists():
+            try:
+                with open(verse_config_file, 'r') as f:
+                    verse_config = yaml.safe_load(f)
+                if verse_config and isinstance(verse_config, dict):
+                    defaults = verse_config.get("defaults") or {}
+                    if defaults.get("subject"):
+                        self.successes.append(
+                            f"✅ _data/verse-config.yml: defaults.subject = '{defaults['subject']}'"
+                            + (f" ({defaults['subject_type']})" if defaults.get("subject_type") else "")
+                        )
+                    else:
+                        self.warnings.append("⚠️  _data/verse-config.yml exists but defaults.subject is not set")
+                else:
+                    self.warnings.append("⚠️  _data/verse-config.yml exists but is empty or invalid")
+            except yaml.YAMLError as e:
+                self.issues.append(f"❌ _data/verse-config.yml has invalid YAML syntax: {e}")
+
         # Check collections.yml
         collections_file = self.project_dir / "_data" / "collections.yml"
         if collections_file.exists():
@@ -209,6 +262,20 @@ class ProjectValidator:
             results['successes'].append(f"✅ Scene descriptions file exists: data/scenes/{scene_file.name}")
         else:
             results['warnings'].append(f"⚠️  data/scenes/{collection_key}.yml not found - needed for image generation")
+
+        # Check subject resolution for verse-puranic-context
+        puranic_refs = self.project_dir / "data" / "puranic-references.yml"
+        if puranic_refs.exists():
+            subject = self._resolve_subject(collection_key)
+            if subject:
+                results['successes'].append(
+                    f"✅ subject '{subject}' resolved for verse-puranic-context"
+                )
+            else:
+                results['warnings'].append(
+                    f"⚠️  Indexed Puranic sources exist but 'subject' is not configured for '{collection_key}'. "
+                    f"Add subject to _data/collections.yml or set defaults.subject in _data/verse-config.yml"
+                )
 
         # Check that generated assets are wired up in the layout template
         self._check_template_wiring(collection_key, results)
