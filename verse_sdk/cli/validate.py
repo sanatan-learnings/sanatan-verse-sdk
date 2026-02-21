@@ -66,6 +66,9 @@ class ProjectValidator:
             "data/themes": "Theme configurations (created as needed per collection)",
             "data/verses": "Canonical verse YAML files",
             "data/scenes": "Scene descriptions for image generation (YAML format)",
+            "data/sources": "Source texts for RAG indexing (used by verse-index-sources)",
+            "data/puranic-index": "Indexed Puranic episodes for RAG retrieval",
+            "data/embeddings": "Vector embeddings per source (used by verse-puranic-context)",
             "images": "Generated images (created automatically)",
             "audio": "Generated audio files (created automatically)",
         }
@@ -265,7 +268,8 @@ class ProjectValidator:
         prefix = "Would create" if dry_run else "Created"
 
         # Create missing required directories
-        required_dirs = ["_data", "_verses", "data", "data/themes", "data/verses", "data/scenes"]
+        required_dirs = ["_data", "_verses", "data", "data/themes", "data/verses", "data/scenes",
+                         "data/sources", "data/puranic-index", "data/embeddings"]
         for dir_name in required_dirs:
             dir_path = self.project_dir / dir_name
             if not dir_path.exists():

@@ -120,10 +120,12 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
 ├── data/
 │   ├── themes/
 │   │   └── <collection-key>/    # Theme configurations
-│   └── verses/
-│       └── <collection>.yaml    # Canonical verse text
-├── data/
-│   └── scenes/                  # Scene descriptions for image generation
+│   ├── verses/
+│   │   └── <collection>.yaml    # Canonical verse text
+│   ├── scenes/                  # Scene descriptions for image generation
+│   ├── sources/                 # Source texts for RAG indexing
+│   ├── puranic-index/           # Indexed Puranic episodes
+│   └── embeddings/              # Vector embeddings per source
 ├── images/                      # Generated images (gitignored)
 ├── audio/                       # Generated audio (gitignored)
 └── .env                         # API keys (gitignored)
@@ -181,6 +183,9 @@ def create_directory_structure(base_path: Path, minimal: bool = False) -> None:
         directories.extend([
             "images",
             "audio",
+            "data/sources",
+            "data/puranic-index",
+            "data/embeddings",
         ])
 
     for dir_path in directories:

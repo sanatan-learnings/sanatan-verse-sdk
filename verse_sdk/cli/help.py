@@ -79,6 +79,11 @@ Content Generation
   verse-audio                  Generate audio pronunciation only
   verse-embeddings             Update vector embeddings for search
 
+Puranic Context (RAG)
+──────────────────────────────────────────────────────────────────────────────
+  verse-index-sources          Index source texts (PDF/TXT/MD) for RAG
+  verse-puranic-context        Generate Puranic context boxes for verses
+
 Information
 ──────────────────────────────────────────────────────────────────────────────
   verse-generate --list-collections   List available collections
@@ -200,10 +205,14 @@ your-project/
 │   │       └── kids-friendly.yml
 │   ├── verses/                           # Canonical verse text
 │   │   └── <collection>.yaml
-│   └── embeddings.json                   # Search embeddings
-├── docs/
-│   └── image-prompts/                    # Scene descriptions
-│       └── <collection>.md
+│   ├── scenes/                           # Scene descriptions for image generation
+│   │   └── <collection>.yml
+│   ├── sources/                          # Source texts for RAG indexing
+│   │   └── shiv-puran.pdf
+│   ├── puranic-index/                    # Indexed Puranic episodes
+│   │   └── <key>.yml
+│   └── embeddings/                       # Vector embeddings per source
+│       └── <key>.json
 ├── images/                               # Generated images (gitignored)
 │   └── <collection>/
 │       └── <theme>/
@@ -348,7 +357,7 @@ Step 6: Generate First Verse
     🎨 Image: images/hanuman-chalisa/modern-minimalist/verse-01.png
     🎵 Audio (full): audio/hanuman-chalisa/verse-01-full.mp3
     🎵 Audio (slow): audio/hanuman-chalisa/verse-01-slow.mp3
-    🔍 Embeddings: data/embeddings.json (updated)
+    🔍 Embeddings: data/embeddings/<key>.json (updated)
 
 
 📦 ADD COLLECTION TO EXISTING PROJECT
@@ -665,6 +674,59 @@ verse-embeddings
     verse-embeddings --multi-collection --collections-file _data/collections.yml
 
   See: verse-embeddings --help
+
+
+🔎 PURANIC CONTEXT COMMANDS (RAG)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+verse-index-sources
+──────────────────────────────────────────────────────────────────────────────
+  Index Puranic source texts (PDF/TXT/MD) into structured episodes and
+  embeddings for RAG retrieval.
+
+  Required:
+    --file PATH                  Path to source file
+
+  Optional:
+    --force                      Re-index from scratch
+    --update-meta                Patch _meta without re-indexing (fast)
+    --chunk-size CHARS           Characters per chunk (default: 4000)
+    --provider PROVIDER          Embedding provider: openai (default) or bedrock-cohere
+    --project-dir PATH           Project directory (default: current)
+
+  Examples:
+    verse-index-sources --file data/sources/shiv-puran.pdf
+    verse-index-sources --file data/sources/shiv-puran.pdf --provider bedrock-cohere
+    verse-index-sources --file data/sources/shiv-puran.pdf --chunk-size 6000
+    verse-index-sources --file data/sources/shiv-puran.pdf --update-meta
+
+  See: verse-index-sources --help
+  Docs: docs/commands/verse-index-sources.md
+
+
+verse-puranic-context
+──────────────────────────────────────────────────────────────────────────────
+  Generate Puranic context boxes for verse files using RAG retrieval or
+  GPT-4o free recall.
+
+  Required:
+    --collection KEY             Collection key
+    --verse ID or --all          Process specific verse or all verses
+
+  Optional:
+    --regenerate                 Overwrite existing puranic_context entries
+    --subject NAME               Filter episodes to this subject (e.g. Hanuman)
+    --subject-type TYPE          Subject type for prompt (default: deity)
+    --project-dir PATH           Project directory (default: current)
+
+  Examples:
+    verse-puranic-context --collection hanuman-chalisa --verse chaupai-15
+    verse-puranic-context --collection hanuman-chalisa --all
+    verse-puranic-context --collection hanuman-chalisa --all --regenerate
+    verse-puranic-context --collection hanuman-chalisa --all --subject Hanuman
+
+  See: verse-puranic-context --help
+  Docs: docs/commands/verse-puranic-context.md
 
 
 📖 BACK TO MAIN HELP
