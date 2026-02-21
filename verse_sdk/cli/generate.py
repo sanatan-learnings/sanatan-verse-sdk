@@ -36,16 +36,17 @@ Requirements:
     - ELEVENLABS_API_KEY environment variable (for audio generation)
 """
 
-import os
-import sys
 import argparse
-import subprocess
-import yaml
-import shutil
 import json
+import os
 import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
+
+import yaml
 
 try:
     from dotenv import load_dotenv
@@ -398,7 +399,7 @@ def generate_verse_content(devanagari_text: str, collection: str, verse_id: str 
         Tuple of (content_dict, cost)
     """
     if dry_run:
-        print(f"  → [DRY-RUN] Would generate AI content from canonical text...", file=sys.stderr)
+        print("  → [DRY-RUN] Would generate AI content from canonical text...", file=sys.stderr)
         mock_result = {
             "devanagari": devanagari_text,
             "transliteration": "[mock transliteration]",
@@ -487,7 +488,7 @@ When to Use (Hindi): [कब उपयोग करें]
 Format your response exactly as above with clear section headers."""
 
     try:
-        print(f"  → Generating AI content from canonical text...", file=sys.stderr)
+        print("  → Generating AI content from canonical text...", file=sys.stderr)
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
@@ -622,7 +623,7 @@ Format your response exactly as above with clear section headers."""
                                 })
                             else:
                                 print(f"  ⚠ Warning: Skipping phonetic note for '{word}' - not found in verse", file=sys.stderr)
-                except Exception as e:
+                except Exception:
                     print(f"  ⚠ Warning: Failed to parse phonetic note: {line_stripped}", file=sys.stderr)
                     pass  # Skip malformed entries
             elif current_section == "word_meanings" and line_stripped and "WORD:" in line_stripped:
@@ -659,17 +660,17 @@ Format your response exactly as above with clear section headers."""
                     pass  # Skip malformed entries
             elif current_section == "meaning" and line_stripped and not any(x in line.upper() for x in ["BREAKDOWN", "4."]):
                 result["meaning"] += line_stripped + " "
-            elif current_section == "literal_translation" and current_lang == "en" and not "English:" in line:
+            elif current_section == "literal_translation" and current_lang == "en" and "English:" not in line:
                 result["literal_translation"]["en"] += " " + line_stripped
-            elif current_section == "literal_translation" and current_lang == "hi" and not "Hindi:" in line:
+            elif current_section == "literal_translation" and current_lang == "hi" and "Hindi:" not in line:
                 result["literal_translation"]["hi"] += " " + line_stripped
-            elif current_section == "interpretive_meaning" and current_lang == "en" and not "English:" in line:
+            elif current_section == "interpretive_meaning" and current_lang == "en" and "English:" not in line:
                 result["interpretive_meaning"]["en"] += " " + line_stripped
-            elif current_section == "interpretive_meaning" and current_lang == "hi" and not "Hindi:" in line:
+            elif current_section == "interpretive_meaning" and current_lang == "hi" and "Hindi:" not in line:
                 result["interpretive_meaning"]["hi"] += " " + line_stripped
-            elif current_section == "story" and current_lang == "en" and not "English:" in line:
+            elif current_section == "story" and current_lang == "en" and "English:" not in line:
                 result["story"]["en"] += " " + line_stripped
-            elif current_section == "story" and current_lang == "hi" and not "Hindi:" in line:
+            elif current_section == "story" and current_lang == "hi" and "Hindi:" not in line:
                 result["story"]["hi"] += " " + line_stripped
 
         # Clean up whitespace
@@ -691,7 +692,7 @@ Format your response exactly as above with clear section headers."""
                 devanagari_text
             )
 
-        print(f"  ✓ Generated complete verse content with titles, translations, story, and practical applications", file=sys.stderr)
+        print("  ✓ Generated complete verse content with titles, translations, story, and practical applications", file=sys.stderr)
         return result, cost
 
     except Exception as e:
@@ -807,6 +808,10 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
         else:
             title_hi = f'{verse_type} {id_number}'
 
+        # section_verse_number: position within verse type section, derived from the
+        # numeric suffix of the verse ID (chaupai-01 → 1, doha-closing → None).
+        section_verse_number = extract_verse_number_from_id(verse_id)
+
         # Build complete frontmatter (chaupai format)
         frontmatter = {
             'layout': 'verse',
@@ -816,6 +821,7 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
             'title_hi': title_hi,
             'chapter': chapter_number,  # Will be removed if None
             'verse_number': verse_num,
+            'section_verse_number': section_verse_number,  # Will be removed if None
             'verse_type': verse_type,
             'previous_verse': f'/{collection}/{prev_id}/' if prev_id else None,
             'next_verse': f'/{collection}/{next_id}/' if next_id else get_collection_permalink(collection, project_dir),
@@ -1387,35 +1393,35 @@ def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional
     # Get verse sequence and its source
     sequence, source = get_verse_sequence(collection, project_dir)
     if not sequence:
-        print(f"✗ Error: Cannot use --next without canonical verse file", file=sys.stderr)
-        print(f"", file=sys.stderr)
+        print("✗ Error: Cannot use --next without canonical verse file", file=sys.stderr)
+        print("", file=sys.stderr)
         print(f"The --next flag requires data/verses/{collection}.yaml to determine verse sequence.", file=sys.stderr)
-        print(f"", file=sys.stderr)
-        print(f"Options:", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Options:", file=sys.stderr)
         print(f"  1. Create canonical file: verse-add --collection {collection} --verse 1-10", file=sys.stderr)
-        print(f"  2. Run verse-validate --fix to create template", file=sys.stderr)
+        print("  2. Run verse-validate --fix to create template", file=sys.stderr)
         print(f"  3. Use explicit verse number: verse-generate --collection {collection} --verse 1", file=sys.stderr)
         return None
 
     # Warn if sequence was auto-generated (not explicit)
     if source != "explicit":
         print(f"⚠️  Warning: No explicit _meta.sequence found in data/verses/{collection}.yaml", file=sys.stderr)
-        print(f"", file=sys.stderr)
+        print("", file=sys.stderr)
 
         if source == "bhagavad-gita-auto":
-            print(f"Using auto-generated sequence for Bhagavad Gita (18 chapters, 700 verses).", file=sys.stderr)
+            print("Using auto-generated sequence for Bhagavad Gita (18 chapters, 700 verses).", file=sys.stderr)
         elif source == "yaml-keys":
-            print(f"Using sequence extracted from existing verse IDs in YAML file.", file=sys.stderr)
+            print("Using sequence extracted from existing verse IDs in YAML file.", file=sys.stderr)
 
-        print(f"", file=sys.stderr)
-        print(f"To avoid this warning, add _meta.sequence to your YAML file:", file=sys.stderr)
-        print(f"", file=sys.stderr)
-        print(f"  _meta:", file=sys.stderr)
-        print(f"    sequence:", file=sys.stderr)
-        print(f"      - chapter-01-verse-01", file=sys.stderr)
-        print(f"      - chapter-01-verse-02", file=sys.stderr)
-        print(f"      - ...", file=sys.stderr)
-        print(f"", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("To avoid this warning, add _meta.sequence to your YAML file:", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("  _meta:", file=sys.stderr)
+        print("    sequence:", file=sys.stderr)
+        print("      - chapter-01-verse-01", file=sys.stderr)
+        print("      - chapter-01-verse-02", file=sys.stderr)
+        print("      - ...", file=sys.stderr)
+        print("", file=sys.stderr)
 
         # Ask for confirmation
         try:
@@ -1444,8 +1450,8 @@ def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional
 
     # All verses in sequence exist - next would be beyond the sequence
     print(f"✓ All {len(sequence)} verses in sequence already exist!", file=sys.stderr)
-    print(f"", file=sys.stderr)
-    print(f"Options:", file=sys.stderr)
+    print("", file=sys.stderr)
+    print("Options:", file=sys.stderr)
     print(f"  1. Add more verses to data/verses/{collection}.yaml", file=sys.stderr)
     print(f"  2. Regenerate existing verse: verse-generate --collection {collection} --verse 1 --regenerate", file=sys.stderr)
     return None
@@ -1510,7 +1516,7 @@ def infer_verse_id(collection: str, verse_position: int, project_dir: Path = Pat
         print(f"\n⚠ Multiple verse files found for verse {verse_position}:")
         for match in matches:
             print(f"  - {match.name}")
-        print(f"\nPlease specify which one using --verse-id")
+        print("\nPlease specify which one using --verse-id")
         return None
     else:
         # No matches - this is a new verse, use default pattern
@@ -1765,12 +1771,12 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
             error_msg = f"Scene description required but not found for {verse_id}"
             instructions = [
                 f"Add scene description to: {scenes_file}",
-                f"Expected format:",
-                f"  scenes:",
+                "Expected format:",
+                "  scenes:",
                 f"    {verse_id}:",
-                f"      title: \"Brief Title\"",
-                f"      description: |",
-                f"        Visual scene description...",
+                "      title: \"Brief Title\"",
+                "      description: |",
+                "        Visual scene description...",
                 "",
                 "Or use --prefer-existing-scene to auto-generate missing scenes"
             ]
@@ -1785,13 +1791,13 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
             print(f"  ✓ Using existing scene description for {verse_type_title} {verse_number}")
             return True, "existing"
         else:
-            print(f"  → Existing scene not found, generating with AI...")
+            print("  → Existing scene not found, generating with AI...")
             # Fall through to generation logic below
             pass
 
     elif scene_mode == "auto-generate":
         # Always generate: Ignore existing
-        print(f"  → Generating scene description with AI (auto-generate mode)...")
+        print("  → Generating scene description with AI (auto-generate mode)...")
         # Fall through to generation logic below
         pass
 
@@ -1803,7 +1809,7 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
     scene_description = generate_scene_description(devanagari_text, verse_id, collection)
 
     if not scene_description:
-        print(f"  ✗ Failed to generate scene description")
+        print("  ✗ Failed to generate scene description")
         return False, "generation_failed"
 
     # Load existing scenes or create new structure
@@ -1849,7 +1855,7 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
         else:
             print(f"  ✓ Added scene description for {verse_type_title} {verse_number} to {scenes_file.name}")
 
-        print(f"  ⚠ [AI-Generated - Review Recommended]")
+        print("  ⚠ [AI-Generated - Review Recommended]")
         return True, "generated"
 
     except Exception as e:
@@ -1890,7 +1896,7 @@ def generate_image(collection: str, verse: int, theme: str, verse_id: str = None
 
     try:
         result = subprocess.run(cmd, check=True)
-        print(f"\n✓ Image generated successfully")
+        print("\n✓ Image generated successfully")
         return True
     except subprocess.CalledProcessError as e:
         print(f"\n✗ Error generating image: {e}")
@@ -1939,7 +1945,7 @@ def generate_audio(collection: str, verse: int, verse_id: str = None) -> bool:
 
         # Check if files exist
         if not full_audio.exists() or not slow_audio.exists():
-            print(f"\n✗ Audio generation reported success but files not found:")
+            print("\n✗ Audio generation reported success but files not found:")
             if not full_audio.exists():
                 print(f"  Missing: {full_audio}")
             if not slow_audio.exists():
@@ -1952,7 +1958,7 @@ def generate_audio(collection: str, verse: int, verse_id: str = None) -> bool:
         slow_size = slow_audio.stat().st_size
 
         if full_size == 0 or slow_size == 0:
-            print(f"\n✗ Audio generation created corrupted files (0 bytes):")
+            print("\n✗ Audio generation created corrupted files (0 bytes):")
             if full_size == 0:
                 print(f"  Corrupted: {full_audio.name} (0 bytes)")
             if slow_size == 0:
@@ -1964,7 +1970,7 @@ def generate_audio(collection: str, verse: int, verse_id: str = None) -> bool:
             print("\nTry regenerating with: verse-audio --collection {collection} --verse {verse_id} --force")
             return False
 
-        print(f"\n✓ Audio generated successfully")
+        print("\n✓ Audio generated successfully")
         print(f"  ✓ {full_audio.name}")
         print(f"  ✓ {slow_audio.name}")
         return True
@@ -1995,12 +2001,12 @@ def fetch_verse_text(collection: str, verse_id: str) -> Optional[dict]:
 
     try:
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print(f"✓ Verse text fetched successfully")
+        print("✓ Verse text fetched successfully")
 
         # Parse and return the JSON result
         data = json.loads(result.stdout)
         if data.get('success'):
-            print(f"\nDevanagari text:")
+            print("\nDevanagari text:")
             print(f"  {data.get('devanagari', 'N/A')}\n")
             return data
         else:
@@ -2044,8 +2050,8 @@ def update_embeddings(collection: str) -> bool:
 
     try:
         result = subprocess.run(cmd, check=True)
-        print(f"\n✓ Embeddings updated successfully")
-        print(f"✓ Output: data/embeddings.json")
+        print("\n✓ Embeddings updated successfully")
+        print("✓ Output: data/embeddings.json")
         return True
     except subprocess.CalledProcessError as e:
         print(f"\n✗ Error updating embeddings: {e}")
@@ -2531,16 +2537,16 @@ Environment Variables:
             verse_numbers = [int(args.verse)]
         except ValueError:
             print(f"✗ Error: Invalid verse position: {args.verse}")
-            print(f"")
-            print(f"The --verse flag expects a POSITION NUMBER (e.g., 15), not a verse ID.")
-            print(f"Position refers to the verse's location in the sequence (1st, 2nd, 3rd, etc.)")
-            print(f"")
-            print(f"Examples:")
+            print("")
+            print("The --verse flag expects a POSITION NUMBER (e.g., 15), not a verse ID.")
+            print("Position refers to the verse's location in the sequence (1st, 2nd, 3rd, etc.)")
+            print("")
+            print("Examples:")
             print(f"  verse-generate --collection {args.collection} --verse 15    # Generate 15th verse in sequence")
             print(f"  verse-generate --collection {args.collection} --verse 1     # Generate 1st verse in sequence")
             print(f"  verse-generate --collection {args.collection} --next        # Auto-generate next verse")
-            print(f"")
-            print(f"If you need to specify a verse ID directly, use --verse-id:")
+            print("")
+            print("If you need to specify a verse ID directly, use --verse-id:")
             print(f"  verse-generate --collection {args.collection} --verse-id {args.verse}")
             sys.exit(1)
 
@@ -2683,7 +2689,7 @@ Environment Variables:
                 # Show inference result
                 if len(verse_numbers) == 1:
                     print(f"\n✓ Position {verse_position} → Verse ID: {verse_id}")
-                    print(f"  (To override, use --verse-id)\n")
+                    print("  (To override, use --verse-id)\n")
 
             # Track success for this verse
             results = {
@@ -2716,7 +2722,7 @@ Environment Variables:
                 print(f"\n{'='*60}")
                 print("CREATING VERSE FILE")
                 print(f"{'='*60}\n")
-                print(f"  → Verse file not found, creating from canonical source...")
+                print("  → Verse file not found, creating from canonical source...")
 
                 from verse_sdk.fetch.fetch_verse_text import fetch_from_local_file
 
@@ -2747,11 +2753,11 @@ Environment Variables:
                     )
 
                     if results['verse_file_created']:
-                        print(f"  ✓ Verse file created successfully")
+                        print("  ✓ Verse file created successfully")
                         # Update previous verse's next_verse field
                         update_previous_verse_navigation(args.collection, verse_id, Path.cwd())
                     else:
-                        print(f"  ✗ Failed to create verse file")
+                        print("  ✗ Failed to create verse file")
 
             # Generate content in order: regenerate content → image → audio → embeddings
             # Step 1: Regenerate AI content (optional, only for existing files)
@@ -2792,7 +2798,7 @@ Environment Variables:
                 if not canonical_data or not canonical_data.get('devanagari'):
                     print(f"  ✗ Error: No canonical Devanagari text found for {verse_id}", file=sys.stderr)
                     print(f"  Please create data/verses/{args.collection}.yaml with canonical text", file=sys.stderr)
-                    print(f"  Cannot generate scene description without canonical text.", file=sys.stderr)
+                    print("  Cannot generate scene description without canonical text.", file=sys.stderr)
                     results['image'] = False
                 else:
                     # Try to get title from verse file
@@ -2823,7 +2829,7 @@ Environment Variables:
                     if scene_ready:
                         results['image'] = generate_image(args.collection, verse_position, args.theme, verse_id)
                     else:
-                        print(f"  ✗ Failed to prepare scene description", file=sys.stderr)
+                        print("  ✗ Failed to prepare scene description", file=sys.stderr)
                         results['image'] = False
 
             # Step 3: Generate audio

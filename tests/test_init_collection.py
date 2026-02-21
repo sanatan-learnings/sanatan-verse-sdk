@@ -147,6 +147,16 @@ def test_generate_loop_section_contains_for_loop():
     assert "puranic-badge" in html
 
 
+def test_generate_loop_section_uses_section_verse_number():
+    config = {"name_en": "Test", "permalink_base": "/test/"}
+    sections = [{"prefix": "chaupai", "verse_ids": ["chaupai-01", "chaupai-02", "chaupai-03", "chaupai-04"], "is_loop": True, "qualifier": None}]
+    html = generate_index_html("test", config, sections)
+    assert "verse.section_verse_number" in html
+    assert "sort: \"section_verse_number\"" in html
+    # global verse_number should not appear in card display
+    assert "verse.verse_number" not in html
+
+
 def test_generate_individual_section_contains_verse_ids():
     config = {"name_en": "Test", "permalink_base": "/test/"}
     sections = [{"prefix": "doha", "verse_ids": ["doha-opening"], "is_loop": False, "qualifier": "opening"}]

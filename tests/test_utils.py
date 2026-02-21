@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from verse_sdk.cli.generate import extract_verse_number_from_id
 from verse_sdk.utils.file_utils import (
     ensure_directory,
     find_markdown_files,
@@ -151,3 +152,31 @@ def test_get_file_size_kb(tmp_path):
     f = tmp_path / "test.txt"
     f.write_bytes(b"x" * 1024)
     assert get_file_size_kb(f) == pytest.approx(1.0)
+
+
+# ---------------------------------------------------------------------------
+# extract_verse_number_from_id
+# ---------------------------------------------------------------------------
+
+def test_extract_verse_number_numbered():
+    assert extract_verse_number_from_id("chaupai-16") == 16
+
+
+def test_extract_verse_number_zero_padded():
+    assert extract_verse_number_from_id("doha-03") == 3
+
+
+def test_extract_verse_number_named_returns_none():
+    assert extract_verse_number_from_id("doha-opening") is None
+
+
+def test_extract_verse_number_named_closing_returns_none():
+    assert extract_verse_number_from_id("doha-closing") is None
+
+
+def test_extract_verse_number_no_suffix_returns_none():
+    assert extract_verse_number_from_id("mangalacharan") is None
+
+
+def test_extract_verse_number_underscore_separator():
+    assert extract_verse_number_from_id("shloka_01") == 1

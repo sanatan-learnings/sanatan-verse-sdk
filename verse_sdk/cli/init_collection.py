@@ -131,12 +131,14 @@ def detect_sections(verses_dir: Path, sequence: Optional[List[str]] = None) -> L
 # ---------------------------------------------------------------------------
 
 def _loop_section(prefix: str, collection_key: str, icon: str, en: str, hi: str) -> str:
+    num_en = f"{en} {{{{ verse.section_verse_number }}}}"
+    num_hi = f"{hi} {{{{ verse.section_verse_number }}}}"
     return (
         f"\n"
         f"    {{% assign {prefix}_verses = site.verses"
         f" | where: \"collection_key\", \"{collection_key}\""
         f" | where_exp: \"item\", \"item.url contains '{prefix}-'\""
-        f" | sort: \"verse_number\" %}}\n"
+        f" | sort: \"section_verse_number\" %}}\n"
         f"    {{% assign {prefix}_count = {prefix}_verses | size %}}\n"
         f"    <h3>{icon}"
         f" <span data-lang=\"en\">{en} ({{% raw %}}{{{{ {prefix}_count }}}}{{% endraw %}} Verses)</span>"
@@ -144,7 +146,7 @@ def _loop_section(prefix: str, collection_key: str, icon: str, en: str, hi: str)
         f"</h3>\n"
         f"    <div class=\"verse-grid\">\n"
         f"        {{% for verse in {prefix}_verses %}}\n"
-        f"        {_card_block('verse', en, hi)}\n"
+        f"        {_card_block('verse', num_en, num_hi)}\n"
         f"        {{% endfor %}}\n"
         f"    </div>"
     )
