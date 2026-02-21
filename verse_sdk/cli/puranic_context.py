@@ -94,6 +94,7 @@ Rules:
   * If no retrieved episode provides a direct, citable reference for an entry, return []
   * Do NOT generate entries from your general knowledge or other scriptures —
     every entry must be derivable from the episodes listed above
+"""
 
 
 # ---------------------------------------------------------------------------
