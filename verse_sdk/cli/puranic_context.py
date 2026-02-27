@@ -33,6 +33,8 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
+from verse_sdk.utils.file_utils import find_puranic_embeddings_path
+
 try:
     from dotenv import load_dotenv
 except ImportError:
@@ -232,8 +234,8 @@ def load_episode_index(key: str, project_dir: Path) -> List[Dict]:
 
 
 def load_episode_embeddings(key: str, project_dir: Path) -> List[Dict]:
-    """Load data/embeddings/<key>.json, return [] if not found."""
-    emb_file = project_dir / "data" / "embeddings" / f"{key}.json"
+    """Load data/embeddings/puranic/<key>.json, return [] if not found."""
+    emb_file = find_puranic_embeddings_path(project_dir, key)
     if not emb_file.exists():
         return []
     try:
@@ -246,8 +248,8 @@ def load_episode_embeddings(key: str, project_dir: Path) -> List[Dict]:
 
 
 def load_embeddings_model(key: str, project_dir: Path) -> Optional[str]:
-    """Read the model name stored in data/embeddings/<key>.json metadata."""
-    emb_file = project_dir / "data" / "embeddings" / f"{key}.json"
+    """Read the model name stored in data/embeddings/puranic/<key>.json metadata."""
+    emb_file = find_puranic_embeddings_path(project_dir, key)
     if not emb_file.exists():
         return None
     try:

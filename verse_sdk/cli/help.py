@@ -212,7 +212,8 @@ your-project/
 │   │   └── shiv-puran.pdf
 │   ├── puranic-index/                    # Indexed Puranic episodes
 │   │   └── <key>.yml
-│   └── embeddings/                       # Vector embeddings per source
+│   └── embeddings/                       # Vector embeddings
+│       └── puranic/                      # Puranic source embeddings
 │       └── <key>.json
 ├── images/                               # Generated images (gitignored)
 │   └── <collection>/
@@ -358,7 +359,7 @@ Step 6: Generate First Verse
     🎨 Image: images/hanuman-chalisa/modern-minimalist/verse-01.png
     🎵 Audio (full): audio/hanuman-chalisa/verse-01-full.mp3
     🎵 Audio (slow): audio/hanuman-chalisa/verse-01-slow.mp3
-    🔍 Embeddings: data/embeddings/<key>.json (updated)
+    🔍 Embeddings: data/embeddings/puranic/<key>.json (updated)
 
 
 📦 ADD COLLECTION TO EXISTING PROJECT

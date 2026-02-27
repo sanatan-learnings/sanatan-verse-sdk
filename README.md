@@ -100,7 +100,7 @@ This command:
 3. Generates embeddings for each episode
 4. Writes outputs:
    - `data/puranic-index/{key}.yml` — human-readable episode index with `_meta` section
-   - `data/embeddings/{key}.json` — embedding vectors for RAG retrieval
+   - `data/embeddings/puranic/{key}.json` — embedding vectors for RAG retrieval
    - `data/puranic-references.yml` — registry of indexed sources
 
 Only needs to run once per source, or when the source file changes.
@@ -182,11 +182,14 @@ data/puranic-index/
   ananda-ramayana.yml
 
 data/embeddings/
-  shiv-puran-part1.json      ← auto-generated embedding vectors
-  ananda-ramayana.json
+  puranic/
+    shiv-puran-part1.json      ← auto-generated embedding vectors
+    ananda-ramayana.json
 ```
 
 See [verse-index-sources](docs/commands/verse-index-sources.md) and [verse-puranic-context](docs/commands/verse-puranic-context.md) for full documentation.
+
+**Migration Note**: Puranic embeddings now live under `data/embeddings/puranic/`. If you have legacy files in `data/embeddings/{source}.json`, move them or re-run `verse-index-sources` to regenerate.
 
 ## Installation
 

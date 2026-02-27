@@ -19,7 +19,7 @@ verse-index-sources --file PATH [OPTIONS]
 4. Deduplicate episodes by ID
 5. Embed each episode using the chosen embedding provider
 6. Write episode index to `data/puranic-index/<key>.yml`
-7. Write embeddings to `data/embeddings/<key>.json`
+7. Write embeddings to `data/embeddings/puranic/<key>.json`
 8. Register the source in `data/puranic-references.yml`
 
 ## Options
@@ -88,7 +88,7 @@ episodes:
 
 ### Embeddings
 
-`data/embeddings/<key>.json`:
+`data/embeddings/puranic/<key>.json`:
 
 ```json
 {
@@ -100,6 +100,10 @@ episodes:
   ]
 }
 ```
+
+### Migration Note
+
+Puranic embeddings are now stored under `data/embeddings/puranic/`. If you have legacy files in `data/embeddings/<key>.json`, move them into the `puranic/` folder or re-run `verse-index-sources` to regenerate.
 
 ### References Registry
 

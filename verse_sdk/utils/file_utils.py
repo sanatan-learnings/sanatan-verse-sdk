@@ -73,3 +73,24 @@ def get_file_size_kb(file_path: Path) -> float:
         File size in KB
     """
     return file_path.stat().st_size / 1024
+
+
+def puranic_embeddings_dir(project_dir: Path) -> Path:
+    """Canonical directory for puranic source embeddings."""
+    return project_dir / "data" / "embeddings" / "puranic"
+
+
+def puranic_embeddings_path(project_dir: Path, key: str) -> Path:
+    """Canonical path for puranic source embeddings."""
+    return puranic_embeddings_dir(project_dir) / f"{key}.json"
+
+
+def find_puranic_embeddings_path(project_dir: Path, key: str) -> Path:
+    """Return canonical puranic embeddings path, falling back to legacy if present."""
+    canonical = puranic_embeddings_path(project_dir, key)
+    if canonical.exists():
+        return canonical
+    legacy = project_dir / "data" / "embeddings" / f"{key}.json"
+    if legacy.exists():
+        return legacy
+    return canonical

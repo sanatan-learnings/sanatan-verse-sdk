@@ -141,7 +141,8 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
 │   ├── scenes/                  # Scene descriptions for image generation
 │   ├── sources/                 # Source texts for RAG indexing
 │   ├── puranic-index/           # Indexed Puranic episodes
-│   └── embeddings/              # Vector embeddings per source
+│   └── embeddings/              # Vector embeddings
+│       └── puranic/             # Puranic source embeddings
 ├── images/                      # Generated images (gitignored)
 ├── audio/                       # Generated audio (gitignored)
 └── .env                         # API keys (gitignored)

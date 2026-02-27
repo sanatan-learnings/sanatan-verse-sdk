@@ -159,6 +159,10 @@ verse-puranic-context --collection hanuman-chalisa --all
 
 Each verse is embedded using the same provider as the indexed source (detected from `_meta.embedding_provider`) and matched against indexed episodes to select the top-8 most relevant passages as grounding context.
 
+## Migration Note
+
+Puranic embeddings are now read from `data/embeddings/puranic/<key>.json`. If you have legacy files in `data/embeddings/<key>.json`, move them into the `puranic/` folder or re-run `verse-index-sources`.
+
 ## Requirements
 
 - `OPENAI_API_KEY` environment variable

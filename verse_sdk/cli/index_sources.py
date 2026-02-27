@@ -4,9 +4,9 @@ Index Puranic source texts (PDFs, TXTs) into episodes + embeddings.
 
 This command extracts text from source documents, uses GPT-4o to structure
 episodes, embeds them via Bedrock Cohere, and writes the indexed data to:
-  - data/puranic-index/<key>.yml      (episode metadata)
-  - data/embeddings/<key>.json        (episode embeddings)
-  - data/puranic-references.yml       (registry of indexed sources)
+  - data/puranic-index/<key>.yml             (episode metadata)
+  - data/embeddings/puranic/<key>.json       (episode embeddings)
+  - data/puranic-references.yml              (registry of indexed sources)
 
 Usage:
     verse-index-sources --file data/sources/valmiki-ramayana.pdf
@@ -23,6 +23,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import yaml
+
+from verse_sdk.utils.file_utils import (
+    find_puranic_embeddings_path,
+    puranic_embeddings_dir,
+    puranic_embeddings_path,
+)
 
 try:
     from importlib.metadata import version as _pkg_version
@@ -254,7 +260,7 @@ def is_already_indexed(key: str, project_dir: Path) -> bool:
 def patch_meta(key: str, source_file: Path, project_dir: Path, provider: str, chunk_size: int) -> None:
     """
     Patch _meta onto an existing puranic-index/<key>.yml without re-indexing.
-    Reads embedding model from data/embeddings/<key>.json if available.
+    Reads embedding model from data/embeddings/puranic/<key>.json if available.
     """
     index_file = project_dir / "data" / "puranic-index" / f"{key}.yml"
     if not index_file.exists():
@@ -271,7 +277,7 @@ def patch_meta(key: str, source_file: Path, project_dir: Path, provider: str, ch
         episodes = data.get("episodes", [])
 
     # Read model from embeddings JSON if available
-    emb_file = project_dir / "data" / "embeddings" / f"{key}.json"
+    emb_file = find_puranic_embeddings_path(project_dir, key)
     embedding_model = provider  # fallback
     if emb_file.exists():
         try:
@@ -327,7 +333,7 @@ Examples:
   verse-index-sources --file data/sources/shiv-puran.txt --update-meta
 
 Note:
-  - Outputs are written to data/puranic-index/<key>.yml and data/embeddings/<key>.json
+  - Outputs are written to data/puranic-index/<key>.yml and data/embeddings/puranic/<key>.json
   - Requires OPENAI_API_KEY and (for bedrock-cohere) AWS credentials
         """,
     )
@@ -477,10 +483,10 @@ Note:
         yaml.dump(index_output, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
     print(f"Wrote episode index: {index_file}")
 
-    # Step 8: Write embeddings/<key>.json
-    embeddings_dir = args.project_dir / "data" / "embeddings"
+    # Step 8: Write embeddings/puranic/<key>.json
+    embeddings_dir = puranic_embeddings_dir(args.project_dir)
     embeddings_dir.mkdir(parents=True, exist_ok=True)
-    embeddings_file = embeddings_dir / f"{key}.json"
+    embeddings_file = puranic_embeddings_path(args.project_dir, key)
 
     embeddings_output = {
         "key": key,
