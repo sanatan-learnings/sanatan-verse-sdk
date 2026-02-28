@@ -15,6 +15,8 @@ def _print_help():
         "Deploy Cloudflare Workers as an OpenAI API proxy for verse-based projects.\n"
         "\n"
         "Options:\n"
+        "  --status    Show current worker status and exit\n"
+        "  --dry-run   Validate prerequisites and print planned actions\n"
         "  -h, --help  Show this help message and exit\n"
     )
 
@@ -32,7 +34,7 @@ def main():
         sys.exit(1)
 
     # Run the shell script
-    result = subprocess.run([str(script_path)], cwd=Path.cwd())
+    result = subprocess.run([str(script_path), *sys.argv[1:]], cwd=Path.cwd())
     sys.exit(result.returncode)
 
 

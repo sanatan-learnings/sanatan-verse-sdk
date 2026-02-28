@@ -6,6 +6,8 @@ Deploy Cloudflare Workers as OpenAI API proxy for verse-based projects.
 
 ```bash
 verse-deploy
+verse-deploy --status
+verse-deploy --dry-run
 ```
 
 ## Description
@@ -52,6 +54,22 @@ verse-deploy
 ```
 
 The script will interactively guide you through the deployment process.
+
+### Status (Read-Only)
+
+```bash
+verse-deploy --status
+```
+
+Prints current worker name, URL, latest deployment version ID, deployment timestamp, bindings (if available), and secret names.
+
+### Dry Run (No Deploy)
+
+```bash
+verse-deploy --dry-run
+```
+
+Validates prerequisites and prints planned actions without deploying or changing any state.
 
 ### What to Expect
 

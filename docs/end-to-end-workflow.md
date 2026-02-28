@@ -99,6 +99,12 @@ verse-deploy
 
 This sets up a Cloudflare Worker, stores `OPENAI_API_KEY` as a secret, and returns a worker URL. For deployment details, see `docs/commands/verse-deploy.md`.
 
+Safe inspection:
+```bash
+verse-deploy --status
+verse-deploy --dry-run
+```
+
 ## 10. Post-Deploy
 
 - Update your frontend client to call the worker URL.
