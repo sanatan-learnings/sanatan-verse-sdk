@@ -12,6 +12,10 @@ index_path: data/embeddings/collections/index.json
 puranic_embeddings_dir: data/embeddings/puranic
 max_input_chars: 2048
 truncate_policy: chunk
+#
+# Hugging Face example:
+# active_provider: huggingface
+# active_model: sentence-transformers/paraphrase-multilingual-mpnet-base-v2
 ```
 
 ## Precedence

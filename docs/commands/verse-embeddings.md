@@ -88,6 +88,10 @@ verse-embeddings --collection hanuman-chalisa --collections-file _data/collectio
 # Using HuggingFace (free)
 verse-embeddings --collection hanuman-chalisa --collections-file _data/collections.yml --provider huggingface
 
+# Multilingual Hugging Face model
+verse-embeddings --collection hanuman-chalisa --collections-file _data/collections.yml \
+  --provider huggingface --model sentence-transformers/paraphrase-multilingual-mpnet-base-v2
+
 ### Legacy Combined Output (Opt-in)
 
 ```bash

@@ -106,14 +106,16 @@ def get_bedrock_embedding(text, client, config, input_type="search_document"):
         return None
 
 
-def initialize_provider(provider_name):
+def initialize_provider(provider_name, model_override=None):
     """
     Initialize the embedding provider.
 
     Returns:
         tuple: (embedding_function, client_or_model, config)
     """
-    config = PROVIDERS[provider_name]
+    config = dict(PROVIDERS[provider_name])
+    if model_override:
+        config['model'] = model_override
 
     if provider_name == 'openai':
         from openai import OpenAI
@@ -913,10 +915,8 @@ Examples:
     print("=" * 70)
 
     # Initialize provider
-    embed_func, client_or_model, config = initialize_provider(provider_name)
+    embed_func, client_or_model, config = initialize_provider(provider_name, model_override=model_override)
     if model_override:
-        config = dict(config)
-        config['model'] = model_override
         if provider_name == "openai" and not model_override.startswith("text-embedding"):
             print(f"Warning: model '{model_override}' may not match provider '{provider_name}'.")
         if provider_name == "bedrock-cohere" and not model_override.startswith("cohere."):
