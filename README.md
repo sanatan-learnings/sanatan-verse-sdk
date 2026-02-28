@@ -109,6 +109,9 @@ Only needs to run once per source, or when the source file changes.
 # Use Bedrock Cohere for better Sanskrit/Hindi accuracy
 verse-index-sources --file data/sources/shiv-puran.txt --provider bedrock-cohere
 
+# If Bedrock input exceeds limits, use truncation policy
+verse-embeddings --provider bedrock-cohere --truncate-policy drop
+
 # Larger chunk size for dense Puranic prose
 verse-index-sources --file data/sources/valmiki-ramayana.pdf --chunk-size 6000
 ```

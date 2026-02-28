@@ -779,7 +779,7 @@ Examples:
     parser.add_argument(
         '--truncate-policy',
         choices=['drop', 'truncate', 'chunk'],
-        default='drop',
+        default='chunk',
         help='How to handle inputs exceeding max length: drop sections, truncate, or chunk+average'
     )
     parser.add_argument(

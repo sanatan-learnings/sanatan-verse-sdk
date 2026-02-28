@@ -258,10 +258,10 @@ verse-embeddings --multi-collection --collections-file _data/collections.yml --p
 
 ### "ValidationException: expected maxLength: 2048" (Bedrock Cohere)
 
-If Bedrock Cohere rejects long inputs, use a truncation policy:
+If Bedrock Cohere rejects long inputs, use a truncation policy (default is `chunk`):
 
 ```bash
-verse-embeddings --provider bedrock-cohere --truncate-policy drop
+verse-embeddings --provider bedrock-cohere --truncate-policy chunk
 ```
 
 Or explicitly set the limit:
