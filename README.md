@@ -110,7 +110,7 @@ Only needs to run once per source, or when the source file changes.
 verse-index-sources --file data/sources/shiv-puran.txt --provider bedrock-cohere
 
 # If Bedrock input exceeds limits, use truncation policy
-verse-embeddings --provider bedrock-cohere --truncate-policy drop
+verse-embeddings --provider bedrock-cohere --truncate-policy chunk
 
 # Larger chunk size for dense Puranic prose
 verse-index-sources --file data/sources/valmiki-ramayana.pdf --chunk-size 6000
@@ -222,6 +222,9 @@ pip install sanatan-verse-sdk
 - **[verse-status](docs/commands/verse-status.md)** - Check status, completion, and validate text against canonical source
 - **[verse-sync](docs/commands/verse-sync.md)** - Sync verse text with canonical source (fix mismatches)
 - **[verse-deploy](docs/commands/verse-deploy.md)** - Deploy Cloudflare Worker for API proxy
+
+### Embeddings Config
+- **[embeddings.yml](docs/embeddings-config.md)** - Shared defaults and precedence (CLI > config > env > defaults)
 
 ## Configuration
 

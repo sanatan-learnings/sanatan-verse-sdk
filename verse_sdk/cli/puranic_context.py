@@ -33,6 +33,7 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
+from verse_sdk.utils.embeddings_config import load_embeddings_config, resolve_with_precedence
 from verse_sdk.utils.file_utils import find_puranic_embeddings_path
 
 try:
@@ -233,9 +234,16 @@ def load_episode_index(key: str, project_dir: Path) -> List[Dict]:
         return []
 
 
-def load_episode_embeddings(key: str, project_dir: Path) -> List[Dict]:
+def load_episode_embeddings(
+    key: str,
+    project_dir: Path,
+    embeddings_dir_override: Optional[Path] = None,
+) -> List[Dict]:
     """Load data/embeddings/puranic/<key>.json, return [] if not found."""
-    emb_file = find_puranic_embeddings_path(project_dir, key)
+    if embeddings_dir_override:
+        emb_file = embeddings_dir_override / f"{key}.json"
+    else:
+        emb_file = find_puranic_embeddings_path(project_dir, key)
     if not emb_file.exists():
         return []
     try:
@@ -247,9 +255,16 @@ def load_episode_embeddings(key: str, project_dir: Path) -> List[Dict]:
         return []
 
 
-def load_embeddings_model(key: str, project_dir: Path) -> Optional[str]:
+def load_embeddings_model(
+    key: str,
+    project_dir: Path,
+    embeddings_dir_override: Optional[Path] = None,
+) -> Optional[str]:
     """Read the model name stored in data/embeddings/puranic/<key>.json metadata."""
-    emb_file = find_puranic_embeddings_path(project_dir, key)
+    if embeddings_dir_override:
+        emb_file = embeddings_dir_override / f"{key}.json"
+    else:
+        emb_file = find_puranic_embeddings_path(project_dir, key)
     if not emb_file.exists():
         return None
     try:
@@ -620,6 +635,7 @@ def process_verse(
     project_dir: Optional[Path] = None,
     subject: Optional[str] = None,
     subject_type: Optional[str] = None,
+    embeddings_dir_override: Optional[Path] = None,
 ) -> str:
     """
     Process a single verse file.
@@ -652,7 +668,7 @@ def process_verse(
             if meta and meta.get("embedding_provider"):
                 provider = meta["embedding_provider"]
                 break
-            model = load_embeddings_model(key, project_dir)
+            model = load_embeddings_model(key, project_dir, embeddings_dir_override=embeddings_dir_override)
             if model:
                 provider = provider_from_model(model)
                 break
@@ -665,7 +681,7 @@ def process_verse(
             all_embeddings: List[Dict] = []
             for key in sources:
                 all_episodes.extend(load_episode_index(key, project_dir))
-                all_embeddings.extend(load_episode_embeddings(key, project_dir))
+                all_embeddings.extend(load_episode_embeddings(key, project_dir, embeddings_dir_override=embeddings_dir_override))
 
             if all_episodes and all_embeddings:
                 retrieved_episodes = search_episodes(query_embedding, all_episodes, all_embeddings)
@@ -777,8 +793,33 @@ Note:
         default=Path.cwd(),
         help="Project directory (default: current directory)"
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        help="Path to embeddings config file (default: _data/embeddings.yml)"
+    )
 
     args = parser.parse_args()
+
+    try:
+        config_data, _ = load_embeddings_config(args.project_dir, args.config)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    puranic_dir_env = os.getenv("PURANIC_EMBEDDINGS_DIR")
+    puranic_dir, msg = resolve_with_precedence(
+        "puranic_embeddings_dir",
+        None,
+        config_data.puranic_embeddings_dir,
+        puranic_dir_env,
+        None,
+    )
+    if msg:
+        print(msg)
+    if isinstance(puranic_dir, str):
+        puranic_dir = Path(puranic_dir)
+    if puranic_dir is not None and not puranic_dir.is_absolute():
+        puranic_dir = args.project_dir / puranic_dir
 
     if not os.getenv("OPENAI_API_KEY"):
         print("✗ Error: OPENAI_API_KEY environment variable not set")
@@ -842,6 +883,7 @@ Note:
                 project_dir=args.project_dir,
                 subject=subject,
                 subject_type=subject_type,
+                embeddings_dir_override=puranic_dir,
             )
             counts[result] = counts.get(result, 0) + 1
     except KeyboardInterrupt:

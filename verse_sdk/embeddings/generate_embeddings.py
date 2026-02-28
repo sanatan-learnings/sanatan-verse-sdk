@@ -26,6 +26,8 @@ from pathlib import Path
 
 import yaml
 
+from verse_sdk.utils.embeddings_config import load_embeddings_config, resolve_with_precedence
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -734,8 +736,14 @@ Examples:
     parser.add_argument(
         '--provider',
         choices=['openai', 'bedrock-cohere', 'huggingface'],
-        default=os.getenv('EMBEDDING_PROVIDER', 'openai'),
-        help='Embedding provider to use (default: from EMBEDDING_PROVIDER env var or "openai")'
+        default=None,
+        help='Embedding provider to use'
+    )
+    parser.add_argument(
+        '--model',
+        type=str,
+        default=None,
+        help='Embedding model override (provider-specific)'
     )
     parser.add_argument(
         '--verses-dir',
@@ -752,8 +760,14 @@ Examples:
     parser.add_argument(
         '--output-dir',
         type=Path,
-        default=Path.cwd() / "data" / "embeddings" / "collections",
+        default=None,
         help='Output directory for per-collection embeddings (default: ./data/embeddings/collections)'
+    )
+    parser.add_argument(
+        '--index-path',
+        type=Path,
+        default=None,
+        help='Manifest path for per-collection embeddings (default: <output-dir>/index.json)'
     )
     parser.add_argument(
         '--collection',
@@ -769,6 +783,11 @@ Examples:
         '--collections-file',
         type=Path,
         help='Path to collections.yml file (required for multi-collection mode)'
+    )
+    parser.add_argument(
+        '--config',
+        type=Path,
+        help='Path to embeddings config file (default: _data/embeddings.yml)'
     )
     parser.add_argument(
         '--max-input-chars',
@@ -789,7 +808,6 @@ Examples:
     )
 
     args = parser.parse_args()
-    provider_name = args.provider
     verses_dir = args.verses_dir
     output_file = args.output
     output_dir = args.output_dir
@@ -798,6 +816,89 @@ Examples:
     truncate_policy = args.truncate_policy
     multi_collection = args.multi_collection
     collections_file = args.collections_file
+    model_override = args.model
+
+    project_dir = Path.cwd()
+    try:
+        config_data, _ = load_embeddings_config(project_dir, args.config)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+    provider_env = os.getenv('EMBEDDING_PROVIDER')
+    model_env = os.getenv('EMBEDDING_MODEL')
+    output_dir_env = os.getenv('EMBEDDINGS_OUTPUT_DIR')
+    index_path_env = os.getenv('EMBEDDINGS_INDEX_PATH')
+    max_input_env = os.getenv('EMBEDDINGS_MAX_INPUT_CHARS')
+    truncate_policy_env = os.getenv('EMBEDDINGS_TRUNCATE_POLICY')
+
+    provider_name, msg = resolve_with_precedence(
+        "provider",
+        args.provider,
+        config_data.active_provider,
+        provider_env,
+        "openai",
+    )
+    if msg:
+        print(msg)
+
+    model_override, msg = resolve_with_precedence(
+        "model",
+        model_override,
+        config_data.active_model,
+        model_env,
+        None,
+    )
+    if msg:
+        print(msg)
+
+    output_dir, msg = resolve_with_precedence(
+        "output_dir",
+        output_dir,
+        config_data.output_dir,
+        output_dir_env,
+        project_dir / "data" / "embeddings" / "collections",
+    )
+    if msg:
+        print(msg)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+    if output_dir is not None and not Path(output_dir).is_absolute():
+        output_dir = project_dir / output_dir
+
+    index_path, msg = resolve_with_precedence(
+        "index_path",
+        args.index_path,
+        config_data.index_path,
+        index_path_env,
+        None,
+    )
+    if msg:
+        print(msg)
+    if isinstance(index_path, str):
+        index_path = Path(index_path)
+    if index_path is not None and not Path(index_path).is_absolute():
+        index_path = project_dir / index_path
+
+    max_input_chars, msg = resolve_with_precedence(
+        "max_input_chars",
+        args.max_input_chars,
+        config_data.max_input_chars,
+        int(max_input_env) if max_input_env else None,
+        None,
+    )
+    if msg:
+        print(msg)
+
+    truncate_policy, msg = resolve_with_precedence(
+        "truncate_policy",
+        truncate_policy,
+        config_data.truncate_policy,
+        truncate_policy_env,
+        "chunk",
+    )
+    if msg:
+        print(msg)
 
     # Validate arguments
     if multi_collection and not collections_file:
@@ -813,7 +914,14 @@ Examples:
 
     # Initialize provider
     embed_func, client_or_model, config = initialize_provider(provider_name)
-    max_input_chars = args.max_input_chars or config.get('max_input_chars')
+    if model_override:
+        config = dict(config)
+        config['model'] = model_override
+        if provider_name == "openai" and not model_override.startswith("text-embedding"):
+            print(f"Warning: model '{model_override}' may not match provider '{provider_name}'.")
+        if provider_name == "bedrock-cohere" and not model_override.startswith("cohere."):
+            print(f"Warning: model '{model_override}' may not match provider '{provider_name}'.")
+    max_input_chars = max_input_chars or config.get('max_input_chars')
 
     print(f"Provider: {provider_name}")
     print(f"Model: {config['model']}")
@@ -831,7 +939,20 @@ Examples:
         if collection_key:
             print(f"Collection key: {collection_key}")
 
+    if output_dir is None:
+        print("Error: output_dir is required.")
+        sys.exit(1)
+    if index_path is None:
+        index_path = Path(output_dir) / "index.json"
+    if Path(index_path).name != "index.json":
+        print(f"Error: index_path must end with index.json (got {index_path})")
+        sys.exit(1)
+    if Path(index_path).parent != Path(output_dir):
+        print(f"Error: index_path must live under output_dir (output_dir={output_dir}, index_path={index_path})")
+        sys.exit(1)
+
     print(f"Output dir: {output_dir}")
+    print(f"Index path: {index_path}")
     if legacy_output:
         print(f"Legacy output file: {output_file or (Path.cwd() / 'data' / 'embeddings.json')}")
     print()
@@ -908,7 +1029,7 @@ Examples:
         manifest_entries.append(entry)
 
     manifest_entries.sort(key=lambda item: item.get("collection", ""))
-    manifest_path = write_manifest(output_dir, manifest_entries)
+    manifest_path = write_manifest(Path(index_path).parent, manifest_entries)
 
     if legacy_output:
         if output_file is None:

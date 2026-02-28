@@ -24,6 +24,7 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
+from verse_sdk.utils.embeddings_config import load_embeddings_config, resolve_with_precedence
 from verse_sdk.utils.file_utils import (
     find_puranic_embeddings_path,
     puranic_embeddings_dir,
@@ -257,7 +258,14 @@ def is_already_indexed(key: str, project_dir: Path) -> bool:
     return index_file.exists()
 
 
-def patch_meta(key: str, source_file: Path, project_dir: Path, provider: str, chunk_size: int) -> None:
+def patch_meta(
+    key: str,
+    source_file: Path,
+    project_dir: Path,
+    provider: str,
+    chunk_size: int,
+    embeddings_dir_override: Optional[Path] = None,
+) -> None:
     """
     Patch _meta onto an existing puranic-index/<key>.yml without re-indexing.
     Reads embedding model from data/embeddings/puranic/<key>.json if available.
@@ -277,7 +285,10 @@ def patch_meta(key: str, source_file: Path, project_dir: Path, provider: str, ch
         episodes = data.get("episodes", [])
 
     # Read model from embeddings JSON if available
-    emb_file = find_puranic_embeddings_path(project_dir, key)
+    if embeddings_dir_override:
+        emb_file = embeddings_dir_override / f"{key}.json"
+    else:
+        emb_file = find_puranic_embeddings_path(project_dir, key)
     embedding_model = provider  # fallback
     if emb_file.exists():
         try:
@@ -364,8 +375,8 @@ Note:
     parser.add_argument(
         "--provider",
         choices=["bedrock-cohere", "openai"],
-        default="openai",
-        help="Embedding provider (default: openai)",
+        default=None,
+        help="Embedding provider",
     )
     parser.add_argument(
         "--chunk-size",
@@ -374,8 +385,44 @@ Note:
         metavar="CHARS",
         help=f"Characters per text chunk (default: {CHUNK_SIZE})",
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        help="Path to embeddings config file (default: _data/embeddings.yml)",
+    )
 
     args = parser.parse_args()
+
+    try:
+        config_data, _ = load_embeddings_config(args.project_dir, args.config)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    provider_env = os.getenv("EMBEDDING_PROVIDER")
+    args.provider, msg = resolve_with_precedence(
+        "provider",
+        args.provider,
+        config_data.active_provider,
+        provider_env,
+        "openai",
+    )
+    if msg:
+        print(msg)
+
+    puranic_dir_env = os.getenv("PURANIC_EMBEDDINGS_DIR")
+    puranic_dir, msg = resolve_with_precedence(
+        "puranic_embeddings_dir",
+        None,
+        config_data.puranic_embeddings_dir,
+        puranic_dir_env,
+        None,
+    )
+    if msg:
+        print(msg)
+    if isinstance(puranic_dir, str):
+        puranic_dir = Path(puranic_dir)
+    if puranic_dir is not None and not puranic_dir.is_absolute():
+        puranic_dir = args.project_dir / puranic_dir
 
     # Validate environment
     if not os.getenv("OPENAI_API_KEY"):
@@ -407,7 +454,14 @@ Note:
 
     # --update-meta: patch _meta without re-indexing
     if args.update_meta:
-        patch_meta(key, source_file, args.project_dir, args.provider, args.chunk_size)
+        patch_meta(
+            key,
+            source_file,
+            args.project_dir,
+            args.provider,
+            args.chunk_size,
+            embeddings_dir_override=puranic_dir,
+        )
         sys.exit(0)
 
     # Guard: already indexed?
@@ -484,9 +538,9 @@ Note:
     print(f"Wrote episode index: {index_file}")
 
     # Step 8: Write embeddings/puranic/<key>.json
-    embeddings_dir = puranic_embeddings_dir(args.project_dir)
+    embeddings_dir = puranic_dir or puranic_embeddings_dir(args.project_dir)
     embeddings_dir.mkdir(parents=True, exist_ok=True)
-    embeddings_file = puranic_embeddings_path(args.project_dir, key)
+    embeddings_file = embeddings_dir / f"{key}.json"
 
     embeddings_output = {
         "key": key,

@@ -34,6 +34,7 @@ verse-index-sources --file PATH [OPTIONS]
 - `--update-meta` - Patch `_meta` onto an existing index without re-indexing (fast — no API calls)
 - `--chunk-size CHARS` - Characters per text chunk (default: `4000`). Increase for dense prose like Puranic texts; decrease for short-form content.
 - `--provider {bedrock-cohere,openai}` - Embedding provider (default: `openai`). Use `bedrock-cohere` for better multilingual (Sanskrit/Hindi) accuracy.
+- `--config PATH` - Embeddings config file (default: `_data/embeddings.yml`)
 - `--project-dir PATH` - Project directory (default: current directory)
 
 ## Examples
@@ -136,6 +137,10 @@ verse-index-sources --file data/sources/shiv-puran-part1.txt --update-meta --pro
 - `OPENAI_API_KEY` environment variable (for GPT-4o episode extraction)
 - AWS credentials configured (for `bedrock-cohere` provider)
 - `pdfplumber` installed for PDF sources (`pip install pdfplumber`)
+
+## Config Defaults
+
+If `_data/embeddings.yml` is present, `verse-index-sources` will use `active_provider` and `puranic_embeddings_dir` unless overridden by CLI flags.
 
 ## Workflow
 

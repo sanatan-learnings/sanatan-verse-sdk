@@ -170,6 +170,10 @@ Puranic embeddings are now read from `data/embeddings/puranic/<key>.json`. If yo
 - `subject` and `subject_type` fields in `_data/collections.yml` (required when indexed sources are present)
 - AWS credentials only if using `bedrock-cohere` indexed sources
 
+## Config Defaults
+
+If `_data/embeddings.yml` is present, `verse-puranic-context` will use `puranic_embeddings_dir` for loading episode embeddings (unless overridden by CLI flags).
+
 ## See Also
 
 - [verse-index-sources](verse-index-sources.md) - Index Puranic source texts for RAG retrieval

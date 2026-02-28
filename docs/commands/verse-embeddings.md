@@ -25,6 +25,9 @@ The `verse-embeddings` command generates vector embeddings for verses, enabling 
 - **OpenAI provider** (recommended): Higher quality, requires API key
 - **HuggingFace provider** (free): Local models, no API key needed
 
+Configuration precedence:
+`CLI flags` > `_data/embeddings.yml` > `env vars` > `SDK defaults`
+
 ## Options
 
 ### Single Collection Mode
@@ -44,6 +47,8 @@ The `verse-embeddings` command generates vector embeddings for verses, enabling 
 - `--provider PROVIDER` - Embedding provider: `openai`, `bedrock-cohere`, or `huggingface` (default: `openai`)
 - `--model MODEL` - Model to use (provider-specific)
 - `--output-dir PATH` - Output directory for canonical per-collection files (default: `data/embeddings/collections`)
+- `--index-path PATH` - Manifest path (default: `<output-dir>/index.json`)
+- `--config PATH` - Embeddings config file (default: `_data/embeddings.yml`)
 - `--legacy-output` - Write legacy combined output (opt-in)
 - `--output PATH` - Legacy combined output file path (used with `--legacy-output`)
 - `--max-input-chars N` - Max input length (chars) per embedding request (defaults per provider)
@@ -190,6 +195,9 @@ This creates rich semantic embeddings that capture the full meaning of each vers
 ```bash
 # 1. Ensure collections are configured
 cat _data/collections.yml
+
+# Optional: set defaults in _data/embeddings.yml
+cat _data/embeddings.yml
 
 # 2. Generate embeddings (one-time setup)
 verse-embeddings --multi-collection --collections-file _data/collections.yml
