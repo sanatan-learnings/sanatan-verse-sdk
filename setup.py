@@ -13,6 +13,10 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/sanatan-learnings/sanatan-verse-sdk",
     packages=find_packages(),
+    include_package_data=True,
+    package_data={
+        "verse_sdk.deployment": ["deploy-cloudflare-worker.sh"],
+    },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
