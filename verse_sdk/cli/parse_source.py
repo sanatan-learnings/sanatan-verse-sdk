@@ -16,9 +16,10 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 
 CHAPTER_PATTERNS = [
-    re.compile(r"^\s*Chapter\s+(\d+)\b", re.IGNORECASE),
-    re.compile(r"^\s*अध्याय\s+(\d+)\b"),
-    re.compile(r"^\s*अध्यायः\s+(\d+)\b"),
+    re.compile(r"\bChapter\s+(\d+)\b", re.IGNORECASE),
+    re.compile(r"\bअध्याय\s+(\d+)\b"),
+    re.compile(r"\bअध्यायः\s+(\d+)\b"),
+    re.compile(r"(?:अ)?ऽ?ध्याय[:ः।]?\s*[-–—]?\s*([०-९0-9]+)"),
 ]
 
 FRONTMATTER_PATTERNS = [
@@ -95,9 +96,11 @@ def _collect_files(source: Optional[List[str]], source_dir: Optional[str], sourc
 
 def _detect_chapter(line: str) -> Optional[int]:
     for pattern in CHAPTER_PATTERNS:
-        match = pattern.match(line)
+        match = pattern.search(line)
         if match:
-            return int(match.group(1))
+            value = match.group(1)
+            trans = str.maketrans("०१२३४५६७८९", "0123456789")
+            return int(value.translate(trans))
     return None
 
 
