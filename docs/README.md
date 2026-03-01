@@ -11,6 +11,7 @@ Detailed documentation for the sanatan-verse-sdk commands and features.
 
 ### Content Generation
 
+- **[verse-parse-source](commands/verse-parse-source.md)** - Parse canonical source text into YAML
 - **[verse-generate](commands/verse-generate.md)** - Complete orchestrator for verse content (text fetching, multimedia generation, embeddings)
 - **[verse-translate](commands/verse-translate.md)** - Translate verses into multiple languages (Hindi, Spanish, French, etc.)
 - **[verse-images](commands/verse-images.md)** - Generate images using DALL-E 3

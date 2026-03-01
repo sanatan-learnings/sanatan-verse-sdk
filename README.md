@@ -209,6 +209,7 @@ pip install sanatan-verse-sdk
 - **[verse-validate](docs/commands/verse-validate.md)** - Validate project structure and configuration
 
 ### Content Generation
+- **[verse-parse-source](docs/commands/verse-parse-source.md)** - Parse canonical source text into YAML
 - **[verse-generate](docs/commands/verse-generate.md)** - Complete orchestrator for verse content (text fetching, multimedia generation, embeddings)
 - **[verse-translate](docs/commands/verse-translate.md)** - Translate verses into multiple languages (Hindi, Spanish, French, etc.)
 - **[verse-images](docs/commands/verse-images.md)** - Generate images using DALL-E 3

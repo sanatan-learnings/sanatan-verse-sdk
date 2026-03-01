@@ -148,6 +148,10 @@ def test_help_verse_generate():
     _help_exits_zero("verse_sdk.cli.generate")
 
 
+def test_help_verse_parse_source():
+    _help_exits_zero("verse_sdk.cli.parse_source")
+
+
 def test_help_verse_deploy():
     result = subprocess.run(
         [sys.executable, "-c", "import sys; sys.argv=['verse-deploy','--help']; from verse_sdk.deployment.deploy import main; main()"],

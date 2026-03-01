@@ -43,6 +43,14 @@ cp .env.example .env
 
 ## 4. Add Canonical Text
 
+Option A: Parse from source text (recommended for large texts):
+```bash
+verse-parse-source \
+  --collection hanuman-chalisa \
+  --source data/source-texts/hanuman-chalisa.txt
+```
+
+Option B: Edit manually:
 Edit `data/verses/<collection>.yaml` and add the Devanagari text for each verse. See `docs/local-verses.md` for the YAML format.
 
 ## 5. Validate

@@ -58,6 +58,7 @@ setup(
             'verse-add=verse_sdk.cli.add:main',
             'verse-puranic-context=verse_sdk.cli.puranic_context:main',
             'verse-index-sources=verse_sdk.cli.index_sources:main',
+            'verse-parse-source=verse_sdk.cli.parse_source:main',
             'verse-init-collection=verse_sdk.cli.init_collection:main',
             'verse-help=verse_sdk.cli.help:main',
         ],
