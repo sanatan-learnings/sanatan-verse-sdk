@@ -14,7 +14,6 @@ from typing import Dict, List, Optional, Tuple
 
 import yaml
 
-
 CHAPTER_PATTERNS = [
     re.compile(r"^\s*Chapter\s+(\d+)\b", re.IGNORECASE),
     re.compile(r"^\s*अध्याय\s+(\d+)\b"),
