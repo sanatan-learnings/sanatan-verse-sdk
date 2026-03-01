@@ -51,6 +51,10 @@ verse-parse-source \
 ```
 Defaults filter front-matter and OCR noise. Use `--filter-frontmatter false` or `--filter-ocr-noise false` to opt out.
 
+How this differs from `verse-index-sources`:
+- `verse-parse-source` creates the canonical YAML (`data/verses/<collection>.yaml`) used for generation.
+- `verse-index-sources` creates a RAG index + embeddings from reference texts for `verse-puranic-context`.
+
 Option B: Edit manually:
 Edit `data/verses/<collection>.yaml` and add the Devanagari text for each verse. See `docs/local-verses.md` for the YAML format.
 
