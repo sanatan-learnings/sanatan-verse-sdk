@@ -57,6 +57,8 @@ PROFILE_DEFAULTS = {
             re.compile(r".*अध्यायः.*"),
             re.compile(r".*अध्याय.*"),
         ],
+        "chapter_scope": "file",
+        "canto_regex": r"canto-(\d+)",
         "extra_frontmatter_patterns": [
             re.compile(r"\b(edition|press|publisher|publication)\b", re.IGNORECASE),
             re.compile(r"\b(email|website|www\.|http)\b", re.IGNORECASE),
@@ -325,9 +327,10 @@ def _parse_plain(
     start_marker: Optional[str],
     start_marker_regex: Optional[re.Pattern[str]],
     disable_start_anchor: bool,
-) -> Tuple[List[Tuple[Optional[int], str]], Dict[str, int]]:
-    entries: List[Tuple[Optional[int], str]] = []
-    current_chapter: Optional[int] = None
+    chapter_scope: str,
+    canto_regex: Optional[re.Pattern[str]],
+) -> Tuple[List[Tuple[Optional[int], Optional[int], str]], Dict[str, int]]:
+    entries: List[Tuple[Optional[int], Optional[int], str]] = []
     stats: Dict[str, int] = {
         "lines_scanned": 0,
         "lines_frontmatter_dropped": 0,
@@ -342,6 +345,13 @@ def _parse_plain(
     }
 
     for path in files:
+        current_chapter: Optional[int] = None
+        canto_value: Optional[int] = None
+        if canto_regex:
+            match = canto_regex.search(path.name)
+            if match:
+                trans = str.maketrans("०१२३४५६७८९", "0123456789")
+                canto_value = int(match.group(1).translate(trans))
         text = path.read_text(encoding="utf-8")
         lines = text.splitlines()
         filtered, file_stats = _filter_lines(
@@ -373,36 +383,46 @@ def _parse_plain(
                 if chapter is not None:
                     if buffer:
                         verses = _split_verses(buffer)
-                        entries.extend([(current_chapter, v) for v in verses])
+                        entries.extend([(canto_value, current_chapter, v) for v in verses])
                         buffer = []
-                    current_chapter = chapter
+                    if chapter_scope == "file" and current_chapter is not None and chapter < current_chapter:
+                        current_chapter = chapter
+                    else:
+                        current_chapter = chapter
                     continue
                 buffer.append(line)
             if buffer:
                 verses = _split_verses(buffer)
-                entries.extend([(current_chapter, v) for v in verses])
+                entries.extend([(canto_value, current_chapter, v) for v in verses])
         else:
             verses = _split_verses(filtered)
-            entries.extend([(None, v) for v in verses])
+            entries.extend([(canto_value, None, v) for v in verses])
 
     return entries, {**stats, "samples": samples, "anchor": anchor_info}
 
 
-def _build_yaml(entries: List[Tuple[Optional[int], str]], collection_key: str, chaptered: bool) -> Dict[str, Dict[str, str]]:
+def _build_yaml(entries: List[Tuple[Optional[int], Optional[int], str]], collection_key: str, chaptered: bool) -> Dict[str, Dict[str, str]]:
     output: Dict[str, Dict[str, str]] = {}
 
     if chaptered:
-        chapter_counts: Dict[int, int] = {}
-        for chapter, text in entries:
+        chapter_counts: Dict[Tuple[Optional[int], int], int] = {}
+        for canto, chapter, text in entries:
             chapter_num = chapter if chapter is not None else 1
-            chapter_counts.setdefault(chapter_num, 0)
-            chapter_counts[chapter_num] += 1
-            verse_num = chapter_counts[chapter_num]
-            key = f"chapter-{chapter_num:02d}-shloka-{verse_num:02d}"
+            key_scope = (canto, chapter_num)
+            chapter_counts.setdefault(key_scope, 0)
+            chapter_counts[key_scope] += 1
+            verse_num = chapter_counts[key_scope]
+            if canto is not None:
+                key = f"canto-{canto:02d}-chapter-{chapter_num:02d}-shloka-{verse_num:02d}"
+            else:
+                key = f"chapter-{chapter_num:02d}-shloka-{verse_num:02d}"
             output[key] = {"devanagari": text}
     else:
-        for idx, (_, text) in enumerate(entries, start=1):
-            key = f"verse-{idx:02d}"
+        for idx, (canto, _, text) in enumerate(entries, start=1):
+            if canto is not None:
+                key = f"canto-{canto:02d}-verse-{idx:02d}"
+            else:
+                key = f"verse-{idx:02d}"
             output[key] = {"devanagari": text}
 
     if not output:
@@ -445,6 +465,8 @@ def main():
     parser.add_argument("--start-marker-regex", help="Start parsing after regex match")
     parser.add_argument("--disable-start-anchor", action="store_true", help="Disable profile start-anchor behavior")
     parser.add_argument("--disable-heading-filter", action="store_true", help="Disable profile heading-line filter")
+    parser.add_argument("--chapter-scope", choices=["global", "file"], default="global", help="Chapter numbering scope (default: global)")
+    parser.add_argument("--canto-regex", help="Regex to extract canto number from filename")
 
     args = parser.parse_args()
 
@@ -464,11 +486,16 @@ def main():
         args.noise_threshold = profile["noise_threshold"]
     if not _arg_provided("--frontmatter-max-lines") and "frontmatter_max_lines" in profile:
         args.frontmatter_max_lines = profile["frontmatter_max_lines"]
+    if not _arg_provided("--chapter-scope") and "chapter_scope" in profile:
+        args.chapter_scope = profile["chapter_scope"]
+    if not _arg_provided("--canto-regex") and "canto_regex" in profile:
+        args.canto_regex = profile["canto_regex"]
 
     filter_frontmatter = args.filter_frontmatter.lower() == "true"
     filter_ocr_noise = args.filter_ocr_noise.lower() == "true"
 
     start_marker_regex = re.compile(args.start_marker_regex) if args.start_marker_regex else None
+    canto_regex = re.compile(args.canto_regex) if args.canto_regex else None
 
     if args.disable_heading_filter:
         profile = {**profile, "drop_heading_lines": False}
@@ -484,6 +511,8 @@ def main():
         start_marker=args.start_marker,
         start_marker_regex=start_marker_regex,
         disable_start_anchor=args.disable_start_anchor,
+        chapter_scope=args.chapter_scope,
+        canto_regex=canto_regex,
     )
     data = _build_yaml(entries, args.collection, chaptered=chaptered)
     rendered = _render_yaml(data)

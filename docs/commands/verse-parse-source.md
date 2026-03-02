@@ -37,6 +37,8 @@ For the full lifecycle from initialization to deployment, see `docs/end-to-end-w
 - `--start-marker-regex REGEX` - Start parsing after regex match
 - `--disable-start-anchor` - Disable profile start-anchor behavior
 - `--disable-heading-filter` - Disable profile heading-line filter
+- `--chapter-scope {global,file}` - Chapter numbering scope (default: `global`)
+- `--canto-regex REGEX` - Extract canto number from filename (used for key prefixing)
 
 ## Formats
 
@@ -82,6 +84,15 @@ verse-parse-source \
   --profile srimad-bhagavat \
   --expected-count-min 16000 \
   --expected-count-max 20000
+
+# Per-file chapter scope with canto prefix
+verse-parse-source \
+  --collection srimad-bhagavat \
+  --source-dir data/source-texts/srimad-bhagavat \
+  --source-glob "canto-*.txt" \
+  --format chaptered-plain \
+  --chapter-scope file \
+  --canto-regex "canto-(\\d+)"
 
 # Custom anchor override
 verse-parse-source \
