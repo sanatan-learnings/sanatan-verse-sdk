@@ -76,6 +76,14 @@ def test_gitignore_excludes_env(tmp_path):
     assert ".env" in content
 
 
+def test_env_example_includes_hf_token(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+    content = (tmp_path / ".env.example").read_text()
+    assert "HF_TOKEN=" in content
+    assert "https://huggingface.co/settings/tokens" in content
+
+
 # ---------------------------------------------------------------------------
 # create_example_collection
 # ---------------------------------------------------------------------------

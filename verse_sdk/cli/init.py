@@ -33,6 +33,10 @@ OPENAI_API_KEY=sk-your_openai_key_here
 # ElevenLabs API Key (for audio generation)
 # Get your key from: https://elevenlabs.io/app/settings/api-keys
 ELEVENLABS_API_KEY=your_elevenlabs_key_here
+
+# Hugging Face token (for gated/model downloads where required)
+# Get your token from: https://huggingface.co/settings/tokens
+HF_TOKEN=your_huggingface_token_here
 """
 
 COLLECTIONS_YML_CONTENT = """# Collection registry
