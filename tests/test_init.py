@@ -221,3 +221,14 @@ def test_project_next_steps_with_collections_do_not_duplicate_generic_flow(tmp_p
     assert "2. Follow the collection-specific next steps shown above." not in out
     assert "verse-parse-source --collection <collection-key>" not in out
     assert "verse-generate --collection <collection-key> --all" not in out
+
+
+def test_issue_73_no_duplicate_next_steps_sections(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    init_project(project_name=None, collections=["shiv-puran"], num_verses=3)
+
+    out = capsys.readouterr().out
+    assert out.count("📝 Next steps:") == 1
+    assert "✅ Collection 'shiv-puran' created with 3 sample verses\n   Next steps:" not in out
+    assert "1. Copy .env.example to .env and add your API keys" not in out
+    assert "2. Follow the collection-specific next steps shown above." not in out
