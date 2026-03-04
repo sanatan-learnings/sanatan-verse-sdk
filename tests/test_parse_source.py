@@ -2,7 +2,12 @@
 
 import pytest
 
-from verse_sdk.cli.parse_source import _auto_discover_source_inputs, _detect_chapter
+from verse_sdk.cli.parse_source import (
+    PROFILE_DEFAULTS,
+    _auto_discover_source_inputs,
+    _detect_chapter,
+    _filter_lines,
+)
 
 
 def test_auto_discover_prefers_collection_file(tmp_path):
@@ -63,3 +68,32 @@ def test_auto_discover_raises_when_no_default_source_exists(tmp_path):
 def test_detect_chapter_from_devanagari_ordinal_headings():
     assert _detect_chapter("०.१. प्रथमोऽध्यायः । तन्महिमवर्णनम् ।") == 1
     assert _detect_chapter("०.२. द्वितीयोऽध्यायः ।") == 2
+    assert _detect_chapter("श्रीशिवमहापुराणमाहात्म्यम् ०.१. प्रथमोऽध्यायः । तन्महिमवर्णनम् ।") == 1
+
+
+def test_filter_lines_drops_scaffold_comment_preamble():
+    lines = [
+        "# Source text for shiv-puran",
+        "# Paste canonical plain-text verses here (UTF-8).",
+        "# Then run:",
+        "#   verse-parse-source --collection shiv-puran",
+        "",
+        "श्रीशिवमहापुराणमाहात्म्यम् ०.१. प्रथमोऽध्यायः । तन्महिमवर्णनम् ।",
+    ]
+
+    filtered, stats = _filter_lines(
+        lines,
+        filter_frontmatter=True,
+        filter_ocr_noise=False,
+        frontmatter_max_lines=300,
+        noise_threshold=0.65,
+        profile=PROFILE_DEFAULTS["default"],
+        start_marker=None,
+        start_marker_regex=None,
+        disable_start_anchor=True,
+    )
+
+    assert filtered
+    assert filtered[0] == "श्रीशिवमहापुराणमाहात्म्यम् ०.१. प्रथमोऽध्यायः । तन्महिमवर्णनम् ।"
+    assert all(not line.strip().startswith("#") for line in filtered)
+    assert stats["lines_frontmatter_dropped"] >= 4

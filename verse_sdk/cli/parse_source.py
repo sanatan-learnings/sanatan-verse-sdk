@@ -23,12 +23,21 @@ CHAPTER_PATTERNS = [
     # Devanagari ordinal heading styles like: "०.१. प्रथमोऽध्यायः ..."
     re.compile(r"^\s*[०-९0-9]+\s*[.\-]\s*([०-९0-9]+)\s*[.\-]\s*.*(?:अ)?ऽ?ध्याय"),
     re.compile(r"^\s*([०-९0-9]+)\s*[.\-]\s*.*(?:अ)?ऽ?ध्याय"),
+    re.compile(r"[०-९0-9]+\s*[.\-]\s*([०-९0-9]+)\s*[.\-].*(?:अ)?ऽ?ध्याय"),
 ]
 
 FRONTMATTER_PATTERNS = [
     re.compile(r"\b(publisher|publication|press|edition|copyright|isbn)\b", re.IGNORECASE),
     re.compile(r"\b(all rights reserved|printed in|published by)\b", re.IGNORECASE),
     re.compile(r"\b(preface|foreword|introduction|table of contents|contents)\b", re.IGNORECASE),
+]
+
+SCAFFOLD_COMMENT_PATTERNS = [
+    re.compile(r"^\s*#"),
+    re.compile(r"\bsource text for\b", re.IGNORECASE),
+    re.compile(r"\bpaste canonical plain-text\b", re.IGNORECASE),
+    re.compile(r"\bthen run\b", re.IGNORECASE),
+    re.compile(r"\bverse-parse-source\b", re.IGNORECASE),
 ]
 
 VALID_CHAR_PATTERN = re.compile(r"[\u0900-\u097F\u0966-\u096F\w\s\.,;:'\"()\[\]\-—–!?/]+")
@@ -148,6 +157,8 @@ def _is_frontmatter_line(line: str, profile: dict) -> bool:
     stripped = line.strip()
     if not stripped:
         return False
+    if any(pattern.search(stripped) for pattern in SCAFFOLD_COMMENT_PATTERNS):
+        return True
     patterns = FRONTMATTER_PATTERNS + profile.get("extra_frontmatter_patterns", [])
     return any(pattern.search(stripped) for pattern in patterns)
 
@@ -165,6 +176,9 @@ def _noise_score(line: str) -> float:
 def _is_verse_candidate(line: str, profile: dict) -> bool:
     stripped = line.strip()
     if not stripped:
+        return False
+    # Do not treat scaffold/frontmatter/comment lines as verse candidates.
+    if _is_frontmatter_line(stripped, profile):
         return False
     devanagari_chars = len(re.findall(r"[\u0900-\u097F]", stripped))
     min_devanagari = profile.get("min_devanagari", 6)
