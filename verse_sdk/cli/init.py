@@ -202,24 +202,37 @@ DEFAULT_LAYOUT_TEMPLATE = """<!doctype html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ page.title | default: site.title }}</title>
-    <link rel="stylesheet" href="/assets/css/site.css">
+    <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+    <link rel="stylesheet" href="{{ '/assets/css/print.css' | relative_url }}" media="print">
     {% seo %}
   </head>
   <body>
-    {% assign t = site.data.translations.en %}
-    <header class="site-header">
-      <div class="site-header__inner">
-        <a class="site-brand" href="/">{{ site.banner_title | default: site.title }}</a>
-        <div class="site-tagline">{{ site.banner_subtitle | default: site.description }}</div>
-        <nav class="site-nav">
-          <a href="/">{{ t.nav.home | default: "Home" }}</a>
-        </nav>
+    <header>
+      <div class="container">
+        <div class="header-content">
+          <div class="header-title">
+            <h1><a href="{{ '/' | relative_url }}">{{ site.banner_title | default: site.title }}</a></h1>
+            <p class="subtitle">{{ site.banner_subtitle | default: site.description }}</p>
+          </div>
+          <div class="header-controls">
+            <div class="language-switcher">
+              <label for="languageSelect" class="sr-only">Language</label>
+              <select id="languageSelect" onchange="switchLanguage(this.value)">
+                <option value="en">🌐 English</option>
+                <option value="hi">🌐 हिन्दी</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
-    <main>
+    <main class="container">
       {{ content }}
     </main>
-    <script src="/assets/js/site.js"></script>
+    <script src="{{ '/assets/js/navigation.js' | relative_url }}"></script>
+    <script src="{{ '/assets/js/language.js' | relative_url }}"></script>
+    <script src="{{ '/assets/js/theme.js' | relative_url }}"></script>
+    <script src="{{ '/assets/js/guidance.js' | relative_url }}"></script>
   </body>
 </html>
 """
@@ -237,15 +250,15 @@ title: __PROJECT_NAME__
   {% endif %}
 {% endfor %}
 
-<section>
-  <h2>Collections</h2>
+<section class="collections-section">
+  <h2><span data-lang="en">{{ site.data.translations.en.home.sacred_text | default: "Sacred Text" }}</span><span data-lang="hi">{{ site.data.translations.hi.home.sacred_text | default: "पवित्र ग्रंथ" }}</span></h2>
 {% if has_enabled %}
-<div class="card-grid">
+<div class="collections-grid card-grid">
 {% for pair in site.data.collections %}
   {% assign key = pair[0] %}
   {% assign cfg = pair[1] %}
   {% unless cfg.enabled %}{% continue %}{% endunless %}
-  <a class="card" href="/{{ key }}/">
+  <a class="collection-card card" href="/{{ key }}/">
     <img src="/images/{{ key }}/modern-minimalist/card-page.png" alt="{{ cfg.name.en | default: key }} card image" />
     <div class="card-title">{{ cfg.name.en | default: key }}</div>
     {% if cfg.name.hi %}<div class="card-subtitle">{{ cfg.name.hi }}</div>{% endif %}
@@ -355,7 +368,7 @@ quality: "standard"      # Options: standard ($0.04), hd ($0.08)
 style: "natural"         # Options: natural, vivid
 """
 
-SITE_CSS_TEMPLATE = """:root {
+STYLE_CSS_TEMPLATE = """:root {
   --bg: #f7f3ea;
   --surface: #fffaf0;
   --surface-strong: #fffdf8;
@@ -373,34 +386,42 @@ body {
   color: var(--text);
   line-height: 1.6;
 }
-.site-header {
+header {
   border-bottom: 1px solid var(--border);
   background: rgba(255, 250, 240, 0.88);
   backdrop-filter: blur(4px);
 }
-.site-header__inner {
+.container {
   max-width: 1080px;
   margin: 0 auto;
+}
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
   padding: 0.9rem 1rem;
 }
-.site-brand {
+.header-title h1 {
+  margin: 0;
+}
+.header-title h1 a {
   display: inline-block;
   text-decoration: none;
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--accent);
 }
-.site-tagline {
+.subtitle {
   color: var(--muted);
   margin-top: 0.2rem;
+  margin-bottom: 0;
 }
-.site-nav {
-  margin-top: 0.4rem;
+.header-controls {
+  display: flex;
+  align-items: center;
 }
-.site-nav a {
-  color: var(--accent);
-}
-main {
+main.container {
   max-width: 1080px;
   margin: 0 auto;
   padding: 2rem 1rem 4rem;
@@ -451,13 +472,15 @@ code {
   color: #7a4214;
   border-color: #d3aa74;
 }
-.card-grid {
+.card-grid,
+.collections-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
   margin-top: 1.2rem;
 }
-.card {
+.card,
+.collection-card {
   display: block;
   text-decoration: none;
   color: inherit;
@@ -467,7 +490,8 @@ code {
   padding: 0.9rem;
   box-shadow: 0 8px 18px rgba(61, 39, 16, 0.05);
 }
-.card img {
+.card img,
+.collection-card img {
   width: 100%;
   height: auto;
   border-radius: 10px;
@@ -508,11 +532,52 @@ code {
 }
 """
 
-SITE_JS_TEMPLATE = """// Reserved for optional scaffold interactions.
+PRINT_CSS_TEMPLATE = """main.container {
+  max-width: none;
+  padding: 0;
+}
+header,
+.language-switcher {
+  display: none !important;
+}
 """
 
-TRANSLATIONS_EN_TEMPLATE = """nav:
+NAVIGATION_JS_TEMPLATE = """// Navigation hooks placeholder for scaffold parity.
+"""
+
+LANGUAGE_JS_TEMPLATE = """function switchLanguage(lang) {
+  document.documentElement.setAttribute("lang", lang);
+  const enNodes = document.querySelectorAll('[data-lang="en"]');
+  const hiNodes = document.querySelectorAll('[data-lang="hi"]');
+  enNodes.forEach((n) => { n.style.display = lang === "en" ? "" : "none"; });
+  hiNodes.forEach((n) => { n.style.display = lang === "hi" ? "" : "none"; });
+  localStorage.setItem("site-language", lang);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const lang = localStorage.getItem("site-language") || "en";
+  const select = document.getElementById("languageSelect");
+  if (select) select.value = lang;
+  switchLanguage(lang);
+});
+"""
+
+THEME_JS_TEMPLATE = """// Theme hooks placeholder for scaffold parity.
+"""
+
+GUIDANCE_JS_TEMPLATE = """// Guidance hooks placeholder for scaffold parity.
+"""
+
+TRANSLATIONS_EN_TEMPLATE = """home:
+  sacred_text: "Sacred Text"
+nav:
   home: "Home"
+"""
+
+TRANSLATIONS_HI_TEMPLATE = """home:
+  sacred_text: "पवित्र ग्रंथ"
+nav:
+  home: "मुखपृष्ठ"
 """
 
 
@@ -639,6 +704,7 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
         "_data/collections.yml": COLLECTIONS_YML_CONTENT,
         "_data/verse-config.yml": VERSE_CONFIG_CONTENT,
         "_data/translations/en.yml": TRANSLATIONS_EN_TEMPLATE,
+        "_data/translations/hi.yml": TRANSLATIONS_HI_TEMPLATE,
         ".gitignore": GITIGNORE_CONTENT,
         "Gemfile": GEMFILE_CONTENT,
         "_config.yml": JEKYLL_CONFIG_TEMPLATE.format(project_name=project_name),
@@ -646,8 +712,12 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
         "_layouts/home.html": HOME_LAYOUT_TEMPLATE,
         "_layouts/collection.html": COLLECTION_LAYOUT_TEMPLATE,
         "_layouts/verse.html": VERSE_LAYOUT_TEMPLATE,
-        "assets/css/site.css": SITE_CSS_TEMPLATE,
-        "assets/js/site.js": SITE_JS_TEMPLATE,
+        "assets/css/style.css": STYLE_CSS_TEMPLATE,
+        "assets/css/print.css": PRINT_CSS_TEMPLATE,
+        "assets/js/navigation.js": NAVIGATION_JS_TEMPLATE,
+        "assets/js/language.js": LANGUAGE_JS_TEMPLATE,
+        "assets/js/theme.js": THEME_JS_TEMPLATE,
+        "assets/js/guidance.js": GUIDANCE_JS_TEMPLATE,
         "index.html": INDEX_HTML_TEMPLATE.replace("__PROJECT_NAME__", project_name),
         "README.md": README_TEMPLATE.format(project_name=project_name),
     }

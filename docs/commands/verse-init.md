@@ -110,8 +110,9 @@ your-project/
 │   ├── verse-config.yml         # Project defaults
 │   └── translations/            # UI translation keys (e.g. en.yml)
 ├── assets/
-│   ├── css/site.css             # Base scaffold styling
-│   └── js/site.js               # Optional scaffold JS hooks
+│   ├── css/style.css            # Hanuman-style baseline stylesheet
+│   ├── css/print.css            # Print stylesheet
+│   └── js/                      # Baseline JS bundle (navigation/language/theme/guidance)
 ├── _verses/                     # Verse markdown files
 ├── data/
 │   ├── themes/                  # Theme configurations

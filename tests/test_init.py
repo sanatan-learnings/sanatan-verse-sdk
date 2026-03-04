@@ -51,6 +51,7 @@ def test_creates_required_files(tmp_path):
         "_data/collections.yml",
         "_data/verse-config.yml",
         "_data/translations/en.yml",
+        "_data/translations/hi.yml",
         ".gitignore",
         "Gemfile",
         "_config.yml",
@@ -58,8 +59,12 @@ def test_creates_required_files(tmp_path):
         "_layouts/home.html",
         "_layouts/collection.html",
         "_layouts/verse.html",
-        "assets/css/site.css",
-        "assets/js/site.js",
+        "assets/css/style.css",
+        "assets/css/print.css",
+        "assets/js/navigation.js",
+        "assets/js/language.js",
+        "assets/js/theme.js",
+        "assets/js/guidance.js",
         "index.html",
         "README.md",
     ]:
@@ -134,7 +139,8 @@ def test_index_page_has_jekyll_frontmatter(tmp_path):
     assert "layout: home" in content
     assert "site.data.collections" in content
     assert "cfg.enabled" in content
-    assert "class=\"card-grid\"" in content
+    assert "class=\"collections-grid card-grid\"" in content
+    assert "Sacred Text" in content
     assert "End-to-End Workflow" not in content
     assert "Enabled collections" not in content
 
@@ -245,7 +251,7 @@ def test_collection_layout_references_title_image(tmp_path):
     index_content = (tmp_path / "index.html").read_text()
     assert "/images/{{ key }}/modern-minimalist/card-page.png" in index_content
     assert "this.src='/images/{{ key }}/card.png'" not in index_content
-    assert "class=\"card\"" in index_content
+    assert "class=\"collection-card card\"" in index_content
 
     layout = (tmp_path / "_layouts" / "collection.html").read_text()
     assert "/images/{{ collection_key }}/modern-minimalist/title-page.png" in layout
@@ -258,8 +264,12 @@ def test_default_layout_uses_assets_and_configurable_header(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "test")
     layout = (tmp_path / "_layouts" / "default.html").read_text()
-    assert "/assets/css/site.css" in layout
-    assert "/assets/js/site.js" in layout
+    assert "/assets/css/style.css" in layout
+    assert "/assets/css/print.css" in layout
+    assert "/assets/js/navigation.js" in layout
+    assert "/assets/js/language.js" in layout
+    assert "/assets/js/theme.js" in layout
+    assert "/assets/js/guidance.js" in layout
     assert "{% seo %}" in layout
     assert "site.banner_title | default: site.title" in layout
     assert "site.banner_subtitle | default: site.description" in layout
