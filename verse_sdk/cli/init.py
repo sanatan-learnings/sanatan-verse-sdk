@@ -238,15 +238,22 @@ layout: home
 title: __PROJECT_NAME__
 ---
 
-{% assign enabled = site.data.collections | where_exp: "item", "item[1].enabled == true" %}
-
 ## Collections
 
-{% if enabled.size > 0 %}
+{% assign has_enabled = false %}
+{% for pair in site.data.collections %}
+  {% assign cfg = pair[1] %}
+  {% if cfg.enabled %}
+    {% assign has_enabled = true %}
+  {% endif %}
+{% endfor %}
+
+{% if has_enabled %}
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
-{% for pair in enabled %}
+{% for pair in site.data.collections %}
   {% assign key = pair[0] %}
   {% assign cfg = pair[1] %}
+  {% unless cfg.enabled %}{% continue %}{% endunless %}
   <a href="/{{ key }}/" style="display:block;text-decoration:none;color:inherit;border:1px solid #e4d8c2;border-radius:12px;padding:1rem;background:#fffdf8;">
     <img src="/images/{{ key }}/card.svg" alt="{{ cfg.name.en | default: key }} card image" style="width:100%;height:auto;border-radius:10px;border:1px solid #ead8bc;margin-bottom:0.75rem;" />
     <div style="font-size:1.1rem;font-weight:700;">{{ cfg.name.en | default: key }}</div>
@@ -276,22 +283,33 @@ layout: default
 
 {% assign collection_key = page.collection_key | default: page.slug %}
 {% assign collection_cfg = site.data.collections[collection_key] %}
-{% assign collection_path_hint = '/_verses/' | append: collection_key | append: '/' %}
-{% assign verses = site.verses | where_exp: "v", "v.path contains collection_path_hint" %}
 
 <h1>{{ collection_cfg.name.en | default: collection_key }}</h1>
 {% if collection_cfg.name.hi %}<p style="font-size:1.1rem;">{{ collection_cfg.name.hi }}</p>{% endif %}
 
 <img src="/images/{{ collection_key }}/title.svg" alt="{{ collection_cfg.name.en | default: collection_key }} title" style="width:100%;max-width:960px;height:auto;border-radius:12px;border:1px solid #e4d8c2;background:#fffdf8;" />
 
-<p>Total verses: {{ collection_cfg.total_verses | default: verses.size }}</p>
+{% assign verse_count = 0 %}
+{% for verse in site.verses %}
+  {% if verse.collection_key == collection_key %}
+    {% assign verse_count = verse_count | plus: 1 %}
+  {% endif %}
+{% endfor %}
+<p>Total verses: {{ collection_cfg.total_verses | default: verse_count }}</p>
 
 <ul>
-  {% for verse in verses %}
-    <li>
-      <a href="{{ verse.url }}">{{ verse.verse_id | default: verse.title | default: verse.basename }}</a>
-    </li>
-  {% endfor %}
+{% assign listed = false %}
+{% for verse in site.verses %}
+  {% if verse.collection_key == collection_key %}
+    {% assign listed = true %}
+  <li>
+    <a href="{{ verse.url }}">{{ verse.verse_id | default: verse.title | default: verse.basename }}</a>
+  </li>
+  {% endif %}
+{% endfor %}
+{% unless listed %}
+  <li>No verses generated yet for this collection.</li>
+{% endunless %}
 </ul>
 """
 

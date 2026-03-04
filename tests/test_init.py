@@ -125,6 +125,8 @@ def test_index_page_has_jekyll_frontmatter(tmp_path):
     assert content.startswith("---\n")
     assert "layout: home" in content
     assert "site.data.collections" in content
+    assert "item[1].enabled" not in content
+    assert "cfg.enabled" in content
 
 
 # ---------------------------------------------------------------------------
@@ -240,6 +242,8 @@ def test_collection_layout_references_title_image(tmp_path):
 
     layout = (tmp_path / "_layouts" / "collection.html").read_text()
     assert "/images/{{ collection_key }}/title.svg" in layout
+    assert "verse.collection_key == collection_key" in layout
+    assert "v.path contains" not in layout
 
 
 def test_custom_num_verses(tmp_path):
