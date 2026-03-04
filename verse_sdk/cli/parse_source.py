@@ -15,6 +15,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
+from verse_sdk.cli.add import sync_collection_total_verses
+
 CHAPTER_PATTERNS = [
     re.compile(r"\bChapter\s+(\d+)\b", re.IGNORECASE),
     re.compile(r"\bअध्याय\s+(\d+)\b"),
@@ -528,6 +530,11 @@ def _build_yaml(
     return {"_meta": meta, **output}
 
 
+def _count_verse_entries(data: Dict[str, Any]) -> int:
+    """Count non-metadata verse entries in parsed YAML payload."""
+    return len([k for k in data.keys() if not str(k).startswith("_")])
+
+
 def _render_yaml(data: Dict[str, Any]) -> str:
     return yaml.safe_dump(
         data,
@@ -668,7 +675,7 @@ def main():
         )
         print("\n".join(diff))
 
-    total = len(data)
+    total = _count_verse_entries(data)
     print(f"Parsed {total} verses from {len(files)} file(s).")
     print(f"Lines scanned: {stats['lines_scanned']}")
     print(f"Front-matter lines dropped: {stats['lines_frontmatter_dropped']}")
@@ -717,10 +724,22 @@ def main():
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if existing == rendered:
         print("No changes detected; output is up to date.")
+        changed, old_value, new_value = sync_collection_total_verses(Path.cwd(), args.collection, total)
+        if changed:
+            if old_value is None:
+                print(f"Updated _data/collections.yml: set total_verses={new_value} for {args.collection}.")
+            else:
+                print(f"Updated _data/collections.yml: total_verses {old_value} -> {new_value} for {args.collection}.")
         return
 
     output_path.write_text(rendered, encoding="utf-8")
     print("Wrote canonical YAML.")
+    changed, old_value, new_value = sync_collection_total_verses(Path.cwd(), args.collection, total)
+    if changed:
+        if old_value is None:
+            print(f"Updated _data/collections.yml: set total_verses={new_value} for {args.collection}.")
+        else:
+            print(f"Updated _data/collections.yml: total_verses {old_value} -> {new_value} for {args.collection}.")
 
 
 if __name__ == "__main__":

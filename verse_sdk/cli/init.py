@@ -262,11 +262,21 @@ title: __PROJECT_NAME__
   {% unless cfg.enabled %}{% continue %}{% endunless %}
   {% assign verse_defaults = site.data["verse-config"].defaults %}
   {% assign theme_name = cfg.image_theme | default: cfg.theme | default: cfg.default_theme | default: verse_defaults.image_theme | default: verse_defaults.theme | default: verse_defaults.default_theme | default: 'modern-minimalist' %}
+  {% assign generated_count = 0 %}
+  {% for verse in site.verses %}
+    {% if verse.collection_key == key %}
+      {% assign generated_count = generated_count | plus: 1 %}
+    {% endif %}
+  {% endfor %}
   <a class="collection-card card" href="/{{ key }}/">
     <img src="/images/{{ key }}/{{ theme_name }}/card-page.png" alt="{{ cfg.name.en | default: key }} card image" />
     <div class="card-title">{{ cfg.name.en | default: key }}</div>
     {% if cfg.name.hi %}<div class="card-subtitle">{{ cfg.name.hi }}</div>{% endif %}
-    <div class="card-subtitle">{{ cfg.total_verses | default: 0 }} verses</div>
+    {% if cfg.total_verses %}
+    <div class="card-subtitle">{{ generated_count }} of {{ cfg.total_verses }}</div>
+    {% else %}
+    <div class="card-subtitle">{{ generated_count }} of ?</div>
+    {% endif %}
   </a>
 {% endfor %}
 </div>
@@ -825,7 +835,7 @@ def to_hindi_name(collection: str) -> str:
     return " ".join(converted) if converted else collection
 
 
-def upsert_collection_entry(content: str, collection: str, num_verses: int) -> str:
+def upsert_collection_entry(content: str, collection: str) -> str:
     """Insert collection entry before commented example block in collections.yml."""
     if re.search(rf"^{re.escape(collection)}:\s*$", content, flags=re.MULTILINE):
         return content
@@ -840,7 +850,6 @@ def upsert_collection_entry(content: str, collection: str, num_verses: int) -> s
         f"    hi: \"{hi_name}\"\n"
         f"  subdirectory: \"{collection}\"\n"
         f"  permalink_base: \"/{collection}\"\n"
-        f"  total_verses: {num_verses}\n"
     )
 
     marker = "\n# Example:"
@@ -1024,7 +1033,7 @@ verse-03:
     collections_file = base_path / "_data" / "collections.yml"
     if collections_file.exists():
         content = collections_file.read_text(encoding="utf-8")
-        updated = upsert_collection_entry(content, collection, num_verses)
+        updated = upsert_collection_entry(content, collection)
         if updated != content:
             collections_file.write_text(updated, encoding="utf-8")
             print(f"✓ Added {collection} to _data/collections.yml")

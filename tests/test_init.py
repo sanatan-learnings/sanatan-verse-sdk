@@ -218,6 +218,12 @@ def test_adds_collection_to_collections_yml(tmp_path):
     content = (tmp_path / "_data" / "collections.yml").read_text()
     assert "sundar-kaand" in content
     assert 'hi: "सुंदर काण्ड"' in content
+    assert "sundar-kaand:\n" in content
+    sundar_block = content.split("sundar-kaand:\n", 1)[1]
+    next_top_level = sundar_block.find("\n# Example:")
+    if next_top_level != -1:
+        sundar_block = sundar_block[:next_top_level]
+    assert "total_verses:" not in sundar_block
 
 
 def test_collection_entry_inserted_before_example_block(tmp_path):
@@ -307,7 +313,10 @@ def test_collection_layout_references_title_image(tmp_path):
 
     index_content = (tmp_path / "index.html").read_text()
     assert "{% assign theme_name = cfg.image_theme | default: cfg.theme | default: cfg.default_theme" in index_content
+    assert "{% assign generated_count = 0 %}" in index_content
     assert "/images/{{ key }}/{{ theme_name }}/card-page.png" in index_content
+    assert "{{ generated_count }} of {{ cfg.total_verses }}" in index_content
+    assert "{{ generated_count }} of ?" in index_content
     assert "this.src='/images/{{ key }}/card.png'" not in index_content
     assert "class=\"collection-card card\"" in index_content
 

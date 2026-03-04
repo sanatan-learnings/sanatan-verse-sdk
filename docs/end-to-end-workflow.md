@@ -67,6 +67,7 @@ Defaults filter front-matter and OCR noise. Use `--filter-frontmatter false` or 
 
 How this differs from `verse-index-sources`:
 - `verse-parse-source` creates the canonical YAML (`data/verses/<collection>.yaml`) used for generation.
+- It also syncs `_data/collections.yml` `total_verses` to parsed count for accurate UI metadata.
 - `verse-index-sources` creates a RAG index + embeddings from reference texts for `verse-puranic-context`.
 
 Option B: Edit manually:

@@ -234,7 +234,8 @@ Once initialized, you should:
        hi: "हनुमान चालीसा"
      subdirectory: "hanuman-chalisa"
      permalink_base: "/hanuman-chalisa"
-     total_verses: 43
+     # total_verses is synced after canonical parse:
+     # verse-parse-source --collection hanuman-chalisa
    ```
 
 3. **Add canonical verse text**

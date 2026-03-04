@@ -14,6 +14,10 @@ verse-parse-source --collection <key> --source-dir <dir> --source-glob "<glob>" 
 
 `verse-parse-source` converts plain text source files into the canonical YAML format used by the SDK. It supports multi-file ingestion, deterministic output ordering, and read-only inspection via `--dry-run` and `--diff`.
 
+After a successful write, it also syncs `_data/collections.yml` for the target collection:
+- `total_verses` is updated to the parsed verse count.
+- This keeps homepage/card metadata aligned with canonical source parsing.
+
 When `--source` and `--source-dir` are omitted, the command auto-discovers input from `--collection`:
 1. `data/sources/<collection>.txt`
 2. `data/sources/<collection>/` (using default glob `**/*.txt`)

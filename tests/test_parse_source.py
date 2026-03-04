@@ -7,9 +7,13 @@ from verse_sdk.cli.parse_source import (
     _auto_discover_source_inputs,
     _build_yaml,
     _contains_chapter_markers,
+    _count_verse_entries,
     _detect_chapter,
     _filter_lines,
     _parse_plain,
+)
+from verse_sdk.cli.parse_source import (
+    main as parse_source_main,
 )
 
 
@@ -205,3 +209,41 @@ def test_build_yaml_preserves_existing_meta_fields():
     assert data["_meta"]["description"] == "The complete Hanuman Chalisa with 40 verses praising Lord Hanuman"
     assert data["_meta"]["custom"] == "value"
     assert data["_meta"]["sequence"] == ["verse-01"]
+
+
+def test_count_verse_entries_excludes_meta_key():
+    data = {
+        "_meta": {"collection": "shiv-puran"},
+        "verse-01": {"devanagari": "ॐ नमः शिवाय ।"},
+        "verse-02": {"devanagari": "हर हर महादेव ।"},
+    }
+    assert _count_verse_entries(data) == 2
+
+
+def test_parse_source_updates_collections_total_verses(tmp_path, monkeypatch):
+    data_dir = tmp_path / "_data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "collections.yml").write_text(
+        "shiv-puran:\n"
+        "  enabled: true\n"
+        "  name:\n"
+        "    en: Shiv Puran\n"
+        "  total_verses: 3\n",
+        encoding="utf-8",
+    )
+
+    source_dir = tmp_path / "data" / "sources"
+    source_dir.mkdir(parents=True, exist_ok=True)
+    (source_dir / "shiv-puran.txt").write_text(
+        "ॐ नमः शिवाय ।\n\nहर हर महादेव ।\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("sys.argv", ["verse-parse-source", "--collection", "shiv-puran"])
+    parse_source_main()
+
+    collections_content = (tmp_path / "_data" / "collections.yml").read_text(encoding="utf-8")
+    assert "total_verses: 2" in collections_content
+    output_yaml = tmp_path / "data" / "verses" / "shiv-puran.yaml"
+    assert output_yaml.exists()
