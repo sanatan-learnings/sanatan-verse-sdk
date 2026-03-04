@@ -29,14 +29,12 @@ Additionally, you can regenerate AI content (transliteration, meaning, translati
 ### Required
 
 - `--collection NAME` - Collection key (e.g., `hanuman-chalisa`, `sundar-kaand`)
-- `--verse N or M-N` - Verse number (e.g., `5`) or range (e.g., `1-10`, `5-20`) for batch processing
-  - **OR** use `--next` to auto-detect the next missing verse
+- Choose one selector: `--verse N|M-N`, `--next`, or `--all`
 
 ### Optional
 
 - `--next` - Auto-detect and generate the next missing verse in sequence (requires canonical YAML file)
-
-- `--all` - Generate both image and audio (this is the default behavior if no flags specified)
+- `--all` - Generate full canonical sequence (equivalent to `--verse 1-N`)
 - `--image` - Generate image only
 - `--audio` - Generate audio only
 - `--regenerate-content` - Regenerate AI content (transliteration, meaning, translation, story) from canonical Devanagari text in `data/verses/{collection}.yaml`
@@ -58,7 +56,7 @@ verse-generate --list-collections
 Generate the next verse that hasn't been implemented yet:
 
 ```bash
-verse-generate --collection bhagavad-gita --next --all
+verse-generate --collection bhagavad-gita --next
 ```
 
 **How it works:**
@@ -106,6 +104,9 @@ verse-generate --collection hanuman-chalisa --verse 1-10
 # Generate verses 5 through 20 with custom theme
 verse-generate --collection sundar-kaand --verse 5-20 --theme kids-friendly
 
+# Generate full canonical sequence (equivalent to --verse 1-N)
+verse-generate --collection sundar-kaand --all
+
 # Generate range, then update embeddings once at the end
 verse-generate --collection hanuman-chalisa --verse 1-10
 verse-embeddings --multi-collection --collections-file _data/collections.yml --verses-dir _verses
@@ -151,7 +152,7 @@ verse-generate --collection sundar-kaand --verse 3 --image --theme modern-minima
 verse-generate --collection sankat-mochan-hanumanashtak --verse 5 --audio
 
 # Image and audio with specific theme
-verse-generate --collection hanuman-chalisa --verse 20 --all --theme kids-friendly
+verse-generate --collection hanuman-chalisa --verse 20 --image --audio --theme kids-friendly
 ```
 
 ### Regenerate AI Content
@@ -163,7 +164,7 @@ When you update the canonical Devanagari text in `data/verses/{collection}.yaml`
 verse-generate --collection sundar-kaand --verse 3 --regenerate-content
 
 # Regenerate AI content AND multimedia
-verse-generate --collection sundar-kaand --verse 3 --regenerate-content --all
+verse-generate --collection sundar-kaand --verse 3 --regenerate-content --image --audio
 
 # Regenerate content only
 verse-generate --collection sundar-kaand --verse 3 --regenerate-content
@@ -191,7 +192,7 @@ verse-generate --collection sankat-mochan-hanumanashtak --verse 7
 
 ## Generated Files
 
-When using default (or `--all`), the command creates:
+When generating multimedia (default, or with `--image --audio`), the command creates:
 
 1. **Scene description**: `data/scenes/<collection-key>.md`
    - Automatically generated using GPT-4 from canonical Devanagari text

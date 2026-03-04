@@ -1457,6 +1457,40 @@ def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional
     return None
 
 
+def get_all_verse_positions(collection: str, project_dir: Path = Path.cwd()) -> Optional[list[int]]:
+    """
+    Resolve all verse positions from the canonical sequence.
+
+    Args:
+        collection: Collection key
+        project_dir: Project directory
+
+    Returns:
+        List of 1-based verse positions, or None if canonical sequence is unavailable.
+    """
+    sequence, source = get_verse_sequence(collection, project_dir)
+    if not sequence:
+        print("✗ Error: Cannot use --all without canonical verse file", file=sys.stderr)
+        print("", file=sys.stderr)
+        print(f"The --all flag requires data/verses/{collection}.yaml to determine full sequence.", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Options:", file=sys.stderr)
+        print(f"  1. Create canonical file: verse-add --collection {collection} --verse 1-10", file=sys.stderr)
+        print("  2. Run verse-validate --fix to create template", file=sys.stderr)
+        print(f"  3. Use explicit range: verse-generate --collection {collection} --verse 1-10", file=sys.stderr)
+        return None
+
+    if source != "explicit":
+        print(f"⚠️  Warning: No explicit _meta.sequence found in data/verses/{collection}.yaml", file=sys.stderr)
+        if source == "bhagavad-gita-auto":
+            print("Using auto-generated sequence for Bhagavad Gita (18 chapters, 700 verses).", file=sys.stderr)
+        elif source == "yaml-keys":
+            print("Using sequence extracted from existing verse IDs in YAML file.", file=sys.stderr)
+        print("", file=sys.stderr)
+
+    return list(range(1, len(sequence) + 1))
+
+
 def infer_verse_id(collection: str, verse_position: int, project_dir: Path = Path.cwd()) -> Optional[str]:
     """
     Infer verse ID from verse position.
@@ -2150,6 +2184,9 @@ Examples:
   # Auto-generate next verse after the last generated verse
   verse-generate --collection sundar-kaand --next
 
+  # Generate full collection from canonical sequence
+  verse-generate --collection sundar-kaand --all
+
   # Regenerate AI content only (no multimedia)
   verse-generate --collection sundar-kaand --verse 3 --regenerate-content
 
@@ -2174,6 +2211,7 @@ Note:
   - If data file has sequence, verse ID is mapped from sequence (e.g., position 15 → chaupai-11)
   - If no sequence exists, falls back to old behavior (scanning existing files)
   - Use --next to auto-generate the next verse in the sequence
+  - Use --all to generate all verse positions from the canonical sequence
   - Default behavior: generates image + audio (no embeddings)
   - Use --embeddings to also update vector embeddings (or run verse-embeddings separately)
   - Use --regenerate-content ALONE to only regenerate text (no multimedia)
@@ -2231,6 +2269,9 @@ Environment Variables:
 
   # Generate next verse in sequence (auto-detect)
   verse-generate --collection sundar-kaand --next
+
+  # Generate full sequence in one command
+  verse-generate --collection sundar-kaand --all
 
 💰 Cost Estimates (per verse):
   Content Generation (GPT-4):
@@ -2291,6 +2332,12 @@ Environment Variables:
         "--next",
         action="store_true",
         help="Auto-detect and generate the next verse after the last generated verse"
+    )
+    parser.add_argument(
+        "--all",
+        dest="all_verses",
+        action="store_true",
+        help="Generate the full canonical sequence (equivalent to --verse 1-N)"
     )
 
     # Content types (can be combined)
@@ -2433,33 +2480,38 @@ Environment Variables:
         print()
         sys.exit(1)
 
-    # Either --verse or --next must be specified (but not both)
-    if args.next and args.verse:
+    # Exactly one selector must be specified: --verse, --next, or --all
+    selector_count = sum(bool(v) for v in [args.verse, args.next, args.all_verses])
+    if selector_count > 1:
         print()
-        print("✗ Error: Cannot use both --next and --verse flags together")
+        print("✗ Error: --verse, --next, and --all are mutually exclusive")
         print()
         print("Choose one:")
         print("  --verse <N>  : Generate a specific verse by position (e.g., --verse 15)")
         print("  --next       : Auto-detect and generate the next verse in sequence")
+        print("  --all        : Generate all verses in canonical sequence")
         print()
         print("Examples:")
         print(f"  verse-generate --collection {args.collection} --verse 15")
         print(f"  verse-generate --collection {args.collection} --next")
+        print(f"  verse-generate --collection {args.collection} --all")
         print()
         sys.exit(1)
 
-    if not args.verse and not args.next:
+    if selector_count == 0:
         print()
         print("✗ Error: No verse specified")
         print()
         print("You must specify which verse to generate:")
         print("  --verse <N>  : Generate verse at position N in the sequence")
         print("  --next       : Auto-detect and generate the next verse")
+        print("  --all        : Generate full canonical sequence")
         print()
         print("Examples:")
         print(f"  verse-generate --collection {args.collection} --verse 1")
         print(f"  verse-generate --collection {args.collection} --verse 10-20  # Range")
         print(f"  verse-generate --collection {args.collection} --next")
+        print(f"  verse-generate --collection {args.collection} --all")
         print()
         print("Available options:")
         print("  (no flags) : Generate image + audio (default, no embeddings)")
@@ -2505,49 +2557,56 @@ Environment Variables:
     if not validate_collection(args.collection):
         sys.exit(1)
 
-    # Handle --next by finding the next verse to generate
-    if args.next:
+    # Resolve target verses from selector
+    if args.all_verses:
+        verse_numbers = get_all_verse_positions(args.collection)
+        if not verse_numbers:
+            sys.exit(1)
+        print(f"✓ Resolved --all to positions {verse_numbers[0]}-{verse_numbers[-1]} ({len(verse_numbers)} verses)")
+    elif args.next:
+        # Handle --next by finding the next verse to generate
         next_verse = find_next_verse(args.collection)
         if next_verse is None:
             print(f"✗ Error: Could not determine next verse for collection '{args.collection}'")
             sys.exit(1)
-        args.verse = str(next_verse)
         print(f"✓ Auto-detected next verse: {next_verse}")
-
-    # Parse verse argument (supports single number or range)
-    verse_numbers = []
-    if '-' in args.verse:
-        # Range format: M-N
-        try:
-            start, end = args.verse.split('-')
-            start_num = int(start.strip())
-            end_num = int(end.strip())
-            if start_num > end_num:
-                print(f"✗ Error: Invalid range {args.verse} (start must be <= end)")
-                sys.exit(1)
-            verse_numbers = list(range(start_num, end_num + 1))
-        except ValueError:
-            print(f"✗ Error: Invalid verse range format: {args.verse}")
-            print("Use format: M-N (e.g., 1-10, 5-20)")
-            sys.exit(1)
+        verse_numbers = [next_verse]
     else:
-        # Single verse number
-        try:
-            verse_numbers = [int(args.verse)]
-        except ValueError:
-            print(f"✗ Error: Invalid verse position: {args.verse}")
-            print("")
-            print("The --verse flag expects a POSITION NUMBER (e.g., 15), not a verse ID.")
-            print("Position refers to the verse's location in the sequence (1st, 2nd, 3rd, etc.)")
-            print("")
-            print("Examples:")
-            print(f"  verse-generate --collection {args.collection} --verse 15    # Generate 15th verse in sequence")
-            print(f"  verse-generate --collection {args.collection} --verse 1     # Generate 1st verse in sequence")
-            print(f"  verse-generate --collection {args.collection} --next        # Auto-generate next verse")
-            print("")
-            print("If you need to specify a verse ID directly, use --verse-id:")
-            print(f"  verse-generate --collection {args.collection} --verse-id {args.verse}")
-            sys.exit(1)
+        # Parse verse argument (supports single number or range)
+        verse_numbers = []
+        if '-' in args.verse:
+            # Range format: M-N
+            try:
+                start, end = args.verse.split('-')
+                start_num = int(start.strip())
+                end_num = int(end.strip())
+                if start_num > end_num:
+                    print(f"✗ Error: Invalid range {args.verse} (start must be <= end)")
+                    sys.exit(1)
+                verse_numbers = list(range(start_num, end_num + 1))
+            except ValueError:
+                print(f"✗ Error: Invalid verse range format: {args.verse}")
+                print("Use format: M-N (e.g., 1-10, 5-20)")
+                sys.exit(1)
+        else:
+            # Single verse number
+            try:
+                verse_numbers = [int(args.verse)]
+            except ValueError:
+                print(f"✗ Error: Invalid verse position: {args.verse}")
+                print("")
+                print("The --verse flag expects a POSITION NUMBER (e.g., 15), not a verse ID.")
+                print("Position refers to the verse's location in the sequence (1st, 2nd, 3rd, etc.)")
+                print("")
+                print("Examples:")
+                print(f"  verse-generate --collection {args.collection} --verse 15    # Generate 15th verse in sequence")
+                print(f"  verse-generate --collection {args.collection} --verse 1     # Generate 1st verse in sequence")
+                print(f"  verse-generate --collection {args.collection} --next        # Auto-generate next verse")
+                print(f"  verse-generate --collection {args.collection} --all         # Generate full sequence")
+                print("")
+                print("If you need to specify a verse ID directly, use --verse-id:")
+                print(f"  verse-generate --collection {args.collection} --verse-id {args.verse}")
+                sys.exit(1)
 
     # Validate verse_id is not used with ranges
     if len(verse_numbers) > 1 and args.verse_id:
