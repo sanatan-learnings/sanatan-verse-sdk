@@ -436,17 +436,21 @@ scenes:
             print(f"✓ Added {collection} to _data/collections.yml")
 
     print(f"\n✅ Collection '{collection}' created with {num_verses} sample verses")
-    print("   Next steps:")
-    print("   1. Add canonical source text (plain text), either:")
+
+
+def print_collection_next_steps(collection: str, num_verses: int, additional_collections: int = 0) -> None:
+    """Print consolidated next steps for initialized collections."""
+    print("📝 Next steps:")
+    print("   1. Configure environment before generation:")
+    print("      cp .env.example .env")
+    print("      Set OPENAI_API_KEY (and ELEVENLABS_API_KEY if generating audio)")
+    print("   2. Add canonical source text (plain text), either:")
     print(f"      - Directory mode: data/sources/{collection}/...")
     print(f"      - Single-file mode: data/sources/{collection}.txt")
-    print("   2. Generate canonical YAML from source text:")
+    print("   3. Generate canonical YAML from source text:")
     print(f"      verse-parse-source --collection {collection}")
     print(f"      Output: data/verses/{collection}.yaml")
     print(f"      (Optional fallback: edit data/verses/{collection}.yaml manually)")
-    print("   3. Configure environment before generation:")
-    print("      cp .env.example .env")
-    print("      Set OPENAI_API_KEY (and ELEVENLABS_API_KEY if generating audio)")
     print(f"   4. Optional: customize theme in data/themes/{collection}/modern-minimalist.yml")
     print("   5. Generate first verse content + assets from canonical YAML:")
     print(f"      verse-generate --collection {collection} --verse 1 --regenerate-content")
@@ -461,6 +465,17 @@ scenes:
     print(f"      # or iterative: verse-generate --collection {collection} --next")
     print("   9. Run: verse-validate")
     print("   10. Optional: verse-embeddings / verse-index-sources / verse-puranic-context / verse-deploy")
+    if additional_collections > 0:
+        print(f"   11. Repeat steps 2-10 for the other {additional_collections} collection(s).")
+
+
+def print_generic_next_steps() -> None:
+    """Print next steps when no collection templates were created."""
+    print("📝 Next steps:")
+    print("   1. Copy .env.example to .env and add your API keys")
+    print("   2. Edit _data/collections.yml to define your collections")
+    print("   3. Add canonical verse text to data/verses/<collection>.yaml")
+    print("   4. Run: verse-validate")
 
 
 def init_project(
@@ -524,14 +539,15 @@ def init_project(
     print("✅ Project initialized successfully!")
     print("=" * 70)
     print()
-    print("📝 Next steps:")
-    print("   1. Copy .env.example to .env and add your API keys")
     if collections:
-        print("   2. Follow the collection-specific next steps shown above.")
+        primary_collection = collections[0]
+        print_collection_next_steps(
+            collection=primary_collection,
+            num_verses=num_verses,
+            additional_collections=max(0, len(collections) - 1)
+        )
     else:
-        print("   2. Edit _data/collections.yml to define your collections")
-        print("   3. Add canonical verse text to data/verses/<collection>.yaml")
-        print("   4. Run: verse-validate")
+        print_generic_next_steps()
     print()
     print("📚 Documentation: https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md")
     print()

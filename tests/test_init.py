@@ -172,18 +172,19 @@ def test_custom_num_verses(tmp_path):
     assert not (tmp_path / "_verses" / "test-collection" / "verse-06.md").exists()
 
 
-def test_collection_next_steps_mentions_canonical_first_optional_theme_and_flow(tmp_path, capsys):
-    create_directory_structure(tmp_path)
-    create_template_files(tmp_path, "test")
-    create_example_collection(tmp_path, "shiv-puran", num_verses=3)
+def test_project_next_steps_with_collection_are_consolidated_and_concrete(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    init_project(project_name=None, collections=["shiv-puran"], num_verses=3)
 
     out = capsys.readouterr().out
-    assert "1. Add canonical source text (plain text), either:" in out
+    assert "✅ Project initialized successfully!" in out
+    assert "📝 Next steps:" in out
+    assert "2. Add canonical source text (plain text), either:" in out
     assert "data/sources/shiv-puran/..." in out
     assert "data/sources/shiv-puran.txt" in out
     assert "verse-parse-source --collection shiv-puran" in out
     assert "Output: data/verses/shiv-puran.yaml" in out
-    assert "3. Configure environment before generation:" in out
+    assert "1. Configure environment before generation:" in out
     assert "cp .env.example .env" in out
     assert "Set OPENAI_API_KEY (and ELEVENLABS_API_KEY if generating audio)" in out
     assert "Optional: customize theme in data/themes/shiv-puran/modern-minimalist.yml" in out
@@ -194,6 +195,17 @@ def test_collection_next_steps_mentions_canonical_first_optional_theme_and_flow(
     assert "verse-generate --collection shiv-puran --all" in out
     assert "verse-generate --collection shiv-puran --verse 1-3" in out
     assert "verse-generate --collection shiv-puran --next" in out
+    assert "Follow the collection-specific next steps shown above" not in out
+
+
+def test_collection_next_steps_mentions_canonical_first_optional_theme_and_flow(tmp_path, capsys):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+    create_example_collection(tmp_path, "shiv-puran", num_verses=3)
+
+    out = capsys.readouterr().out
+    assert "Collection 'shiv-puran' created with 3 sample verses" in out
+    assert "📝 Next steps:" not in out
 
 
 def test_project_next_steps_with_collections_do_not_duplicate_generic_flow(tmp_path, monkeypatch, capsys):
@@ -201,6 +213,6 @@ def test_project_next_steps_with_collections_do_not_duplicate_generic_flow(tmp_p
     init_project(project_name=None, collections=["shiv-puran"], num_verses=3)
 
     out = capsys.readouterr().out
-    assert "2. Follow the collection-specific next steps shown above." in out
+    assert "2. Follow the collection-specific next steps shown above." not in out
     assert "verse-parse-source --collection <collection-key>" not in out
     assert "verse-generate --collection <collection-key> --all" not in out
