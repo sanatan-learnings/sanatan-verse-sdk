@@ -73,6 +73,7 @@ load_dotenv()
 
 # Global flag for debug mode
 DEBUG_MODE = False
+_SCENE_SEQUENCE_WARNED_FILES = set()
 
 
 # ==================== Custom Exception Classes ====================
@@ -1644,6 +1645,20 @@ def load_scenes_from_yaml(collection: str, project_dir: Path = Path.cwd()) -> Op
                     "See: https://github.com/sanatan-learnings/hanuman-gpt/blob/main/data/scenes/"
                 ]
             )
+
+        # Canonical ordering belongs to data/verses/<collection>.yml only.
+        # Ignore any duplicated sequence metadata in scenes files to avoid drift.
+        meta = data.get('_meta')
+        if isinstance(meta, dict) and 'sequence' in meta:
+            meta.pop('sequence', None)
+            scene_key = str(scenes_file.resolve())
+            if scene_key not in _SCENE_SEQUENCE_WARNED_FILES:
+                print(
+                    f"  ⚠ Warning: Ignoring _meta.sequence in {scenes_file.name}; "
+                    f"canonical order is read from data/verses/{collection}.yml",
+                    file=sys.stderr
+                )
+                _SCENE_SEQUENCE_WARNED_FILES.add(scene_key)
 
         return data
 

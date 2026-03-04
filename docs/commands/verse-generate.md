@@ -76,6 +76,9 @@ verse-generate --collection bhagavad-gita --next
 - File defines the proper verse sequence
 - If file is missing, use `verse-add` or `verse-validate --fix` to create it
 
+**Important:** Canonical sequence is read only from `data/verses/<collection>.yaml`.  
+If `_meta.sequence` appears in `data/scenes/<collection>.yml`, it is ignored.
+
 ### Complete Workflow (Default)
 
 The simplest form runs the complete workflow:
