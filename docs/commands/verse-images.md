@@ -46,7 +46,6 @@ verse-images --list-collections
 verse-images --collection hanuman-chalisa --theme modern-minimalist
 ```
 
-This reads all scene descriptions from `data/scenes/hanuman-chalisa.md` and generates images that don't already exist.
 This reads all scene descriptions from `data/scenes/hanuman-chalisa.yml` and generates images that don't already exist.
 
 ### Generate with Auto-Selection (Single Collection + Theme)
