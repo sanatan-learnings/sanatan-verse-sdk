@@ -164,7 +164,9 @@ def test_creates_scenes_file(tmp_path):
     scenes = tmp_path / "data" / "scenes" / "hanuman-chalisa.yml"
     assert scenes.exists()
     content = scenes.read_text()
-    assert "scenes: {}" in content
+    assert "title-page:" in content
+    assert 'title: "Hanuman Chalisa Title Page"' in content
+    assert "Close-up portrait of the primary deity/subject" in content
     assert "verse-01:" not in content
 
 
@@ -208,6 +210,27 @@ def test_creates_collection_index_page_for_local_preview(tmp_path):
     content = collection_index.read_text()
     assert "layout: collection" in content
     assert "collection_key: shiv-puran" in content
+
+
+def test_creates_collection_title_image_placeholder(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+    create_example_collection(tmp_path, "shiv-puran", num_verses=3)
+
+    title_image = tmp_path / "images" / "shiv-puran" / "title.svg"
+    assert title_image.exists()
+    content = title_image.read_text()
+    assert "<svg" in content
+    assert "Shiv Puran" in content
+    assert "शिव पुराण" in content
+
+
+def test_collection_layout_references_title_image(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+
+    layout = (tmp_path / "_layouts" / "collection.html").read_text()
+    assert "/images/{{ collection_key }}/title.svg" in layout
 
 
 def test_custom_num_verses(tmp_path):

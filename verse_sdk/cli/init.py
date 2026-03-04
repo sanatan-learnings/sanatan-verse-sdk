@@ -281,6 +281,8 @@ layout: default
 <h1>{{ collection_cfg.name.en | default: collection_key }}</h1>
 {% if collection_cfg.name.hi %}<p style="font-size:1.1rem;">{{ collection_cfg.name.hi }}</p>{% endif %}
 
+<img src="/images/{{ collection_key }}/title.svg" alt="{{ collection_cfg.name.en | default: collection_key }} title" style="width:100%;max-width:960px;height:auto;border-radius:12px;border:1px solid #e4d8c2;background:#fffdf8;" />
+
 <p>Total verses: {{ collection_cfg.total_verses | default: verses.size }}</p>
 
 <ul>
@@ -316,6 +318,24 @@ layout: collection
 title: {display_name}
 collection_key: {collection_key}
 ---
+"""
+
+TITLE_IMAGE_SVG_TEMPLATE = """<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="{display_name} title image">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8ecd4"/>
+      <stop offset="55%" stop-color="#f1dcc0"/>
+      <stop offset="100%" stop-color="#e5c89e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="930" cy="110" r="170" fill="#f6e6cb" opacity="0.6"/>
+  <circle cx="1040" cy="70" r="120" fill="#edd7b7" opacity="0.55"/>
+  <rect x="70" y="70" width="1060" height="490" rx="28" fill="none" stroke="#b35c1e" stroke-width="3" opacity="0.65"/>
+  <text x="600" y="320" text-anchor="middle" font-size="74" font-family="Georgia, 'Times New Roman', serif" font-weight="700" fill="#7f3f13">{display_name}</text>
+  <text x="600" y="380" text-anchor="middle" font-size="30" font-family="Georgia, 'Times New Roman', serif" fill="#8f4a19">{hi_name}</text>
+  <text x="600" y="438" text-anchor="middle" font-size="22" font-family="Georgia, 'Times New Roman', serif" fill="#8f4a19" opacity="0.85">Scaffolded title image placeholder</text>
+</svg>
 """
 
 EXAMPLE_THEME_YML = """name: Modern Minimalist
@@ -461,6 +481,22 @@ def upsert_collection_entry(content: str, collection: str, num_verses: int) -> s
     return content + entry
 
 
+def create_title_image_placeholder(base_path: Path, collection: str) -> None:
+    """Create a deterministic title image placeholder in images/<collection>/title.svg."""
+    images_dir = base_path / "images" / collection
+    images_dir.mkdir(parents=True, exist_ok=True)
+    title_image = images_dir / "title.svg"
+    if title_image.exists():
+        return
+    display_name = collection.replace("-", " ").title()
+    hi_name = to_hindi_name(collection)
+    title_image.write_text(
+        TITLE_IMAGE_SVG_TEMPLATE.format(display_name=display_name, hi_name=hi_name),
+        encoding="utf-8"
+    )
+    print(f"✓ Created images/{collection}/title.svg")
+
+
 def create_example_collection(base_path: Path, collection: str, num_verses: int = 3) -> None:
     """
     Create an example collection with sample files.
@@ -528,7 +564,14 @@ verse-03:
   collection: {collection}
   description: Scene descriptions for {collection.replace('-', ' ').title()} image generation
 
-scenes: {{}}
+scenes:
+  title-page:
+    title: "{collection.replace('-', ' ').title()} Title Page"
+    description: |
+      Close-up portrait of the primary deity/subject filling the lower two-thirds of the frame.
+      Crowned head, serene yet powerful face, and upper chest centered in composition.
+      Upper third shows radiant sky with golden divine light and subtle sacred patterns.
+      Use saffron, gold, and spiritual blue tones with devotional atmosphere.
 """
         scenes_file.write_text(scenes_content)
         print(f"✓ Created data/scenes/{collection}.yml")
@@ -553,6 +596,9 @@ scenes: {{}}
         if updated != content:
             collections_file.write_text(updated, encoding="utf-8")
             print(f"✓ Added {collection} to _data/collections.yml")
+
+    # Create deterministic placeholder title image asset.
+    create_title_image_placeholder(base_path, collection)
 
     # Create collection landing page for local Jekyll preview.
     collection_page = base_path / collection / "index.md"
