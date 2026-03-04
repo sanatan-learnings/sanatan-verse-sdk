@@ -151,6 +151,9 @@ def test_collection_next_steps_mentions_canonical_first_optional_theme_and_flow(
     assert "data/sources/shiv-puran.txt" in out
     assert "verse-parse-source --collection shiv-puran" in out
     assert "Output: data/verses/shiv-puran.yaml" in out
+    assert "3. Configure environment before generation:" in out
+    assert "cp .env.example .env" in out
+    assert "Set OPENAI_API_KEY (and ELEVENLABS_API_KEY if generating audio)" in out
     assert "Optional: customize theme in data/themes/shiv-puran/modern-minimalist.yml" in out
     assert "verse-generate --collection shiv-puran --verse 1 --regenerate-content" in out
     assert "bundle exec jekyll serve" in out
