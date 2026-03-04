@@ -290,9 +290,10 @@ def test_prefers_verse_images_generation_when_api_key_present(tmp_path, monkeypa
     assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "card-page.png").exists()
 
 
-def test_reports_images_pending_when_api_key_missing(tmp_path, capsys):
+def test_reports_images_pending_when_api_key_missing(tmp_path, monkeypatch, capsys):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "test")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     create_example_collection(tmp_path, "shiv-puran", num_verses=2)
 
     out = capsys.readouterr().out

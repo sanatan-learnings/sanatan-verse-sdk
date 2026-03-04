@@ -6,8 +6,10 @@ from types import SimpleNamespace
 from PIL import Image
 
 from verse_sdk.images.generate_theme_images import (
+    COLLECTION_OVERVIEW_ASPECT_RATIO,
     ImageGenerator,
     _is_valid_image_file,
+    _normalize_image_to_aspect_ratio,
     _validate_image_bytes,
     _write_image_atomic,
     parse_verse_selections,
@@ -20,6 +22,12 @@ from verse_sdk.images.generate_theme_images import (
 def _valid_png_bytes() -> bytes:
     buf = io.BytesIO()
     Image.new("RGB", (1, 1), color=(255, 200, 120)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _png_bytes(width: int, height: int) -> bytes:
+    buf = io.BytesIO()
+    Image.new("RGB", (width, height), color=(255, 200, 120)).save(buf, format="PNG")
     return buf.getvalue()
 
 
@@ -48,6 +56,17 @@ def test_write_image_atomic_does_not_leave_partial_file_on_invalid_bytes(tmp_pat
         pass
     assert not output.exists()
     assert not (tmp_path / "card-page.png.tmp").exists()
+
+
+def test_normalize_image_to_aspect_ratio_crops_to_16_9(tmp_path):
+    output = tmp_path / "title-page.png"
+    _write_image_atomic(output, _png_bytes(1024, 1792))
+
+    changed = _normalize_image_to_aspect_ratio(output, COLLECTION_OVERVIEW_ASPECT_RATIO)
+    assert changed is True
+    with Image.open(output) as img:
+        width, height = img.size
+    assert abs((width / height) - (16 / 9)) < 0.01
 
 
 def test_generate_image_regenerates_when_existing_file_is_invalid(tmp_path, monkeypatch):
@@ -83,6 +102,30 @@ def test_generate_image_regenerates_when_existing_file_is_invalid(tmp_path, monk
     assert broken.exists()
     assert broken.stat().st_size > 0
     assert _is_valid_image_file(broken) is True
+
+
+def test_generate_image_normalizes_existing_collection_overview_to_16_9(tmp_path):
+    output_dir = tmp_path / "images"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    title = output_dir / "title-page.png"
+    _write_image_atomic(title, _png_bytes(1024, 1792))
+
+    gen = ImageGenerator.__new__(ImageGenerator)
+    gen.output_dir = output_dir
+    gen.theme = "modern-minimalist"
+    gen.style_modifier = ""
+    gen.build_full_prompt = lambda prompt: prompt
+    gen.client = SimpleNamespace(
+        images=SimpleNamespace(
+            generate=lambda **kwargs: (_ for _ in ()).throw(AssertionError("API should not be called"))
+        )
+    )
+
+    ok = gen.generate_image("title-page.png", "scene prompt", retry_count=1)
+    assert ok is True
+    with Image.open(title) as img:
+        width, height = img.size
+    assert abs((width / height) - (16 / 9)) < 0.01
 
 
 def test_resolve_collection_arg_auto_selects_single_configured_collection(tmp_path):

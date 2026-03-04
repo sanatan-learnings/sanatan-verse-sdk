@@ -499,6 +499,8 @@ code {
 .card img,
 .collection-card img {
   width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
   height: auto;
   border-radius: 10px;
   border: 1px solid #ead8bc;
@@ -515,6 +517,8 @@ code {
 .collection-hero-image {
   width: 100%;
   max-width: 960px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
   height: auto;
   border-radius: 12px;
   border: 1px solid var(--border);

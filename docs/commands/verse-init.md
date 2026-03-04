@@ -92,7 +92,7 @@ verse-init --project-name my-project \
 - ✅ Source text placeholder: `data/sources/<collection>.txt`
 - ✅ Sample theme: `data/themes/<collection>/modern-minimalist.yml`
 - ✅ Collection-aware scene descriptions template (includes `title-page` and `card-page`): `data/scenes/<collection>.yml`
-- ✅ Collection image generation wiring (no invalid stubs are written; generate via `verse-images --verse title-page,card-page`)
+- ✅ Collection image generation wiring (no invalid stubs are written; generate via `verse-images --verse title-page,card-page`; output is normalized to 16:9)
 - ✅ Collection landing page: `<collection>/index.html`
 - ✅ Collection entry in `_data/collections.yml`
 

@@ -164,6 +164,11 @@ Example paths:
 
 Images are saved to: `images/<collection-key>/<theme-name>/verse-NN.png`
 
+Collection overview assets are normalized to 16:9:
+- `title-page.png`
+- `card-page.png`
+- If the generated source image is not 16:9, it is center-cropped to 16:9.
+
 Format:
 - Portrait: 1024x1792 (recommended for mobile/web display)
 - Quality: Standard or HD based on theme config

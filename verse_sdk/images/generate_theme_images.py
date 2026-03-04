@@ -61,6 +61,8 @@ DALLE_MODEL = "dall-e-3"
 IMAGE_SIZE = "1024x1792"  # Options: 1024x1024, 1024x1792, 1792x1024 (portrait 1024x1792 recommended, crop to 1024x1536)
 IMAGE_QUALITY = "standard"  # Options: standard, hd
 IMAGE_STYLE = "natural"  # Options: natural, vivid
+COLLECTION_OVERVIEW_FILENAMES = {"title-page.png", "card-page.png"}
+COLLECTION_OVERVIEW_ASPECT_RATIO = 16 / 9
 
 
 def resolve_openai_api_key(cli_api_key: Optional[str] = None, project_dir: Path = PROJECT_DIR) -> Optional[str]:
@@ -209,6 +211,9 @@ class ImageGenerator:
 
         # Skip if a valid file already exists; regenerate if stale/invalid.
         if output_path.exists() and _is_valid_image_file(output_path):
+            if filename in COLLECTION_OVERVIEW_FILENAMES:
+                if _normalize_image_to_aspect_ratio(output_path, COLLECTION_OVERVIEW_ASPECT_RATIO):
+                    print(f"↺ Normalized existing {filename} to 16:9")
             print(f"⊙ Skipping {filename} (already exists)")
             return True
         elif output_path.exists():
@@ -242,6 +247,9 @@ class ImageGenerator:
                 image_data = download.content
 
                 _write_image_atomic(output_path, image_data)
+                if filename in COLLECTION_OVERVIEW_FILENAMES:
+                    if _normalize_image_to_aspect_ratio(output_path, COLLECTION_OVERVIEW_ASPECT_RATIO):
+                        print(f"↺ Center-cropped {filename} to 16:9")
 
                 file_size = len(image_data) / 1024  # KB
                 print(f"✓ Generated {filename} ({file_size:.1f} KB)")
@@ -427,6 +435,50 @@ def _write_image_atomic(output_path: Path, image_data: bytes) -> None:
                 tmp_path.unlink()
             except OSError:
                 pass
+
+
+def _normalize_image_to_aspect_ratio(path: Path, target_ratio: float) -> bool:
+    """Center-crop image to target aspect ratio; returns True when modified."""
+    with Image.open(path) as img:
+        width, height = img.size
+        if width <= 0 or height <= 0:
+            return False
+
+        current_ratio = width / height
+        if abs(current_ratio - target_ratio) < 0.01:
+            return False
+
+        if current_ratio > target_ratio:
+            # Too wide: crop sides.
+            new_width = max(1, int(round(height * target_ratio)))
+            left = max(0, (width - new_width) // 2)
+            right = min(width, left + new_width)
+            top = 0
+            bottom = height
+        else:
+            # Too tall: crop top/bottom.
+            new_height = max(1, int(round(width / target_ratio)))
+            top = max(0, (height - new_height) // 2)
+            bottom = min(height, top + new_height)
+            left = 0
+            right = width
+
+        if right <= left or bottom <= top:
+            return False
+
+        cropped = img.crop((left, top, right, bottom))
+        tmp_path = path.with_suffix(path.suffix + ".crop.tmp")
+        try:
+            cropped.save(tmp_path, format=img.format or "PNG")
+            tmp_path.replace(path)
+        finally:
+            if tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except OSError:
+                    pass
+
+    return True
 
 
 def validate_collection(collection: str, project_dir: Path = PROJECT_DIR) -> bool:
