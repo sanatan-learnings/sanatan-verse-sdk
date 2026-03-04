@@ -2,6 +2,18 @@
 
 Detailed documentation for the sanatan-verse-sdk commands and features.
 
+## Quick Start
+
+Use `verse-init` first for fastest setup:
+
+```bash
+verse-init --project-name my-verse-project --collection hanuman-chalisa
+cd my-verse-project
+```
+
+- Full command guide: [verse-init](commands/verse-init.md)
+- Full lifecycle walkthrough: [End-to-End Workflow](end-to-end-workflow.md)
+
 ## Command Reference
 
 ### Project Setup

@@ -16,6 +16,19 @@ Complete toolkit for generating rich multimedia content for spiritual text colle
 
 **Start here:** [End-to-End Workflow](docs/end-to-end-workflow.md)
 
+### Fastest Bootstrap
+
+```bash
+# Install + scaffold project
+pip install sanatan-verse-sdk
+verse-init --project-name my-verse-project --collection hanuman-chalisa
+cd my-verse-project
+
+# Follow in-CLI next steps
+```
+
+See full command docs: [verse-init](docs/commands/verse-init.md)
+
 ### New Project Setup (Recommended)
 
 ```bash

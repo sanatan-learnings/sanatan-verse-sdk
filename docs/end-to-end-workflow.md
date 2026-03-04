@@ -2,6 +2,16 @@
 
 This guide walks through the full lifecycle: initialize a project, add canonical text, generate assets, build embeddings, optionally index sources for Puranic context, and deploy the API proxy.
 
+## Quick Bootstrap
+
+```bash
+pip install sanatan-verse-sdk
+verse-init --project-name my-verse-project --collection hanuman-chalisa
+cd my-verse-project
+```
+
+Reference: `docs/commands/verse-init.md`
+
 ## 1. Install
 
 ```bash

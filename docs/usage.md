@@ -2,6 +2,16 @@
 
 This guide focuses on advanced workflows, batch processing, and operational best practices. For the full lifecycle walkthrough, start with `docs/end-to-end-workflow.md`.
 
+## Quick Bootstrap
+
+```bash
+pip install sanatan-verse-sdk
+verse-init --project-name my-verse-project --collection hanuman-chalisa
+cd my-verse-project
+```
+
+Then follow the in-CLI next steps and see `docs/commands/verse-init.md` for details.
+
 ## Table of Contents
 
 - [Batch Processing](#batch-processing)
