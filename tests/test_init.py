@@ -144,6 +144,9 @@ def test_creates_scenes_file(tmp_path):
     create_example_collection(tmp_path, "hanuman-chalisa", num_verses=2)
     scenes = tmp_path / "data" / "scenes" / "hanuman-chalisa.yml"
     assert scenes.exists()
+    content = scenes.read_text()
+    assert "scenes: {}" in content
+    assert "verse-01:" not in content
 
 
 def test_creates_source_text_placeholder_file(tmp_path):

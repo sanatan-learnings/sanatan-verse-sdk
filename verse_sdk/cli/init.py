@@ -378,28 +378,16 @@ verse-03:
         theme_file.write_text(EXAMPLE_THEME_YML)
         print(f"✓ Created data/themes/{collection}/modern-minimalist.yml")
 
-    # Create sample scene descriptions file (YAML format in data/scenes/)
+    # Create minimal scene descriptions file (YAML format in data/scenes/)
     scenes_file = base_path / "data" / "scenes" / f"{collection}.yml"
     scenes_file.parent.mkdir(parents=True, exist_ok=True)
     if not scenes_file.exists():
-        verse_entries = ""
-        for i in range(1, num_verses + 1):
-            verse_entries += f"  verse-{i:02d}:\n"
-            verse_entries += f"    title: \"[Brief title for verse {i}]\"\n"
-            verse_entries += "    description: |\n"
-            verse_entries += f"      [Add scene description for verse {i}]\n"
-            if i < num_verses:
-                verse_entries += "\n"
         scenes_content = f"""_meta:
   collection: {collection}
   description: Scene descriptions for {collection.replace('-', ' ').title()} image generation
 
-# Scene descriptions for each verse.
-# Be specific and concrete - describe what should be visible in the image.
-# Include: setting, characters, poses, lighting, mood, and visual elements.
-
-scenes:
-{verse_entries}"""
+scenes: {{}}
+"""
         scenes_file.write_text(scenes_content)
         print(f"✓ Created data/scenes/{collection}.yml")
 
