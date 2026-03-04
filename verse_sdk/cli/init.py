@@ -261,8 +261,10 @@ title: __PROJECT_NAME__
   {% assign key = pair[0] %}
   {% assign cfg = pair[1] %}
   {% unless cfg.enabled %}{% continue %}{% endunless %}
+  {% assign verse_defaults = site.data["verse-config"].defaults %}
+  {% assign theme_name = cfg.image_theme | default: cfg.theme | default: cfg.default_theme | default: verse_defaults.image_theme | default: verse_defaults.theme | default: verse_defaults.default_theme | default: 'modern-minimalist' %}
   <a class="collection-card card" href="/{{ key }}/">
-    <img src="/images/{{ key }}/modern-minimalist/card-page.png" alt="{{ cfg.name.en | default: key }} card image" />
+    <img src="/images/{{ key }}/{{ theme_name }}/card-page.png" alt="{{ cfg.name.en | default: key }} card image" />
     <div class="card-title">{{ cfg.name.en | default: key }}</div>
     {% if cfg.name.hi %}<div class="card-subtitle">{{ cfg.name.hi }}</div>{% endif %}
     <div class="card-subtitle">{{ cfg.total_verses | default: 0 }} verses</div>
@@ -288,11 +290,13 @@ layout: default
 
 {% assign collection_key = page.collection_key | default: page.slug %}
 {% assign collection_cfg = site.data.collections[collection_key] %}
+{% assign verse_defaults = site.data["verse-config"].defaults %}
+{% assign theme_name = collection_cfg.image_theme | default: collection_cfg.theme | default: collection_cfg.default_theme | default: verse_defaults.image_theme | default: verse_defaults.theme | default: verse_defaults.default_theme | default: 'modern-minimalist' %}
 
 <h1>{{ collection_cfg.name.en | default: collection_key }}</h1>
 {% if collection_cfg.name.hi %}<p>{{ collection_cfg.name.hi }}</p>{% endif %}
 
-<img class="collection-hero-image" src="/images/{{ collection_key }}/modern-minimalist/title-page.png" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
+<img class="collection-hero-image" src="/images/{{ collection_key }}/{{ theme_name }}/title-page.png" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
 
 {% assign verse_count = 0 %}
 {% for verse in site.verses %}
@@ -850,6 +854,41 @@ def upsert_collection_entry(content: str, collection: str, num_verses: int) -> s
     return content + entry
 
 
+def resolve_collection_theme(base_path: Path, collection: str) -> str:
+    """Resolve theme from collection/project config with safe fallback."""
+    default_theme = "modern-minimalist"
+    theme_keys = ("image_theme", "theme", "default_theme")
+
+    verse_config_file = base_path / "_data" / "verse-config.yml"
+    if verse_config_file.exists():
+        try:
+            verse_config = yaml.safe_load(verse_config_file.read_text(encoding="utf-8")) or {}
+            defaults = verse_config.get("defaults", {})
+            if isinstance(defaults, dict):
+                for key in theme_keys:
+                    value = defaults.get(key)
+                    if isinstance(value, str) and value.strip():
+                        default_theme = value.strip()
+                        break
+        except Exception:
+            pass
+
+    collections_file = base_path / "_data" / "collections.yml"
+    if collections_file.exists():
+        try:
+            collections_cfg = yaml.safe_load(collections_file.read_text(encoding="utf-8")) or {}
+            collection_cfg = collections_cfg.get(collection, {})
+            if isinstance(collection_cfg, dict):
+                for key in theme_keys:
+                    value = collection_cfg.get(key)
+                    if isinstance(value, str) and value.strip():
+                        return value.strip()
+        except Exception:
+            pass
+
+    return default_theme
+
+
 def create_theme_image_placeholders(base_path: Path, collection: str, theme: str = "modern-minimalist") -> None:
     """Create deterministic theme-scoped placeholder images for title/card pages."""
     images_dir = base_path / "images" / collection / theme
@@ -909,7 +948,7 @@ def ensure_collection_images(base_path: Path, collection: str, theme: str = "mod
     create_theme_image_placeholders(base_path, collection, theme=theme)
 
 
-def create_example_collection(base_path: Path, collection: str, num_verses: int = 3) -> None:
+def create_example_collection(base_path: Path, collection: str, num_verses: int = 3) -> str:
     """
     Create an example collection with sample files.
 
@@ -924,6 +963,8 @@ def create_example_collection(base_path: Path, collection: str, num_verses: int 
     # Create collection directory
     collection_dir = base_path / "_verses" / collection
     collection_dir.mkdir(parents=True, exist_ok=True)
+
+    active_theme = resolve_collection_theme(base_path, collection)
 
     # Create canonical verse YAML file
     verses_yaml = base_path / "data" / "verses" / f"{collection}.yaml"
@@ -962,11 +1003,11 @@ verse-03:
         print(f"✓ Created data/verses/{collection}.yaml")
 
     # Create sample theme
-    theme_file = base_path / "data" / "themes" / collection / "modern-minimalist.yml"
+    theme_file = base_path / "data" / "themes" / collection / f"{active_theme}.yml"
     theme_file.parent.mkdir(parents=True, exist_ok=True)
     if not theme_file.exists():
         theme_file.write_text(EXAMPLE_THEME_YML)
-        print(f"✓ Created data/themes/{collection}/modern-minimalist.yml")
+        print(f"✓ Created data/themes/{collection}/{active_theme}.yml")
 
     # Create minimal scene descriptions file (YAML format in data/scenes/)
     scenes_file = base_path / "data" / "scenes" / f"{collection}.yml"
@@ -975,7 +1016,7 @@ verse-03:
         print(f"✓ Created data/scenes/{collection}.yml")
 
     # Ensure canonical title/card images, preferring verse-images generation logic.
-    ensure_collection_images(base_path, collection)
+    ensure_collection_images(base_path, collection, theme=active_theme)
 
     # Create canonical plain-text source placeholder for parse-source auto-discovery
     source_file = base_path / "data" / "sources" / f"{collection}.txt"
@@ -1010,9 +1051,15 @@ verse-03:
         print(f"✓ Created {collection}/index.html")
 
     print(f"\n✅ Collection '{collection}' initialized (canonical placeholders: {num_verses})")
+    return active_theme
 
 
-def print_collection_next_steps(collection: str, num_verses: int, additional_collections: int = 0) -> None:
+def print_collection_next_steps(
+    collection: str,
+    num_verses: int,
+    additional_collections: int = 0,
+    theme: str = "modern-minimalist",
+) -> None:
     """Print consolidated next steps for initialized collections."""
     print("📝 Next steps:")
     print("   1. Configure environment before generation:")
@@ -1025,7 +1072,7 @@ def print_collection_next_steps(collection: str, num_verses: int, additional_col
     print(f"      verse-parse-source --collection {collection}")
     print(f"      Output: data/verses/{collection}.yaml")
     print(f"      (Optional fallback: edit data/verses/{collection}.yaml manually)")
-    print(f"   4. Optional: customize theme in data/themes/{collection}/modern-minimalist.yml")
+    print(f"   4. Optional: customize theme in data/themes/{collection}/{theme}.yml")
     print("   5. Generate first verse content + assets from canonical YAML:")
     print(f"      verse-generate --collection {collection} --verse 1")
     print("      (Scene descriptions can be auto-generated by verse-generate, or edited in data/scenes manually.)")
@@ -1109,8 +1156,9 @@ def init_project(
         print("=" * 70)
         print("Creating Collections")
         print("=" * 70)
+        collection_themes = {}
         for collection in collections:
-            create_example_collection(base_path, collection, num_verses)
+            collection_themes[collection] = create_example_collection(base_path, collection, num_verses)
 
     # Success message
     print()
@@ -1123,7 +1171,8 @@ def init_project(
         print_collection_next_steps(
             collection=primary_collection,
             num_verses=num_verses,
-            additional_collections=max(0, len(collections) - 1)
+            additional_collections=max(0, len(collections) - 1),
+            theme=collection_themes.get(primary_collection, "modern-minimalist"),
         )
     else:
         print_generic_next_steps()

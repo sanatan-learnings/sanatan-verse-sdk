@@ -7,6 +7,7 @@ from verse_sdk.cli.init import (
     create_example_collection,
     create_template_files,
     init_project,
+    resolve_collection_theme,
 )
 from verse_sdk.cli.init import (
     main as init_main,
@@ -296,15 +297,47 @@ def test_collection_layout_references_title_image(tmp_path):
     create_template_files(tmp_path, "test")
 
     index_content = (tmp_path / "index.html").read_text()
-    assert "/images/{{ key }}/modern-minimalist/card-page.png" in index_content
+    assert "{% assign theme_name = cfg.image_theme | default: cfg.theme | default: cfg.default_theme" in index_content
+    assert "/images/{{ key }}/{{ theme_name }}/card-page.png" in index_content
     assert "this.src='/images/{{ key }}/card.png'" not in index_content
     assert "class=\"collection-card card\"" in index_content
 
     layout = (tmp_path / "_layouts" / "collection.html").read_text()
-    assert "/images/{{ collection_key }}/modern-minimalist/title-page.png" in layout
+    assert "{% assign theme_name = collection_cfg.image_theme | default: collection_cfg.theme | default: collection_cfg.default_theme" in layout
+    assert "/images/{{ collection_key }}/{{ theme_name }}/title-page.png" in layout
     assert "this.src='/images/{{ collection_key }}/title.png'" not in layout
     assert "verse.collection_key == collection_key" in layout
     assert "v.path contains" not in layout
+
+
+def test_resolve_collection_theme_uses_project_default(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+
+    verse_cfg = tmp_path / "_data" / "verse-config.yml"
+    verse_cfg.write_text("defaults:\n  image_theme: traditional\n", encoding="utf-8")
+
+    assert resolve_collection_theme(tmp_path, "shiv-puran") == "traditional"
+
+
+def test_resolve_collection_theme_prefers_collection_override(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+
+    verse_cfg = tmp_path / "_data" / "verse-config.yml"
+    verse_cfg.write_text("defaults:\n  image_theme: traditional\n", encoding="utf-8")
+
+    collections = tmp_path / "_data" / "collections.yml"
+    collections.write_text(
+        "shiv-puran:\n"
+        "  enabled: true\n"
+        "  name:\n"
+        "    en: Shiv Puran\n"
+        "  image_theme: temple-art\n",
+        encoding="utf-8",
+    )
+
+    assert resolve_collection_theme(tmp_path, "shiv-puran") == "temple-art"
 
 
 def test_default_layout_uses_assets_and_configurable_header(tmp_path):
