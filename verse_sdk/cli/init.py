@@ -104,6 +104,7 @@ GEMFILE_CONTENT = """source "https://rubygems.org"
 
 gem "jekyll", "~> 4.3"
 gem "webrick", "~> 1.8"
+gem "jekyll-seo-tag", "~> 2.8"
 """
 
 README_TEMPLATE = """# {project_name}
@@ -174,11 +175,15 @@ MIT
 
 JEKYLL_CONFIG_TEMPLATE = """title: "{project_name}"
 description: "Verse collection project powered by Sanatan Verse SDK"
+banner_title: "{project_name}"
+banner_subtitle: "Verse collection project powered by Sanatan Verse SDK"
 markdown: kramdown
 collections:
   verses:
     output: true
     permalink: /:path/
+plugins:
+  - jekyll-seo-tag
 defaults:
   - scope:
       path: ""
@@ -197,154 +202,24 @@ DEFAULT_LAYOUT_TEMPLATE = """<!doctype html>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ page.title | default: site.title }}</title>
-    <style>
-      :root {
-        --bg: #f7f3ea;
-        --surface: #fffaf0;
-        --surface-strong: #fffdf8;
-        --text: #1f1a14;
-        --muted: #5f5243;
-        --accent: #b35c1e;
-        --accent-soft: #f6e2c5;
-        --border: #e4d8c2;
-      }
-      body {
-        margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        background: radial-gradient(circle at top, #fff7ea 0%, var(--bg) 45%, #f0e8dc 100%);
-        color: var(--text);
-        line-height: 1.6;
-      }
-      main {
-        max-width: 1080px;
-        margin: 0 auto;
-        padding: 2rem 1rem 4rem;
-      }
-      h1, h2, h3 {
-        color: var(--accent);
-      }
-      h1 { margin-top: 0; }
-      a {
-        color: var(--accent);
-        text-decoration-thickness: 1px;
-        text-underline-offset: 2px;
-      }
-      code {
-        background: rgba(0, 0, 0, 0.05);
-        border-radius: 4px;
-        padding: 0.1rem 0.35rem;
-      }
-      .hero {
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        background: linear-gradient(165deg, #fffdf8 0%, #fff6e7 70%, #ffe9cc 100%);
-        padding: 1.5rem;
-        box-shadow: 0 10px 28px rgba(82, 52, 22, 0.08);
-      }
-      .hero p {
-        color: var(--muted);
-        margin-bottom: 0;
-      }
-      .button-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.7rem;
-        margin-top: 1rem;
-      }
-      .button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid var(--accent);
-        background: var(--accent);
-        color: #fff7ec;
-        text-decoration: none;
-        border-radius: 999px;
-        padding: 0.5rem 1rem;
-        font-size: 0.95rem;
-      }
-      .button.secondary {
-        background: var(--accent-soft);
-        color: #7a4214;
-        border-color: #d3aa74;
-      }
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 0.8rem;
-        margin-top: 1rem;
-      }
-      .stat {
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: var(--surface);
-        padding: 0.75rem;
-      }
-      .stat strong {
-        font-size: 1.25rem;
-        color: var(--accent);
-      }
-      .card-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 1rem;
-        margin-top: 1.2rem;
-      }
-      .card {
-        display: block;
-        text-decoration: none;
-        color: inherit;
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        background: var(--surface-strong);
-        padding: 0.9rem;
-        box-shadow: 0 8px 18px rgba(61, 39, 16, 0.05);
-      }
-      .card img {
-        width: 100%;
-        height: auto;
-        border-radius: 10px;
-        border: 1px solid #ead8bc;
-        margin-bottom: 0.75rem;
-      }
-      .card-title {
-        font-size: 1.05rem;
-        font-weight: 700;
-      }
-      .card-subtitle {
-        opacity: 0.85;
-        margin-top: 0.25rem;
-      }
-      .collection-hero-image {
-        width: 100%;
-        max-width: 960px;
-        height: auto;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: var(--surface-strong);
-      }
-      .verse-list {
-        list-style: none;
-        padding: 0;
-        margin: 1rem 0 0;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 0.7rem;
-      }
-      .verse-list li a {
-        display: block;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: var(--surface-strong);
-        padding: 0.6rem 0.8rem;
-        text-decoration: none;
-      }
-    </style>
+    <link rel="stylesheet" href="/assets/css/site.css">
+    {% seo %}
   </head>
   <body>
+    {% assign t = site.data.translations.en %}
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="site-brand" href="/">{{ site.banner_title | default: site.title }}</a>
+        <div class="site-tagline">{{ site.banner_subtitle | default: site.description }}</div>
+        <nav class="site-nav">
+          <a href="/">{{ t.nav.home | default: "Home" }}</a>
+        </nav>
+      </div>
+    </header>
     <main>
       {{ content }}
     </main>
+    <script src="/assets/js/site.js"></script>
   </body>
 </html>
 """
@@ -355,29 +230,12 @@ title: __PROJECT_NAME__
 ---
 
 {% assign has_enabled = false %}
-{% assign enabled_count = 0 %}
-{% assign total_verses = 0 %}
 {% for pair in site.data.collections %}
   {% assign cfg = pair[1] %}
   {% if cfg.enabled %}
     {% assign has_enabled = true %}
-    {% assign enabled_count = enabled_count | plus: 1 %}
-    {% assign total_verses = total_verses | plus: cfg.total_verses %}
   {% endif %}
 {% endfor %}
-
-<section class="hero">
-  <h1>{{ page.title | default: site.title }}</h1>
-  <p>{{ site.description }}</p>
-  <div class="button-row">
-    <a class="button" href="https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/end-to-end-workflow.md">End-to-End Workflow</a>
-    <a class="button secondary" href="https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md">Command Reference</a>
-  </div>
-  <div class="stats">
-    <div class="stat"><strong>{{ enabled_count }}</strong><div>Enabled collections</div></div>
-    <div class="stat"><strong>{{ total_verses }}</strong><div>Configured verses</div></div>
-  </div>
-</section>
 
 <section>
   <h2>Collections</h2>
@@ -404,9 +262,6 @@ No enabled collections found in `_data/collections.yml`.
 HOME_LAYOUT_TEMPLATE = """---
 layout: default
 ---
-
-<h1>{{ page.title | default: site.title }}</h1>
-<p>{{ site.description }}</p>
 
 {{ content }}
 """
@@ -498,6 +353,166 @@ theme:
 size: "1024x1792"        # Portrait format (recommended)
 quality: "standard"      # Options: standard ($0.04), hd ($0.08)
 style: "natural"         # Options: natural, vivid
+"""
+
+SITE_CSS_TEMPLATE = """:root {
+  --bg: #f7f3ea;
+  --surface: #fffaf0;
+  --surface-strong: #fffdf8;
+  --text: #1f1a14;
+  --muted: #5f5243;
+  --accent: #b35c1e;
+  --accent-soft: #f6e2c5;
+  --border: #e4d8c2;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  background: radial-gradient(circle at top, #fff7ea 0%, var(--bg) 45%, #f0e8dc 100%);
+  color: var(--text);
+  line-height: 1.6;
+}
+.site-header {
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 250, 240, 0.88);
+  backdrop-filter: blur(4px);
+}
+.site-header__inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0.9rem 1rem;
+}
+.site-brand {
+  display: inline-block;
+  text-decoration: none;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.site-tagline {
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+.site-nav {
+  margin-top: 0.4rem;
+}
+.site-nav a {
+  color: var(--accent);
+}
+main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+h1, h2, h3 { color: var(--accent); }
+h1 { margin-top: 0; }
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+code {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+}
+.hero {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: linear-gradient(165deg, #fffdf8 0%, #fff6e7 70%, #ffe9cc 100%);
+  padding: 1.5rem;
+  box-shadow: 0 10px 28px rgba(82, 52, 22, 0.08);
+}
+.hero p {
+  color: var(--muted);
+  margin-bottom: 0;
+}
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff7ec;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+}
+.button.secondary {
+  background: var(--accent-soft);
+  color: #7a4214;
+  border-color: #d3aa74;
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+.card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-strong);
+  padding: 0.9rem;
+  box-shadow: 0 8px 18px rgba(61, 39, 16, 0.05);
+}
+.card img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid #ead8bc;
+  margin-bottom: 0.75rem;
+}
+.card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.card-subtitle {
+  opacity: 0.85;
+  margin-top: 0.25rem;
+}
+.collection-hero-image {
+  width: 100%;
+  max-width: 960px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+.verse-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.7rem;
+}
+.verse-list li a {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-strong);
+  padding: 0.6rem 0.8rem;
+  text-decoration: none;
+}
+"""
+
+SITE_JS_TEMPLATE = """// Reserved for optional scaffold interactions.
+"""
+
+TRANSLATIONS_EN_TEMPLATE = """nav:
+  home: "Home"
 """
 
 
@@ -623,6 +638,7 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
         ".env.example": ENV_EXAMPLE_CONTENT,
         "_data/collections.yml": COLLECTIONS_YML_CONTENT,
         "_data/verse-config.yml": VERSE_CONFIG_CONTENT,
+        "_data/translations/en.yml": TRANSLATIONS_EN_TEMPLATE,
         ".gitignore": GITIGNORE_CONTENT,
         "Gemfile": GEMFILE_CONTENT,
         "_config.yml": JEKYLL_CONFIG_TEMPLATE.format(project_name=project_name),
@@ -630,6 +646,8 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
         "_layouts/home.html": HOME_LAYOUT_TEMPLATE,
         "_layouts/collection.html": COLLECTION_LAYOUT_TEMPLATE,
         "_layouts/verse.html": VERSE_LAYOUT_TEMPLATE,
+        "assets/css/site.css": SITE_CSS_TEMPLATE,
+        "assets/js/site.js": SITE_JS_TEMPLATE,
         "index.html": INDEX_HTML_TEMPLATE.replace("__PROJECT_NAME__", project_name),
         "README.md": README_TEMPLATE.format(project_name=project_name),
     }
@@ -640,6 +658,7 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
 
     for file_path, content in files.items():
         full_path = base_path / file_path
+        full_path.parent.mkdir(parents=True, exist_ok=True)
         if not full_path.exists():
             full_path.write_text(content)
             print(f"✓ Created {file_path}")

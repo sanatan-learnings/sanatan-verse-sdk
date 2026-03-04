@@ -106,7 +106,12 @@ your-project/
 ├── .gitignore                   # Git ignore file
 ├── README.md                    # Project documentation
 ├── _data/
-│   └── collections.yml          # Collection registry
+│   ├── collections.yml          # Collection registry
+│   ├── verse-config.yml         # Project defaults
+│   └── translations/            # UI translation keys (e.g. en.yml)
+├── assets/
+│   ├── css/site.css             # Base scaffold styling
+│   └── js/site.js               # Optional scaffold JS hooks
 ├── _verses/                     # Verse markdown files
 ├── data/
 │   ├── themes/                  # Theme configurations
@@ -128,6 +133,13 @@ Contains placeholders for required API keys:
 ### _data/collections.yml
 
 Template for defining collections with example structure.
+
+### _config.yml
+
+Includes Jekyll plugin wiring and configurable header keys:
+- `plugins: [jekyll-seo-tag]`
+- `banner_title`
+- `banner_subtitle`
 
 ### .gitignore
 

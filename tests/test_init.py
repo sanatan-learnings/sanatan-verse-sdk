@@ -50,6 +50,7 @@ def test_creates_required_files(tmp_path):
         ".env.example",
         "_data/collections.yml",
         "_data/verse-config.yml",
+        "_data/translations/en.yml",
         ".gitignore",
         "Gemfile",
         "_config.yml",
@@ -57,6 +58,8 @@ def test_creates_required_files(tmp_path):
         "_layouts/home.html",
         "_layouts/collection.html",
         "_layouts/verse.html",
+        "assets/css/site.css",
+        "assets/js/site.js",
         "index.html",
         "README.md",
     ]:
@@ -105,6 +108,7 @@ def test_gemfile_includes_jekyll(tmp_path):
     create_template_files(tmp_path, "my-project")
     content = (tmp_path / "Gemfile").read_text()
     assert 'gem "jekyll"' in content
+    assert 'gem "jekyll-seo-tag"' in content
     assert 'gem "minima"' not in content
 
 
@@ -116,6 +120,10 @@ def test_config_does_not_reference_minima(tmp_path):
     assert "collections:" in content
     assert "verses:" in content
     assert "output: true" in content
+    assert "plugins:" in content
+    assert "jekyll-seo-tag" in content
+    assert "banner_title:" in content
+    assert "banner_subtitle:" in content
 
 
 def test_index_page_has_jekyll_frontmatter(tmp_path):
@@ -126,8 +134,9 @@ def test_index_page_has_jekyll_frontmatter(tmp_path):
     assert "layout: home" in content
     assert "site.data.collections" in content
     assert "cfg.enabled" in content
-    assert "class=\"hero\"" in content
     assert "class=\"card-grid\"" in content
+    assert "End-to-End Workflow" not in content
+    assert "Enabled collections" not in content
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +252,25 @@ def test_collection_layout_references_title_image(tmp_path):
     assert "this.src='/images/{{ collection_key }}/title.png'" not in layout
     assert "verse.collection_key == collection_key" in layout
     assert "v.path contains" not in layout
+
+
+def test_default_layout_uses_assets_and_configurable_header(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+    layout = (tmp_path / "_layouts" / "default.html").read_text()
+    assert "/assets/css/site.css" in layout
+    assert "/assets/js/site.js" in layout
+    assert "{% seo %}" in layout
+    assert "site.banner_title | default: site.title" in layout
+    assert "site.banner_subtitle | default: site.description" in layout
+
+
+def test_home_layout_does_not_duplicate_title_and_description(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+    layout = (tmp_path / "_layouts" / "home.html").read_text()
+    assert "{{ page.title | default: site.title }}" not in layout
+    assert "{{ site.description }}" not in layout
 
 
 def test_custom_num_verses(tmp_path):
