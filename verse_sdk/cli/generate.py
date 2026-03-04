@@ -74,6 +74,7 @@ load_dotenv()
 # Global flag for debug mode
 DEBUG_MODE = False
 _SCENE_SEQUENCE_WARNED_FILES = set()
+COLLECTION_OVERVIEW_VERSE_IDS = ("title-page", "card-page")
 
 
 # ==================== Custom Exception Classes ====================
@@ -1930,6 +1931,125 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
         return False, "write_failed"
 
 
+def _default_collection_scene_entries(collection: str) -> Dict[str, Dict[str, str]]:
+    display_name = collection.replace('-', ' ').title()
+    return {
+        "title-page": {
+            "title": f"{display_name} Title Page",
+            "description": (
+                "Close-up portrait of the primary deity/subject filling the lower two-thirds of the frame.\n"
+                "Crowned head, serene yet powerful face, and upper chest centered in composition.\n"
+                "Upper third shows radiant sky with golden divine light and subtle sacred patterns.\n"
+                "Use saffron, gold, and spiritual blue tones with devotional atmosphere."
+            ),
+        },
+        "card-page": {
+            "title": f"{display_name} Card Image",
+            "description": (
+                "A clean, iconic devotional composition for collection listing cards.\n"
+                "Focus on symbolic visual elements associated with the collection subject.\n"
+                "Balanced framing suitable for landscape card display, warm saffron-gold palette,\n"
+                "and clear contrast for title text overlay if needed."
+            ),
+        },
+    }
+
+
+def ensure_collection_scene_entries(collection: str, project_dir: Optional[Path] = None) -> bool:
+    """Ensure title-page/card-page scenes exist for collection overview images."""
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    scenes_dir = project_dir / "data" / "scenes"
+    yml_file = scenes_dir / f"{collection}.yml"
+    yaml_file = scenes_dir / f"{collection}.yaml"
+
+    if yml_file.exists():
+        scenes_file = yml_file
+    elif yaml_file.exists():
+        scenes_file = yaml_file
+    else:
+        scenes_file = yml_file
+
+    data: Dict = {}
+    if scenes_file.exists():
+        try:
+            with open(scenes_file, 'r', encoding='utf-8') as f:
+                loaded = yaml.safe_load(f) or {}
+            if isinstance(loaded, dict):
+                data = loaded
+        except Exception:
+            data = {}
+
+    meta = data.get("_meta")
+    if not isinstance(meta, dict):
+        meta = {}
+    meta.setdefault("collection", collection)
+    meta.setdefault("description", f"Scene descriptions for {collection.replace('-', ' ').title()} image generation")
+    data["_meta"] = meta
+
+    scenes = data.get("scenes")
+    if not isinstance(scenes, dict):
+        scenes = {}
+
+    changed = False
+    for key, value in _default_collection_scene_entries(collection).items():
+        if key not in scenes or not isinstance(scenes[key], dict):
+            scenes[key] = value
+            changed = True
+        else:
+            if "title" not in scenes[key]:
+                scenes[key]["title"] = value["title"]
+                changed = True
+            if "description" not in scenes[key]:
+                scenes[key]["description"] = value["description"]
+                changed = True
+
+    data["scenes"] = scenes
+
+    if changed or not scenes_file.exists():
+        scenes_dir.mkdir(parents=True, exist_ok=True)
+        with open(scenes_file, 'w', encoding='utf-8') as f:
+            yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False, width=120)
+        print(f"  ✓ Ensured collection scene prompts in {scenes_file}")
+
+    return True
+
+
+def ensure_collection_overview_images(
+    collection: str,
+    theme: str,
+    project_dir: Optional[Path] = None,
+    dry_run: bool = False,
+) -> bool:
+    """Auto-generate title-page/card-page images when missing."""
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    ensure_collection_scene_entries(collection, project_dir)
+
+    missing = []
+    for verse_id in COLLECTION_OVERVIEW_VERSE_IDS:
+        image_path = project_dir / "images" / collection / theme / f"{verse_id}.png"
+        if not image_path.exists():
+            missing.append(verse_id)
+
+    if not missing:
+        print("✓ Collection overview images already exist")
+        return True
+
+    print(f"→ Auto-generating collection overview images: {', '.join(missing)}")
+    if dry_run:
+        print("  ⚠ Dry run: skipping image generation commands")
+        return True
+
+    success = True
+    for verse_id in missing:
+        ok = generate_image(collection, 0, theme, verse_id=verse_id)
+        success = success and ok
+    return success
+
+
 def generate_image(collection: str, verse: int, theme: str, verse_id: str = None) -> bool:
     """Generate image for the specified verse."""
     print(f"\n{'='*60}")
@@ -2726,6 +2846,21 @@ Environment Variables:
     print("✓ ALL VALIDATIONS PASSED - Starting generation")
     print("="*60)
     print()
+
+    if generate_image_flag:
+        print("="*60)
+        print("COLLECTION OVERVIEW IMAGE CHECK")
+        print("="*60)
+        print()
+        overview_ok = ensure_collection_overview_images(
+            args.collection,
+            args.theme,
+            project_dir=Path.cwd(),
+            dry_run=args.dry_run,
+        )
+        if not overview_ok:
+            print("⚠ Warning: Failed to generate collection overview images (title/card).")
+        print()
 
     # Track overall success across all verses
     overall_results = []
