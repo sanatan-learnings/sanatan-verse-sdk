@@ -20,6 +20,7 @@ Usage:
 """
 
 import argparse
+import base64
 import os
 import re
 import sys
@@ -568,6 +569,10 @@ THEME_JS_TEMPLATE = """// Theme hooks placeholder for scaffold parity.
 GUIDANCE_JS_TEMPLATE = """// Guidance hooks placeholder for scaffold parity.
 """
 
+PNG_PLACEHOLDER_BASE64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
+)
+
 TRANSLATIONS_EN_TEMPLATE = """home:
   sacred_text: "Sacred Text"
 nav:
@@ -788,6 +793,23 @@ def upsert_collection_entry(content: str, collection: str, num_verses: int) -> s
     return content + entry
 
 
+def create_theme_image_placeholders(base_path: Path, collection: str, theme: str = "modern-minimalist") -> None:
+    """Create deterministic theme-scoped placeholder images for title/card pages."""
+    images_dir = base_path / "images" / collection / theme
+    images_dir.mkdir(parents=True, exist_ok=True)
+    placeholder_bytes = base64.b64decode(PNG_PLACEHOLDER_BASE64)
+
+    title_page = images_dir / "title-page.png"
+    if not title_page.exists():
+        title_page.write_bytes(placeholder_bytes)
+        print(f"✓ Created images/{collection}/{theme}/title-page.png")
+
+    card_page = images_dir / "card-page.png"
+    if not card_page.exists():
+        card_page.write_bytes(placeholder_bytes)
+        print(f"✓ Created images/{collection}/{theme}/card-page.png")
+
+
 def create_example_collection(base_path: Path, collection: str, num_verses: int = 3) -> None:
     """
     Create an example collection with sample files.
@@ -852,6 +874,9 @@ verse-03:
     scenes_file.parent.mkdir(parents=True, exist_ok=True)
     if upsert_collection_scene_entries(scenes_file, collection):
         print(f"✓ Created data/scenes/{collection}.yml")
+
+    # Create canonical theme-scoped title/card placeholders so first-run UI is complete.
+    create_theme_image_placeholders(base_path, collection)
 
     # Create canonical plain-text source placeholder for parse-source auto-discovery
     source_file = base_path / "data" / "sources" / f"{collection}.txt"

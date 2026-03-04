@@ -232,10 +232,18 @@ def test_creates_collection_index_page_for_local_preview(tmp_path):
     assert "collection_key: shiv-puran" in content
 
 
-def test_does_not_create_root_level_collection_image_placeholders(tmp_path):
+def test_creates_theme_scoped_collection_image_placeholders(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "test")
     create_example_collection(tmp_path, "shiv-puran", num_verses=3)
+
+    theme_card = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "card-page.png"
+    assert theme_card.exists()
+    assert theme_card.stat().st_size > 0
+
+    theme_title = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "title-page.png"
+    assert theme_title.exists()
+    assert theme_title.stat().st_size > 0
 
     card_image = tmp_path / "images" / "shiv-puran" / "card.png"
     assert not card_image.exists()
