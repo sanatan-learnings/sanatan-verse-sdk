@@ -69,6 +69,9 @@ PROFILE_DEFAULTS = {
 }
 
 
+AUTO_SOURCE_GLOB = "**/*.txt"
+
+
 def _normalize_text(text: str) -> str:
     text = text.strip()
     text = re.sub(r"\s+", " ", text)
@@ -94,6 +97,38 @@ def _collect_files(source: Optional[List[str]], source_dir: Optional[str], sourc
         raise FileNotFoundError(f"Source files not found: {', '.join(missing)}")
 
     return files
+
+
+def _auto_discover_source_inputs(collection: str, project_dir: Path = Path.cwd()) -> Tuple[Optional[List[str]], Optional[str], str, List[str]]:
+    """
+    Auto-discover parse sources for a collection.
+
+    Discovery order:
+    1. data/sources/<collection>.txt
+    2. data/sources/<collection>/ (with default glob)
+    """
+    source_file = project_dir / "data" / "sources" / f"{collection}.txt"
+    source_dir = project_dir / "data" / "sources" / collection
+    notices: List[str] = []
+
+    if source_file.exists() and source_dir.exists():
+        notices.append(
+            f"Notice: found both {source_file} and {source_dir}; preferring file input."
+        )
+
+    if source_file.exists():
+        return [str(source_file)], None, AUTO_SOURCE_GLOB, notices
+
+    if source_dir.exists():
+        return None, str(source_dir), AUTO_SOURCE_GLOB, notices
+
+    raise FileNotFoundError(
+        "No source input found.\n"
+        f"Tried:\n"
+        f"  - {source_file}\n"
+        f"  - {source_dir}/\n"
+        "Provide --source/--source-dir explicitly, or place source text in one of those locations."
+    )
 
 
 def _detect_chapter(line: str) -> Optional[int]:
@@ -470,14 +505,42 @@ def main():
 
     args = parser.parse_args()
 
+    def _arg_provided(flag: str) -> bool:
+        return any(arg == flag or arg.startswith(flag + "=") for arg in sys.argv[1:])
+
+    source = args.source
+    source_dir = args.source_dir
+    source_glob = args.source_glob
+    source_mode = "explicit"
+
+    if not source and not source_dir:
+        try:
+            source, source_dir, source_glob, notices = _auto_discover_source_inputs(args.collection, Path.cwd())
+        except FileNotFoundError as exc:
+            print(f"Error: {exc}")
+            sys.exit(1)
+
+        source_mode = "auto-discovered"
+        for notice in notices:
+            print(notice)
+
+        if _arg_provided("--source-glob"):
+            print(
+                f"Note: --source-glob is only used with explicit --source-dir; "
+                f"using default auto-discovery glob '{AUTO_SOURCE_GLOB}'."
+            )
+
     try:
-        files = _collect_files(args.source, args.source_dir, args.source_glob)
+        files = _collect_files(source, source_dir, source_glob)
     except (ValueError, FileNotFoundError) as exc:
         print(f"Error: {exc}")
         sys.exit(1)
 
-    def _arg_provided(flag: str) -> bool:
-        return any(arg == flag or arg.startswith(flag + "=") for arg in sys.argv[1:])
+    if source:
+        print(f"Using source file input ({source_mode}): {', '.join(str(Path(p)) for p in source)}")
+    elif source_dir:
+        print(f"Using source directory input ({source_mode}): {source_dir} (glob: {source_glob})")
+        print(f"Matched {len(files)} file(s).")
 
     chaptered = args.format == "chaptered-plain"
     profile = PROFILE_DEFAULTS.get(args.profile, PROFILE_DEFAULTS["default"])

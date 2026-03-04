@@ -5,6 +5,7 @@ Parse canonical source text into `data/verses/<collection>.yaml`.
 ## Synopsis
 
 ```bash
+verse-parse-source --collection <key> [OPTIONS]
 verse-parse-source --collection <key> --source <file> [OPTIONS]
 verse-parse-source --collection <key> --source-dir <dir> --source-glob "<glob>" [OPTIONS]
 ```
@@ -12,6 +13,12 @@ verse-parse-source --collection <key> --source-dir <dir> --source-glob "<glob>" 
 ## Description
 
 `verse-parse-source` converts plain text source files into the canonical YAML format used by the SDK. It supports multi-file ingestion, deterministic output ordering, and read-only inspection via `--dry-run` and `--diff`.
+
+When `--source` and `--source-dir` are omitted, the command auto-discovers input from `--collection`:
+1. `data/sources/<collection>.txt`
+2. `data/sources/<collection>/` (using default glob `**/*.txt`)
+
+If both exist, file input is preferred.
 
 For the full lifecycle from initialization to deployment, see `docs/end-to-end-workflow.md`.
 
@@ -53,33 +60,36 @@ Detects chapter headings like `Chapter 2` or `अध्याय 2`. Verses are 
 ## Examples
 
 ```bash
+# Auto-discovery (recommended common case)
+verse-parse-source --collection hanuman-chalisa
+
 # Single file
 verse-parse-source \
   --collection hanuman-chalisa \
-  --source data/source-texts/hanuman-chalisa.txt
+  --source data/sources/hanuman-chalisa.txt
 
 # Multi-file (ordered by glob)
 verse-parse-source \
   --collection srimad-bhagavat \
-  --source-dir data/source-texts/srimad-bhagavat \
+  --source-dir data/sources/srimad-bhagavat \
   --source-glob "volume-*/**/*.txt"
 
 # Chaptered text
 verse-parse-source \
   --collection bhagavad-gita \
-  --source data/source-texts/bhagavad-gita.txt \
+  --source data/sources/bhagavad-gita.txt \
   --format chaptered-plain
 
 # Safe inspection
 verse-parse-source \
   --collection hanuman-chalisa \
-  --source data/source-texts/hanuman-chalisa.txt \
+  --source data/sources/hanuman-chalisa.txt \
   --dry-run --diff --report parse-report.json
 
 # Srimad Bhagavat profile with guardrails
 verse-parse-source \
   --collection srimad-bhagavat \
-  --source-dir data/source-texts/srimad-bhagavat \
+  --source-dir data/sources/srimad-bhagavat \
   --source-glob "volume-*/**/*.txt" \
   --profile srimad-bhagavat \
   --expected-count-min 16000 \
@@ -88,7 +98,7 @@ verse-parse-source \
 # Per-file chapter scope with canto prefix
 verse-parse-source \
   --collection srimad-bhagavat \
-  --source-dir data/source-texts/srimad-bhagavat \
+  --source-dir data/sources/srimad-bhagavat \
   --source-glob "canto-*.txt" \
   --format chaptered-plain \
   --chapter-scope file \
@@ -97,7 +107,7 @@ verse-parse-source \
 # Custom anchor override
 verse-parse-source \
   --collection srimad-bhagavat \
-  --source-dir data/source-texts/srimad-bhagavat \
+  --source-dir data/sources/srimad-bhagavat \
   --source-glob "volume-*/**/*.txt" \
   --profile srimad-bhagavat \
   --start-marker "श्रीमदभागवत-माहात्म्य"
@@ -105,6 +115,6 @@ verse-parse-source \
 # Disable filtering (if needed)
 verse-parse-source \
   --collection hanuman-chalisa \
-  --source data/source-texts/hanuman-chalisa.txt \
+  --source data/sources/hanuman-chalisa.txt \
   --filter-frontmatter false --filter-ocr-noise false
 ```
