@@ -244,18 +244,16 @@ def test_creates_collection_index_page_for_local_preview(tmp_path):
     assert "collection_key: shiv-puran" in content
 
 
-def test_creates_theme_scoped_collection_image_placeholders(tmp_path):
+def test_does_not_create_invalid_theme_scoped_collection_image_placeholders(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "test")
     create_example_collection(tmp_path, "shiv-puran", num_verses=3)
 
     theme_card = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "card-page.png"
-    assert theme_card.exists()
-    assert theme_card.stat().st_size > 0
+    assert not theme_card.exists()
 
     theme_title = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "title-page.png"
-    assert theme_title.exists()
-    assert theme_title.stat().st_size > 0
+    assert not theme_title.exists()
 
     card_image = tmp_path / "images" / "shiv-puran" / "card.png"
     assert not card_image.exists()
@@ -290,6 +288,16 @@ def test_prefers_verse_images_generation_when_api_key_present(tmp_path, monkeypa
     assert any("--verse" in cmd and "card-page" in cmd for cmd in calls)
     assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "title-page.png").exists()
     assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "card-page.png").exists()
+
+
+def test_reports_images_pending_when_api_key_missing(tmp_path, capsys):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+    create_example_collection(tmp_path, "shiv-puran", num_verses=2)
+
+    out = capsys.readouterr().out
+    assert "Images pending for shiv-puran (no OPENAI_API_KEY)" in out
+    assert "verse-images --collection shiv-puran --theme modern-minimalist --verse title-page,card-page" in out
 
 
 def test_collection_layout_references_title_image(tmp_path):
@@ -395,7 +403,7 @@ def test_project_next_steps_with_collection_are_consolidated_and_concrete(tmp_pa
     assert "verse-images --verse card-page" in out
     assert "verse-images --collection shiv-puran --theme modern-minimalist --verse title-page" in out
     assert "verse-images --collection shiv-puran --theme modern-minimalist --verse card-page" in out
-    assert "Collection title/card images are auto-generated when missing." in out
+    assert "Collection title/card images are generated when OPENAI_API_KEY is available; otherwise they remain pending." in out
     assert "bundle install" in out
     assert "bundle exec jekyll serve" in out
     assert out.index("bundle install") < out.index("bundle exec jekyll serve")
