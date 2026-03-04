@@ -28,6 +28,9 @@ The `verse-images` command generates artwork for verses using OpenAI's DALL-E 3 
 ### Optional
 
 - `--verse ID` - Generate image for specific verse only
+  - Supports repeat and comma-list forms:
+  - `--verse title-page --verse card-page`
+  - `--verse title-page,card-page`
 - `--regenerate FILE[,FILE...]` - Regenerate specific image files
 - `--force` - Regenerate all images (prompts for confirmation)
 - `--list-collections` - List all available collections
@@ -60,6 +63,16 @@ Works when collection and theme are unambiguous in project config/files.
 
 ```bash
 verse-images --collection sundar-kaand --theme modern-minimalist --verse chaupai_03
+```
+
+### Generate Multiple Specific Verses
+
+```bash
+# Repeatable flag form
+verse-images --verse title-page --verse card-page
+
+# Comma-separated form
+verse-images --verse title-page,card-page
 ```
 
 ### Regenerate Specific Images

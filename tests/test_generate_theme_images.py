@@ -10,6 +10,7 @@ from verse_sdk.images.generate_theme_images import (
     _is_valid_image_file,
     _validate_image_bytes,
     _write_image_atomic,
+    parse_verse_selections,
     resolve_collection_arg,
     resolve_openai_api_key,
     resolve_theme_arg,
@@ -177,3 +178,31 @@ def test_resolve_openai_api_key_loads_dotenv_when_env_missing(tmp_path, monkeypa
     (tmp_path / ".env").write_text("OPENAI_API_KEY=dotenv-key\n", encoding="utf-8")
 
     assert resolve_openai_api_key(None, project_dir=tmp_path) == "dotenv-key"
+
+
+def test_parse_verse_selections_supports_repeated_and_comma_separated_values():
+    parsed = parse_verse_selections(["title-page", "card-page,verse-01", "card-page"])
+    assert parsed == ["title-page", "card-page", "verse-01"]
+
+
+def test_generate_all_images_accepts_multiple_specific_verses(monkeypatch):
+    gen = ImageGenerator.__new__(ImageGenerator)
+    gen.theme = "modern-minimalist"
+    gen.output_dir = "images/shiv-puran/modern-minimalist"
+    gen.style_modifier = ""
+    gen.parse_prompts_file = lambda: {
+        "title-page.png": "Title scene",
+        "card-page.png": "Card scene",
+        "verse-01.png": "Verse scene",
+    }
+
+    generated = []
+    gen.generate_image = lambda filename, prompt: generated.append((filename, prompt)) or True
+
+    monkeypatch.setattr("builtins.print", lambda *args, **kwargs: None)
+    gen.generate_all_images(specific_verses=["title-page", "card-page"])
+
+    assert generated == [
+        ("title-page.png", "Title scene"),
+        ("card-page.png", "Card scene"),
+    ]

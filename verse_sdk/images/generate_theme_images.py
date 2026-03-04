@@ -261,28 +261,38 @@ class ImageGenerator:
         return False
 
 
-    def generate_all_images(self, start_from: Optional[str] = None, specific_verse: Optional[str] = None) -> None:
+    def generate_all_images(self, start_from: Optional[str] = None, specific_verses: Optional[List[str]] = None) -> None:
         """
         Generate all images for the theme.
 
         Args:
             start_from: Optional filename to start from (useful for resuming)
-            specific_verse: Optional verse ID to generate only (e.g., 'shloka_01', 'chaupai_03')
+            specific_verses: Optional verse IDs to generate only (e.g., ['title-page', 'card-page'])
         """
         prompts = self.parse_prompts_file()
 
-        # Filter to specific verse if requested
-        if specific_verse:
-            # verse_id is already in dash format (e.g., shloka-01)
-            target_filename = f"{specific_verse}.png"
-            if target_filename in prompts:
-                ordered_files = [target_filename]
-                print(f"✓ Generating specific verse: {specific_verse} ({target_filename})")
-            else:
-                print(f"✗ Error: Verse '{specific_verse}' not found in prompts file")
-                print(f"   Looking for: {target_filename}")
+        # Filter to specific verses if requested
+        if specific_verses:
+            ordered_files = []
+            missing = []
+            for verse_id in specific_verses:
+                target_filename = f"{verse_id}.png"
+                if target_filename in prompts:
+                    ordered_files.append(target_filename)
+                else:
+                    missing.append((verse_id, target_filename))
+
+            if missing:
+                for verse_id, target_filename in missing:
+                    print(f"✗ Error: Verse '{verse_id}' not found in prompts file")
+                    print(f"   Looking for: {target_filename}")
                 print(f"   Available verses: {', '.join(sorted(prompts.keys())[:10])}...")
                 sys.exit(1)
+
+            if len(specific_verses) == 1:
+                print(f"✓ Generating specific verse: {specific_verses[0]} ({ordered_files[0]})")
+            else:
+                print(f"✓ Generating {len(specific_verses)} specific verses: {', '.join(specific_verses)}")
         else:
             # Detect format: check if we have chapter-verse format or simple verse format
             has_chapters = any('chapter-' in f for f in prompts.keys())
@@ -356,6 +366,25 @@ class ImageGenerator:
             print("2. Update _data/themes.yml with your new theme")
             print("3. Test the theme on your local Jekyll site")
             print("4. Commit and push to GitHub")
+
+
+def parse_verse_selections(verse_args: Optional[List[str]]) -> Optional[List[str]]:
+    """Parse repeated/comma-separated --verse values into a normalized ordered list."""
+    if not verse_args:
+        return None
+
+    selections: List[str] = []
+    seen = set()
+    for raw in verse_args:
+        for item in raw.split(","):
+            verse = item.strip()
+            if not verse:
+                continue
+            if verse not in seen:
+                selections.append(verse)
+                seen.add(verse)
+
+    return selections or None
 
 
 def _validate_image_bytes(image_data: bytes) -> None:
@@ -628,8 +657,9 @@ Cost Estimate:
 
     parser.add_argument(
         '--verse',
+        action='append',
         default=None,
-        help='Generate image for specific verse only (e.g., verse-01, chaupai-03)'
+        help='Generate specific verse(s). Supports repeat flag and comma list (e.g., --verse title-page --verse card-page or --verse title-page,card-page)'
     )
 
     parser.add_argument(
@@ -818,7 +848,8 @@ Cost Estimate:
     # Create generator and run
     try:
         generator = ImageGenerator(api_key, args.collection, args.theme, args.style, theme_config)
-        generator.generate_all_images(start_from=args.start_from, specific_verse=args.verse)
+        verse_selections = parse_verse_selections(args.verse)
+        generator.generate_all_images(start_from=args.start_from, specific_verses=verse_selections)
     except KeyboardInterrupt:
         print("\n\n⚠ Generation interrupted by user")
         print("You can resume by running the script with --start-from flag")
