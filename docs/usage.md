@@ -5,9 +5,13 @@ This guide focuses on advanced workflows, batch processing, and operational best
 ## Quick Bootstrap
 
 ```bash
-pip install sanatan-verse-sdk
-verse-init --project-name my-verse-project --collection hanuman-chalisa
+mkdir my-verse-project
 cd my-verse-project
+python3 -m venv .venv
+source .venv/bin/activate
+pip install sanatan-verse-sdk
+verse-init --collection hanuman-chalisa
+git init
 ```
 
 Then follow the in-CLI next steps and see `docs/commands/verse-init.md` for details.

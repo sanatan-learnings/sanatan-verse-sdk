@@ -5,9 +5,13 @@ This guide walks through the full lifecycle: initialize a project, add canonical
 ## Quick Bootstrap
 
 ```bash
-pip install sanatan-verse-sdk
-verse-init --project-name my-verse-project --collection hanuman-chalisa
+mkdir my-verse-project
 cd my-verse-project
+python3 -m venv .venv
+source .venv/bin/activate
+pip install sanatan-verse-sdk
+verse-init --collection hanuman-chalisa
+git init
 ```
 
 Reference: `docs/commands/verse-init.md`

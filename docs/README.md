@@ -7,8 +7,13 @@ Detailed documentation for the sanatan-verse-sdk commands and features.
 Use `verse-init` first for fastest setup:
 
 ```bash
-verse-init --project-name my-verse-project --collection hanuman-chalisa
+mkdir my-verse-project
 cd my-verse-project
+python3 -m venv .venv
+source .venv/bin/activate
+pip install sanatan-verse-sdk
+verse-init --collection hanuman-chalisa
+git init
 ```
 
 - Full command guide: [verse-init](commands/verse-init.md)
