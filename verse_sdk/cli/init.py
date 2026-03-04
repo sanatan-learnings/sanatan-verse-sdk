@@ -23,6 +23,8 @@ import argparse
 import base64
 import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -865,6 +867,48 @@ def create_theme_image_placeholders(base_path: Path, collection: str, theme: str
         print(f"✓ Created images/{collection}/{theme}/card-page.png")
 
 
+def generate_collection_images_with_verse_images(
+    base_path: Path,
+    collection: str,
+    theme: str = "modern-minimalist",
+) -> bool:
+    """Generate title/card images by reusing verse-images CLI logic."""
+    verse_images_cmd = shutil.which("verse-images")
+    if verse_images_cmd:
+        base_cmd = [verse_images_cmd]
+    else:
+        base_cmd = [sys.executable, "-m", "verse_sdk.images.generate_theme_images"]
+
+    for verse_id in ("title-page", "card-page"):
+        cmd = base_cmd + [
+            "--collection", collection,
+            "--theme", theme,
+            "--verse", verse_id,
+        ]
+        subprocess.run(cmd, cwd=base_path, check=True, capture_output=True, text=True)
+
+        output_path = base_path / "images" / collection / theme / f"{verse_id}.png"
+        if not output_path.exists() or output_path.stat().st_size <= 0:
+            raise RuntimeError(f"verse-images reported success but {output_path} was not created")
+
+    return True
+
+
+def ensure_collection_images(base_path: Path, collection: str, theme: str = "modern-minimalist") -> None:
+    """Ensure title/card images exist, preferring verse-images generation logic."""
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    if openai_key:
+        try:
+            if generate_collection_images_with_verse_images(base_path, collection, theme=theme):
+                print(f"✓ Generated images/{collection}/{theme}/title-page.png via verse-images")
+                print(f"✓ Generated images/{collection}/{theme}/card-page.png via verse-images")
+                return
+        except Exception as exc:
+            print(f"⚠ verse-images generation failed for {collection}: {exc}")
+
+    create_theme_image_placeholders(base_path, collection, theme=theme)
+
+
 def create_example_collection(base_path: Path, collection: str, num_verses: int = 3) -> None:
     """
     Create an example collection with sample files.
@@ -930,8 +974,8 @@ verse-03:
     if upsert_collection_scene_entries(scenes_file, collection):
         print(f"✓ Created data/scenes/{collection}.yml")
 
-    # Create canonical theme-scoped title/card placeholders so first-run UI is complete.
-    create_theme_image_placeholders(base_path, collection)
+    # Ensure canonical title/card images, preferring verse-images generation logic.
+    ensure_collection_images(base_path, collection)
 
     # Create canonical plain-text source placeholder for parse-source auto-discovery
     source_file = base_path / "data" / "sources" / f"{collection}.txt"

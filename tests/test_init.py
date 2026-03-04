@@ -263,6 +263,34 @@ def test_creates_theme_scoped_collection_image_placeholders(tmp_path):
     assert not title_image.exists()
 
 
+def test_prefers_verse_images_generation_when_api_key_present(tmp_path, monkeypatch):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr("shutil.which", lambda cmd: "verse-images" if cmd == "verse-images" else None)
+
+    calls = []
+
+    def _fake_run(cmd, cwd, check, capture_output, text):
+        calls.append(cmd)
+        verse_id = cmd[cmd.index("--verse") + 1]
+        out = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / f"{verse_id}.png"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(b"x")
+        return None
+
+    monkeypatch.setattr("subprocess.run", _fake_run)
+
+    create_example_collection(tmp_path, "shiv-puran", num_verses=2)
+
+    assert len(calls) == 2
+    assert any("--verse" in cmd and "title-page" in cmd for cmd in calls)
+    assert any("--verse" in cmd and "card-page" in cmd for cmd in calls)
+    assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "title-page.png").exists()
+    assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "card-page.png").exists()
+
+
 def test_collection_layout_references_title_image(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "test")
