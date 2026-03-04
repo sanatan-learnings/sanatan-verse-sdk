@@ -11,6 +11,7 @@ from verse_sdk.images.generate_theme_images import (
     _validate_image_bytes,
     _write_image_atomic,
     resolve_collection_arg,
+    resolve_openai_api_key,
     resolve_theme_arg,
 )
 
@@ -155,3 +156,24 @@ def test_resolve_theme_arg_errors_when_multiple_themes_without_default(tmp_path)
         assert "Multiple themes found" in str(exc)
         assert "kids-friendly" in str(exc)
         assert "modern-minimalist" in str(exc)
+
+
+def test_resolve_openai_api_key_prefers_cli_over_env_and_dotenv(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "env-key")
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=dotenv-key\n", encoding="utf-8")
+
+    assert resolve_openai_api_key("cli-key", project_dir=tmp_path) == "cli-key"
+
+
+def test_resolve_openai_api_key_prefers_env_over_dotenv(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "env-key")
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=dotenv-key\n", encoding="utf-8")
+
+    assert resolve_openai_api_key(None, project_dir=tmp_path) == "env-key"
+
+
+def test_resolve_openai_api_key_loads_dotenv_when_env_missing(tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=dotenv-key\n", encoding="utf-8")
+
+    assert resolve_openai_api_key(None, project_dir=tmp_path) == "dotenv-key"

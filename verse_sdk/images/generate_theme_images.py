@@ -44,6 +44,11 @@ try:
 except ImportError:
     yaml = None
 
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
 # Configuration
 # Use current working directory (where the user runs the command)
 # This allows the SDK to work with any project structure
@@ -59,6 +64,30 @@ DALLE_MODEL = "dall-e-3"
 IMAGE_SIZE = "1024x1792"  # Options: 1024x1024, 1024x1792, 1792x1024 (portrait 1024x1792 recommended, crop to 1024x1536)
 IMAGE_QUALITY = "standard"  # Options: standard, hd
 IMAGE_STYLE = "natural"  # Options: natural, vivid
+
+
+def resolve_openai_api_key(cli_api_key: Optional[str] = None, project_dir: Path = PROJECT_DIR) -> Optional[str]:
+    """
+    Resolve OpenAI API key with precedence:
+    1) explicit CLI flag
+    2) exported environment variable
+    3) .env fallback
+    """
+    if cli_api_key:
+        return cli_api_key
+
+    env_key = os.environ.get("OPENAI_API_KEY")
+    if env_key:
+        return env_key
+
+    if load_dotenv:
+        dotenv_path = project_dir / ".env"
+        if dotenv_path.exists():
+            load_dotenv(dotenv_path=dotenv_path, override=False)
+        else:
+            load_dotenv(override=False)
+
+    return os.environ.get("OPENAI_API_KEY")
 
 
 class ImageGenerator:
@@ -631,7 +660,7 @@ Cost Estimate:
     parser.add_argument(
         '--api-key',
         default=None,
-        help='OpenAI API key (or set OPENAI_API_KEY environment variable)'
+        help='OpenAI API key (precedence: --api-key > OPENAI_API_KEY env > .env fallback)'
     )
 
     parser.add_argument(
@@ -686,13 +715,17 @@ Cost Estimate:
     except ValueError as exc:
         parser.error(str(exc))
 
-    # Get API key
-    api_key = args.api_key or os.environ.get('OPENAI_API_KEY')
+    # Get API key with consistent credential precedence.
+    api_key = resolve_openai_api_key(args.api_key)
     if not api_key:
         print("Error: OpenAI API key not found!")
         print("\nPlease provide API key via:")
         print("  1. --api-key argument")
         print("  2. OPENAI_API_KEY environment variable")
+        print("  3. .env file with OPENAI_API_KEY=...")
+        if load_dotenv is None:
+            print("\nNote: .env fallback requires python-dotenv.")
+            print("Install with: pip install python-dotenv")
         print("\nExample:")
         print("  export OPENAI_API_KEY='your-api-key-here'")
         print("  verse-images --collection hanuman-chalisa --theme modern-minimalist")

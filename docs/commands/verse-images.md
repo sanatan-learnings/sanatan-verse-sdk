@@ -198,7 +198,10 @@ For 700 verses (complete Bhagavad Gita):
 
 ## Requirements
 
-- `OPENAI_API_KEY` environment variable
+- OpenAI API key resolution precedence:
+  - `--api-key` flag
+  - `OPENAI_API_KEY` exported environment variable
+  - `.env` fallback (`OPENAI_API_KEY=...`)
 - Scene descriptions in `data/scenes/<collection-key>.yml`
 - Theme configuration in `data/themes/<collection-key>/<theme-name>.yml`
 - Collection enabled in `_data/collections.yml`
