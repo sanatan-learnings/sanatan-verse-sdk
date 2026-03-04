@@ -677,14 +677,15 @@ def print_collection_next_steps(collection: str, num_verses: int, additional_col
     print("   7. Preview locally and verify output:")
     print("      bundle install")
     print("      bundle exec jekyll serve")
-    print("   8. Generate full collection:")
+    print("   8. Optional next: generate full collection:")
     print(f"      verse-generate --collection {collection} --all")
     print(f"      # or explicit range: verse-generate --collection {collection} --verse 1-{num_verses}")
     print(f"      # or iterative: verse-generate --collection {collection} --next")
-    print("   9. Run: verse-validate")
-    print("   10. Optional: verse-embeddings / verse-index-sources / verse-puranic-context / verse-deploy")
+    print("   9. Optional quality check: verse-validate")
+    print("   10. Optional advanced workflows: verse-embeddings / verse-index-sources / verse-puranic-context / verse-deploy")
+    print("   11. Docs for advanced workflows: https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md")
     if additional_collections > 0:
-        print(f"   11. Repeat steps 2-10 for the other {additional_collections} collection(s).")
+        print(f"   12. Repeat steps 2-11 for the other {additional_collections} collection(s).")
 
 
 def print_generic_next_steps() -> None:
