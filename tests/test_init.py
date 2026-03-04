@@ -114,6 +114,15 @@ def test_creates_scenes_file(tmp_path):
     assert scenes.exists()
 
 
+def test_creates_source_text_placeholder_file(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+    create_example_collection(tmp_path, "hanuman-chalisa", num_verses=2)
+    source = tmp_path / "data" / "sources" / "hanuman-chalisa.txt"
+    assert source.exists()
+    assert "verse-parse-source --collection hanuman-chalisa" in source.read_text()
+
+
 def test_adds_collection_to_collections_yml(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "test")

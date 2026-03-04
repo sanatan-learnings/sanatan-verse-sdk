@@ -90,8 +90,9 @@ verse-init --project-name my-project \
 **What gets created for each collection:**
 - ✅ Sample verse files: `_verses/<collection>/verse-01.md`, `verse-02.md`, etc.
 - ✅ Canonical text template: `data/verses/<collection>.yaml`
+- ✅ Source text placeholder: `data/sources/<collection>.txt`
 - ✅ Sample theme: `data/themes/<collection>/modern-minimalist.yml`
-- ✅ Scene descriptions template: `data/scenes/<collection>.md`
+- ✅ Scene descriptions template: `data/scenes/<collection>.yml`
 - ✅ Collection entry in `_data/collections.yml`
 
 ## Created Structure
@@ -108,9 +109,9 @@ your-project/
 ├── _verses/                     # Verse markdown files
 ├── data/
 │   ├── themes/                  # Theme configurations
-│   └── verses/                  # Canonical verse YAML files
-├── docs/
-│   └── image-prompts/           # Scene descriptions
+│   ├── verses/                  # Canonical verse YAML files
+│   ├── scenes/                  # Scene descriptions
+│   └── sources/                 # Canonical plain-text source files
 ├── images/                      # Generated images (gitignored)
 └── audio/                       # Generated audio (gitignored)
 ```

@@ -356,6 +356,18 @@ scenes:
         scenes_file.write_text(scenes_content)
         print(f"✓ Created data/scenes/{collection}.yml")
 
+    # Create canonical plain-text source placeholder for parse-source auto-discovery
+    source_file = base_path / "data" / "sources" / f"{collection}.txt"
+    source_file.parent.mkdir(parents=True, exist_ok=True)
+    if not source_file.exists():
+        source_content = f"""# Source text for {collection}
+# Paste canonical plain-text verses here (UTF-8).
+# Then run:
+#   verse-parse-source --collection {collection}
+"""
+        source_file.write_text(source_content)
+        print(f"✓ Created data/sources/{collection}.txt")
+
     # Update collections.yml
     collections_file = base_path / "_data" / "collections.yml"
     if collections_file.exists():
