@@ -281,6 +281,21 @@ def format_file_size(size_bytes: int) -> str:
         return f"{size_bytes / (1024 * 1024):.1f} MB"
 
 
+def operation_status(value: Optional[bool], skipped_label: str = "Skipped") -> tuple[str, str]:
+    """
+    Return status symbol and human-readable label for an operation result.
+
+    Args:
+        value: True (success), False (failed), or None (not executed/skipped)
+        skipped_label: Label to use when value is None
+    """
+    if value is True:
+        return "✓", "Success"
+    if value is False:
+        return "✗", "Failed"
+    return "•", skipped_label
+
+
 # ==================== Progress Indicators ====================
 
 class ProgressBar:
@@ -2944,28 +2959,31 @@ Environment Variables:
         # Operations status
         print("Operations:")
         if results['verse_file_created'] is not None:
-            status = "✓" if results['verse_file_created'] else "✗"
-            print(f"  {status} Verse file creation: {'Success' if results['verse_file_created'] else 'Failed'}")
+            status, label = operation_status(results['verse_file_created'])
+            print(f"  {status} Verse file creation: {label}")
 
         if regenerate_content_flag:
-            status = "✓" if results['regenerate_content'] else "✗"
+            status, label = operation_status(
+                results['regenerate_content'],
+                skipped_label="Skipped (new file already generated with canonical content)"
+            )
             cost_str = cost_tracker.format_cost(results.get('content_cost', 0))
-            print(f"  {status} Regenerate content: {'Success' if results['regenerate_content'] else 'Failed'} ({cost_str})")
+            print(f"  {status} Regenerate content: {label} ({cost_str})")
 
         if generate_image_flag:
-            status = "✓" if results['image'] else "✗"
+            status, label = operation_status(results['image'])
             cost_str = cost_tracker.format_cost(results.get('image_cost', 0))
-            print(f"  {status} Image: {'Success' if results['image'] else 'Failed'} ({cost_str})")
+            print(f"  {status} Image: {label} ({cost_str})")
 
         if generate_audio_flag:
-            status = "✓" if results['audio'] else "✗"
+            status, label = operation_status(results['audio'])
             cost_str = cost_tracker.format_cost(results.get('audio_cost', 0))
-            print(f"  {status} Audio: {'Success' if results['audio'] else 'Failed'} ({cost_str})")
+            print(f"  {status} Audio: {label} ({cost_str})")
 
         if update_embeddings_flag:
-            status = "✓" if results['embeddings'] else "✗"
+            status, label = operation_status(results['embeddings'])
             cost_str = cost_tracker.format_cost(results.get('embeddings_cost', 0))
-            print(f"  {status} Embeddings: {'Success' if results['embeddings'] else 'Failed'} ({cost_str})")
+            print(f"  {status} Embeddings: {label} ({cost_str})")
 
         if puranic_context_flag:
             status = "✓" if results.get('puranic_context') else "✗"
