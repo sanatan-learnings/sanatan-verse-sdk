@@ -2,11 +2,14 @@
 
 from pathlib import Path
 
+import subprocess
+
 from verse_sdk.cli.init import (
     create_directory_structure,
     create_example_collection,
     create_template_files,
     init_project,
+    normalize_repo_url,
     resolve_collection_theme,
 )
 from verse_sdk.cli.init import (
@@ -130,6 +133,38 @@ def test_config_does_not_reference_minima(tmp_path):
     assert "jekyll-seo-tag" in content
     assert "banner_title:" in content
     assert "banner_subtitle:" in content
+
+
+def test_config_prefills_project_repository_url_from_git_origin(tmp_path, monkeypatch):
+    create_directory_structure(tmp_path)
+
+    def _fake_run(cmd, cwd, check, capture_output, text):
+        assert cmd == ["git", "config", "--get", "remote.origin.url"]
+        assert cwd == tmp_path
+        return subprocess.CompletedProcess(cmd, 0, stdout="git@github.com:acme/shiv-puran.git\n")
+
+    monkeypatch.setattr("subprocess.run", _fake_run)
+    create_template_files(tmp_path, "my-project")
+    content = (tmp_path / "_config.yml").read_text()
+    assert 'project_repository_url: "https://github.com/acme/shiv-puran"' in content
+
+
+def test_config_uses_placeholder_project_repository_url_when_no_remote(tmp_path, monkeypatch):
+    create_directory_structure(tmp_path)
+
+    def _fake_run(cmd, cwd, check, capture_output, text):
+        raise subprocess.CalledProcessError(1, cmd)
+
+    monkeypatch.setattr("subprocess.run", _fake_run)
+    create_template_files(tmp_path, "my-project")
+    content = (tmp_path / "_config.yml").read_text()
+    assert 'project_repository_url: "https://github.com/<your-org>/<your-repo>"' in content
+
+
+def test_normalize_repo_url_handles_https_and_ssh():
+    assert normalize_repo_url("git@github.com:org/repo.git") == "https://github.com/org/repo"
+    assert normalize_repo_url("https://github.com/org/repo.git") == "https://github.com/org/repo"
+    assert normalize_repo_url("https://github.com/org/repo") == "https://github.com/org/repo"
 
 
 def test_index_page_has_jekyll_frontmatter(tmp_path):

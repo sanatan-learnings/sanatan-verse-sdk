@@ -181,7 +181,7 @@ JEKYLL_CONFIG_TEMPLATE = """title: "{project_name}"
 description: "Verse collection project powered by Sanatan Verse SDK"
 banner_title: "{project_name}"
 banner_subtitle: "Verse collection project powered by Sanatan Verse SDK"
-project_repository_url: "https://github.com/<your-org>/<your-repo>"
+project_repository_url: "{project_repository_url}"
 usage_guide_url: "#"
 ask_shiva_url: "#"
 shiva_quiz_url: "#"
@@ -902,6 +902,40 @@ def create_directory_structure(base_path: Path, minimal: bool = False) -> None:
         print(f"✓ Created {dir_path}/")
 
 
+def normalize_repo_url(remote_url: str) -> str:
+    """Normalize common git remote URL forms to browser-friendly HTTPS URL."""
+    url = (remote_url or "").strip()
+    if not url:
+        return ""
+    if url.startswith("git@github.com:"):
+        path = url[len("git@github.com:"):]
+        if path.endswith(".git"):
+            path = path[:-4]
+        return f"https://github.com/{path}"
+    if url.startswith("https://github.com/") or url.startswith("http://github.com/"):
+        if url.endswith(".git"):
+            return url[:-4]
+        return url
+    return url
+
+
+def detect_project_repository_url(base_path: Path) -> str:
+    """Detect git origin URL for the target project, falling back to placeholder."""
+    placeholder = "https://github.com/<your-org>/<your-repo>"
+    try:
+        result = subprocess.run(
+            ["git", "config", "--get", "remote.origin.url"],
+            cwd=base_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        normalized = normalize_repo_url(result.stdout)
+        return normalized or placeholder
+    except Exception:
+        return placeholder
+
+
 def create_template_files(base_path: Path, project_name: str, minimal: bool = False) -> None:
     """
     Create template configuration files.
@@ -912,6 +946,7 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
         minimal: If True, create minimal files only
     """
     # Always create these files
+    project_repository_url = detect_project_repository_url(base_path)
     files = {
         ".env.example": ENV_EXAMPLE_CONTENT,
         "_data/collections.yml": COLLECTIONS_YML_CONTENT,
@@ -920,7 +955,10 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
         "_data/translations/hi.yml": TRANSLATIONS_HI_TEMPLATE,
         ".gitignore": GITIGNORE_CONTENT,
         "Gemfile": GEMFILE_CONTENT,
-        "_config.yml": JEKYLL_CONFIG_TEMPLATE.format(project_name=project_name),
+        "_config.yml": JEKYLL_CONFIG_TEMPLATE.format(
+            project_name=project_name,
+            project_repository_url=project_repository_url,
+        ),
         "_layouts/default.html": DEFAULT_LAYOUT_TEMPLATE,
         "_layouts/home.html": HOME_LAYOUT_TEMPLATE,
         "_layouts/collection.html": COLLECTION_LAYOUT_TEMPLATE,
