@@ -77,7 +77,7 @@ DEBUG_MODE = False
 VERBOSE_MODE = False
 QUIET_MODE = False
 _SCENE_SEQUENCE_WARNED_FILES = set()
-COLLECTION_OVERVIEW_VERSE_IDS = ("title-page", "card-page")
+COLLECTION_OVERVIEW_VERSE_IDS = ("cover",)
 
 
 def _is_verbose() -> bool:
@@ -320,7 +320,7 @@ def should_auto_generate_collection_overview_images(
     explicit: bool = False,
 ) -> bool:
     """
-    Auto-generate title/card overview images only on first-verse flows by default.
+    Auto-generate cover overview images only on first-verse flows by default.
 
     Rules:
     - Always run when explicitly requested.
@@ -2032,21 +2032,12 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
 def _default_collection_scene_entries(collection: str) -> Dict[str, Dict[str, str]]:
     display_name = collection.replace('-', ' ').title()
     return {
-        "title-page": {
-            "title": f"{display_name} Title Page",
+        "cover": {
+            "title": f"{display_name} Cover",
             "description": (
-                "Close-up portrait of the primary deity/subject filling the lower two-thirds of the frame.\n"
-                "Crowned head, serene yet powerful face, and upper chest centered in composition.\n"
-                "Upper third shows radiant sky with golden divine light and subtle sacred patterns.\n"
-                "Use saffron, gold, and spiritual blue tones with devotional atmosphere."
-            ),
-        },
-        "card-page": {
-            "title": f"{display_name} Card Image",
-            "description": (
-                "A clean, iconic devotional composition for collection listing cards.\n"
+                "A clean, iconic devotional composition for collection/site cover usage.\n"
                 "Focus on symbolic visual elements associated with the collection subject.\n"
-                "Balanced framing suitable for landscape card display, warm saffron-gold palette,\n"
+                "Balanced framing suitable for landscape cover display, warm saffron-gold palette,\n"
                 "and clear contrast for title text overlay if needed."
             ),
         },
@@ -2054,7 +2045,7 @@ def _default_collection_scene_entries(collection: str) -> Dict[str, Dict[str, st
 
 
 def ensure_collection_scene_entries(collection: str, project_dir: Optional[Path] = None, quiet: bool = False) -> bool:
-    """Ensure title-page/card-page scenes exist for collection overview images."""
+    """Ensure cover scene exists for collection overview images."""
     if project_dir is None:
         project_dir = Path.cwd()
 
@@ -2123,21 +2114,26 @@ def ensure_collection_overview_images(
     verbose: bool = False,
     quiet: bool = False,
 ) -> bool:
-    """Auto-generate title-page/card-page images when missing."""
+    """Auto-generate cover image when missing."""
     if project_dir is None:
         project_dir = Path.cwd()
 
     ensure_collection_scene_entries(collection, project_dir, quiet=quiet)
 
+    collection_cover = project_dir / "images" / collection / theme / "cover.png"
+    site_cover = project_dir / "images" / "cover.png"
     missing = []
-    for verse_id in COLLECTION_OVERVIEW_VERSE_IDS:
-        image_path = project_dir / "images" / collection / theme / f"{verse_id}.png"
-        if not image_path.exists():
-            missing.append(verse_id)
+    if not collection_cover.exists():
+        missing.append("cover")
 
     if not missing:
         if verbose and not quiet:
-            print("✓ Collection overview images already exist")
+            print("✓ Collection cover image already exists")
+        if not site_cover.exists() and collection_cover.exists():
+            site_cover.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(collection_cover, site_cover)
+            if verbose and not quiet:
+                print("✓ Created site cover image from collection cover")
         return True
 
     if not quiet:
@@ -2151,6 +2147,12 @@ def ensure_collection_overview_images(
     for verse_id in missing:
         ok = generate_image(collection, 0, theme, verse_id=verse_id, verbose=verbose, quiet=quiet)
         success = success and ok
+
+    if success and collection_cover.exists() and not site_cover.exists():
+        site_cover.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(collection_cover, site_cover)
+        if not quiet:
+            print("  ✓ Created images/cover.png")
     return success
 
 
@@ -2456,7 +2458,7 @@ Examples:
   # Minimal output (errors + final summary)
   verse-generate --collection hanuman-chalisa --verse 15 --quiet
 
-  # Explicitly check/generate title-page + card-page on non-verse-1 runs
+  # Explicitly check/generate cover image on non-verse-1 runs
   verse-generate --collection hanuman-chalisa --verse 20 --image --generate-overview-images
 
   # Generate only image
@@ -2681,7 +2683,7 @@ Environment Variables:
     parser.add_argument(
         "--generate-overview-images",
         action="store_true",
-        help="Force title/card overview image check for this run (default auto-check only when verse 1 is included)"
+        help="Force cover overview image check for this run (default auto-check only when verse 1 is included)"
     )
 
     # Verse ID override (for non-numeric verse identifiers)
@@ -3026,7 +3028,7 @@ Environment Variables:
             quiet=args.quiet,
         )
         if not overview_ok:
-            print("⚠ Warning: Failed to generate collection overview images (title/card).")
+            print("⚠ Warning: Failed to generate collection overview image (cover).")
         _log_verbose("")
     elif args.verbose and generate_image_flag and not args.quiet:
         print("Skipping collection overview image check (only auto-run for verse 1).")
