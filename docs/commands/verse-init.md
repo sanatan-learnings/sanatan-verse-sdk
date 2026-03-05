@@ -91,8 +91,9 @@ verse-init --project-name my-project \
 - ✅ Canonical text template: `data/verses/<collection>.yaml`
 - ✅ Source text placeholder: `data/sources/<collection>.txt`
 - ✅ Sample theme: `data/themes/<collection>/modern-minimalist.yml`
-- ✅ Collection-aware scene descriptions template (includes `title-page` and `card-page`): `data/scenes/<collection>.yml`
-- ✅ Collection image generation wiring (no invalid stubs are written; generate via `verse-images --verse title-page,card-page`; output is normalized to 16:9)
+- ✅ Site scenes template (`cover` prompt): `data/scenes/site.yml`
+- ✅ Collection-aware scene descriptions template (`cover` prompt): `data/scenes/<collection>.yml`
+- ✅ Collection/site cover generation wiring (generate via `verse-images --verse cover`; output is normalized to 16:9)
 - ✅ Collection landing page: `<collection>/index.html`
 - ✅ Collection entry in `_data/collections.yml`
 
@@ -184,14 +185,8 @@ verse-validate
 # 5. Generate first verse
 verse-generate --collection hanuman-chalisa --verse 1
 
-#    title/card images are auto-generated in this first-verse flow when OPENAI_API_KEY is available
-
-# 6. Optional: validate or re-generate collection title/card images
-verse-images --verse title-page
-verse-images --verse card-page
-# Fallback when collection/theme is ambiguous:
-verse-images --collection hanuman-chalisa --theme modern-minimalist --verse title-page
-verse-images --collection hanuman-chalisa --theme modern-minimalist --verse card-page
+#    collection/site cover images are auto-generated in this first-verse flow when OPENAI_API_KEY is available
+#    paths: images/cover.png and images/hanuman-chalisa/modern-minimalist/cover.png
 ```
 
 ### Add Collection to Existing Project
@@ -212,14 +207,8 @@ verse-validate
 # 5. Generate first verse
 verse-generate --collection sundar-kaand --verse 1
 
-#    title/card images are auto-generated in this first-verse flow when OPENAI_API_KEY is available
-
-# 6. Optional: validate or re-generate collection title/card images
-verse-images --verse title-page
-verse-images --verse card-page
-# Fallback when collection/theme is ambiguous:
-verse-images --collection sundar-kaand --theme modern-minimalist --verse title-page
-verse-images --collection sundar-kaand --theme modern-minimalist --verse card-page
+#    collection/site cover images are auto-generated in this first-verse flow when OPENAI_API_KEY is available
+#    paths: images/cover.png and images/sundar-kaand/modern-minimalist/cover.png
 ```
 
 ## After Initialization

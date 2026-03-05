@@ -223,13 +223,21 @@ def test_creates_scenes_file(tmp_path):
     scenes = tmp_path / "data" / "scenes" / "hanuman-chalisa.yml"
     assert scenes.exists()
     content = scenes.read_text()
-    assert "title-page:" in content
-    assert "title: Hanuman Chalisa Title Page" in content
+    assert "cover:" in content
+    assert "title: Hanuman Chalisa Cover" in content
     assert "Primary subject: Lord Hanuman" in content
     assert "gada (mace)" in content
-    assert "card-page:" in content
-    assert "title: Hanuman Chalisa Card Image" in content
     assert "verse-01:" not in content
+
+
+def test_creates_site_scenes_file(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+    site_scenes = tmp_path / "data" / "scenes" / "site.yml"
+    assert site_scenes.exists()
+    content = site_scenes.read_text()
+    assert "scenes:" in content
+    assert "cover:" in content
 
 
 def test_scenes_file_is_collection_aware_for_shiva(tmp_path):
@@ -295,11 +303,8 @@ def test_does_not_create_invalid_theme_scoped_collection_image_placeholders(tmp_
     create_template_files(tmp_path, "test")
     create_example_collection(tmp_path, "shiv-puran", num_verses=3)
 
-    theme_card = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "card-page.png"
-    assert not theme_card.exists()
-
-    theme_title = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "title-page.png"
-    assert not theme_title.exists()
+    theme_cover = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "cover.png"
+    assert not theme_cover.exists()
 
     card_image = tmp_path / "images" / "shiv-puran" / "card.png"
     assert not card_image.exists()
@@ -329,11 +334,10 @@ def test_prefers_verse_images_generation_when_api_key_present(tmp_path, monkeypa
 
     create_example_collection(tmp_path, "shiv-puran", num_verses=2)
 
-    assert len(calls) == 2
-    assert any("--verse" in cmd and "title-page" in cmd for cmd in calls)
-    assert any("--verse" in cmd and "card-page" in cmd for cmd in calls)
-    assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "title-page.png").exists()
-    assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "card-page.png").exists()
+    assert len(calls) == 1
+    assert any("--verse" in cmd and "cover" in cmd for cmd in calls)
+    assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "cover.png").exists()
+    assert (tmp_path / "images" / "cover.png").exists()
 
 
 def test_reports_images_pending_when_api_key_missing(tmp_path, monkeypatch, capsys):
@@ -344,7 +348,7 @@ def test_reports_images_pending_when_api_key_missing(tmp_path, monkeypatch, caps
 
     out = capsys.readouterr().out
     assert "Images pending for shiv-puran (no OPENAI_API_KEY)" in out
-    assert "verse-images --collection shiv-puran --theme modern-minimalist --verse title-page,card-page" in out
+    assert "verse-images --collection shiv-puran --theme modern-minimalist --verse cover" in out
 
 
 def test_collection_layout_references_title_image(tmp_path):
@@ -354,7 +358,7 @@ def test_collection_layout_references_title_image(tmp_path):
     index_content = (tmp_path / "index.html").read_text()
     assert "{% assign theme_name = cfg.image_theme | default: cfg.theme | default: cfg.default_theme" in index_content
     assert "{% assign generated_count = 0 %}" in index_content
-    assert "/images/{{ key }}/{{ theme_name }}/card-page.png" in index_content
+    assert "/images/{{ key }}/{{ theme_name }}/cover.png" in index_content
     assert "{{ generated_count }} of {{ cfg.total_verses }}" in index_content
     assert "{{ generated_count }} of ?" in index_content
     assert "this.src='/images/{{ key }}/card.png'" not in index_content
@@ -362,7 +366,7 @@ def test_collection_layout_references_title_image(tmp_path):
 
     layout = (tmp_path / "_layouts" / "collection.html").read_text()
     assert "{% assign theme_name = collection_cfg.image_theme | default: collection_cfg.theme | default: collection_cfg.default_theme" in layout
-    assert "/images/{{ collection_key }}/{{ theme_name }}/card-page.png" in layout
+    assert "/images/{{ collection_key }}/{{ theme_name }}/cover.png" in layout
     assert "this.src='/images/{{ collection_key }}/title.png'" not in layout
     assert "verse.collection_key == collection_key" in layout
     assert "<span data-lang=\"en\">{{ collection_name_en }}</span>" in layout
@@ -383,6 +387,7 @@ def test_index_layout_orders_hero_then_sacred_text(tmp_path):
     create_template_files(tmp_path, "test")
     content = (tmp_path / "index.html").read_text()
     assert content.index("home-hero") < content.index("Sacred Text")
+    assert "/images/cover.png" in content
 
 
 def test_resolve_collection_theme_uses_project_default(tmp_path):
@@ -493,7 +498,8 @@ def test_project_next_steps_with_collection_are_consolidated_and_concrete(tmp_pa
     assert "Optional: validate or re-generate collection title/card images:" not in out
     assert "verse-images --verse title-page" not in out
     assert "verse-images --verse card-page" not in out
-    assert "Collection title/card images are auto-generated in this first-verse flow when OPENAI_API_KEY is available." in out
+    assert "Collection cover image is auto-generated in this first-verse flow when OPENAI_API_KEY is available." in out
+    assert "images/cover.png and images/<collection>/<theme>/cover.png" in out
     assert "bundle install" in out
     assert "bundle exec jekyll serve" in out
     assert out.index("bundle install") < out.index("bundle exec jekyll serve")

@@ -305,7 +305,7 @@ title: __PROJECT_NAME__
 {% if featured_key != '' %}
 <section class="hero home-hero">
   <div class="home-hero-media">
-    <img class="collection-hero-image" src="/images/{{ featured_key }}/{{ featured_theme_name }}/card-page.png" alt="{{ site.title }} title image" />
+    <img class="collection-hero-image" src="/images/cover.png" alt="{{ site.title }} title image" />
   </div>
   <p>
     <span data-lang="en">This is placeholder intro text for your website. Update it with your collection vision, audience, and devotional context.</span>
@@ -334,7 +334,7 @@ title: __PROJECT_NAME__
     {% endif %}
   {% endfor %}
   <a class="collection-card card" href="/{{ key }}/">
-    <img src="/images/{{ key }}/{{ theme_name }}/card-page.png" alt="{{ cfg.name.en | default: key }} card image" />
+    <img src="/images/{{ key }}/{{ theme_name }}/cover.png" alt="{{ cfg.name.en | default: key }} card image" />
     <div class="card-title">{{ cfg.name.en | default: key }}</div>
     {% if cfg.name.hi %}<div class="card-subtitle">{{ cfg.name.hi }}</div>{% endif %}
     {% if cfg.total_verses %}
@@ -386,7 +386,7 @@ layout: default
     <span data-lang="hi">इस संग्रह के श्लोक, चित्र और भक्ति-संदर्भ देखें।</span>
   </p>
   <div class="collection-hero-media">
-    <img class="collection-hero-image" src="/images/{{ collection_key }}/{{ theme_name }}/card-page.png" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
+    <img class="collection-hero-image" src="/images/{{ collection_key }}/{{ theme_name }}/cover.png" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
   </div>
   {% assign verse_count = 0 %}
   {% for verse in site.verses %}
@@ -766,26 +766,29 @@ nav:
   home: "मुखपृष्ठ"
 """
 
+SITE_SCENES_YML_CONTENT = """_meta:
+  description: Site-level scene prompts
+scenes:
+  cover:
+    title: Site Cover
+    description: |
+      Devotional website cover image with calm sacred atmosphere, clean composition, and warm spiritual lighting.
+      Keep framing landscape-friendly (16:9) for homepage hero usage.
+"""
+
 
 def _default_collection_scene_entries(collection: str) -> dict:
     display_name = collection.replace('-', ' ').title()
     context = _infer_collection_scene_context(collection)
     return {
-        "title-page": {
-            "title": f"{display_name} Title Page",
+        "cover": {
+            "title": f"{display_name} Cover",
             "description": (
                 f"{display_name}: {context['title_focus']}.\n"
                 f"Primary subject: {context['subject']} in a {context['setting']}.\n"
                 f"Mood and lighting: {context['mood']} with soft divine glow.\n"
-                f"Symbolic details: {context['imagery']}."
-            ),
-        },
-        "card-page": {
-            "title": f"{display_name} Card Image",
-            "description": (
-                f"Collection card for {display_name} centered on {context['subject']}.\n"
-                f"Use a clean iconic composition with {context['imagery']} and {context['mood']}.\n"
-                "Keep framing landscape-friendly for listing cards with clear text contrast."
+                f"Symbolic details: {context['imagery']}.\n"
+                "Keep framing landscape-friendly (16:9) for collection card and collection hero usage."
             ),
         },
     }
@@ -847,7 +850,7 @@ def _infer_collection_scene_context(collection: str) -> dict:
 
 
 def upsert_collection_scene_entries(scenes_file: Path, collection: str) -> bool:
-    """Ensure title-page and card-page scene entries exist in scene YAML."""
+    """Ensure cover scene entry exists in collection scene YAML."""
     defaults = _default_collection_scene_entries(collection)
     display_name = collection.replace('-', ' ').title()
 
@@ -998,6 +1001,7 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
         "assets/js/theme.js": THEME_JS_TEMPLATE,
         "assets/js/guidance.js": GUIDANCE_JS_TEMPLATE,
         "index.html": INDEX_HTML_TEMPLATE.replace("__PROJECT_NAME__", project_name),
+        "data/scenes/site.yml": SITE_SCENES_YML_CONTENT,
         "README.md": README_TEMPLATE.format(project_name=project_name),
     }
 
@@ -1106,48 +1110,52 @@ def generate_collection_images_with_verse_images(
     collection: str,
     theme: str = "modern-minimalist",
 ) -> bool:
-    """Generate title/card images by reusing verse-images CLI logic."""
+    """Generate collection cover image by reusing verse-images CLI logic."""
     verse_images_cmd = shutil.which("verse-images")
     if verse_images_cmd:
         base_cmd = [verse_images_cmd]
     else:
         base_cmd = [sys.executable, "-m", "verse_sdk.images.generate_theme_images"]
 
-    for verse_id in ("title-page", "card-page"):
-        cmd = base_cmd + [
-            "--collection", collection,
-            "--theme", theme,
-            "--verse", verse_id,
-        ]
-        subprocess.run(cmd, cwd=base_path, check=True, capture_output=True, text=True)
+    cmd = base_cmd + [
+        "--collection", collection,
+        "--theme", theme,
+        "--verse", "cover",
+    ]
+    subprocess.run(cmd, cwd=base_path, check=True, capture_output=True, text=True)
 
-        output_path = base_path / "images" / collection / theme / f"{verse_id}.png"
-        if not output_path.exists() or output_path.stat().st_size <= 0:
-            raise RuntimeError(f"verse-images reported success but {output_path} was not created")
+    output_path = base_path / "images" / collection / theme / "cover.png"
+    if not output_path.exists() or output_path.stat().st_size <= 0:
+        raise RuntimeError(f"verse-images reported success but {output_path} was not created")
 
     return True
 
 
 def ensure_collection_images(base_path: Path, collection: str, theme: str = "modern-minimalist") -> None:
-    """Generate title/card images when possible; otherwise mark them as pending."""
+    """Generate collection/site cover images when possible; otherwise mark them as pending."""
     openai_key = os.environ.get("OPENAI_API_KEY")
     if openai_key:
         try:
             if generate_collection_images_with_verse_images(base_path, collection, theme=theme):
-                print(f"✓ Generated images/{collection}/{theme}/title-page.png via verse-images")
-                print(f"✓ Generated images/{collection}/{theme}/card-page.png via verse-images")
+                print(f"✓ Generated images/{collection}/{theme}/cover.png via verse-images")
+                collection_cover = base_path / "images" / collection / theme / "cover.png"
+                site_cover = base_path / "images" / "cover.png"
+                if collection_cover.exists() and not site_cover.exists():
+                    site_cover.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(collection_cover, site_cover)
+                    print("✓ Created images/cover.png from collection cover")
                 return
         except Exception as exc:
             print(f"⚠ verse-images generation failed for {collection}: {exc}")
             print(
                 f"⚠ Images pending for {collection}. Run:\n"
-                f"   verse-images --collection {collection} --theme {theme} --verse title-page,card-page"
+                f"   verse-images --collection {collection} --theme {theme} --verse cover"
             )
             return
 
     print(
         f"◌ Images pending for {collection} (no OPENAI_API_KEY). Run:\n"
-        f"   verse-images --collection {collection} --theme {theme} --verse title-page,card-page"
+        f"   verse-images --collection {collection} --theme {theme} --verse cover"
     )
 
 
@@ -1279,7 +1287,9 @@ def print_collection_next_steps(
     print("   5. Generate first verse content + assets from canonical YAML:")
     print(f"      verse-generate --collection {collection} --verse 1")
     print("      (Scene descriptions can be auto-generated by verse-generate, or edited in data/scenes manually.)")
-    print("      Collection title/card images are auto-generated in this first-verse flow when OPENAI_API_KEY is available.")
+    print("      Collection cover image is auto-generated in this first-verse flow when OPENAI_API_KEY is available.")
+    print("      Paths: images/cover.png and images/<collection>/<theme>/cover.png")
+    print("      Scene prompts: data/scenes/site.yml (site) and data/scenes/<collection>.yml (collection)")
     print(f"   6. Review/edit generated verses in _verses/{collection}/ for quality")
     print("   7. Preview locally and verify output:")
     print("      bundle install")
