@@ -184,6 +184,7 @@ banner_subtitle: "Verse collection project powered by Sanatan Verse SDK"
 project_repository_url: "{project_repository_url}"
 usage_guide_url: "#"
 ask_shiva_url: "#"
+search_verses_url: "#"
 shiva_quiz_url: "#"
 contribute_url: "#"
 markdown: kramdown
@@ -282,14 +283,41 @@ title: __PROJECT_NAME__
 ---
 
 {% assign has_enabled = false %}
+{% assign featured_key = '' %}
 {% for pair in site.data.collections %}
+  {% assign key = pair[0] %}
   {% assign cfg = pair[1] %}
   {% if cfg.enabled %}
     {% assign has_enabled = true %}
+    {% if featured_key == '' %}
+      {% assign featured_key = key %}
+    {% endif %}
   {% endif %}
 {% endfor %}
 
+{% if featured_key != '' %}
+  {% assign featured_cfg = site.data.collections[featured_key] %}
+  {% assign verse_defaults = site.data["verse-config"].defaults %}
+  {% assign featured_theme_name = featured_cfg.image_theme | default: featured_cfg.theme | default: featured_cfg.default_theme | default: verse_defaults.image_theme | default: verse_defaults.theme | default: verse_defaults.default_theme | default: 'modern-minimalist' %}
+{% endif %}
+
 <section class="collections-section">
+{% if featured_key != '' %}
+<section class="hero home-hero">
+  <div class="home-hero-media">
+    <img class="collection-hero-image" src="/images/{{ featured_key }}/{{ featured_theme_name }}/card-page.png" alt="{{ site.title }} title image" />
+  </div>
+  <p>
+    <span data-lang="en">This is placeholder intro text for your website. Update it with your collection vision, audience, and devotional context.</span>
+    <span data-lang="hi">यह आपके वेबसाइट परिचय का प्लेसहोल्डर पाठ है। इसे अपनी संग्रह-दृष्टि, पाठक-वर्ग और भक्ति-संदर्भ के अनुसार अद्यतन करें।</span>
+  </p>
+  <div class="button-row">
+    <a class="button" href="{{ site.ask_shiva_url | default: '#' }}">Ask Shiva</a>
+    <a class="button secondary" href="{{ site.search_verses_url | default: '#' }}">Search Verses</a>
+  </div>
+</section>
+{% endif %}
+
   <h2><span data-lang="en">{{ site.data.translations.en.home.sacred_text | default: "Sacred Text" }}</span><span data-lang="hi">{{ site.data.translations.hi.home.sacred_text | default: "पवित्र ग्रंथ" }}</span></h2>
 {% if has_enabled %}
 <div class="collections-grid card-grid">
@@ -358,7 +386,7 @@ layout: default
     <span data-lang="hi">इस संग्रह के श्लोक, चित्र और भक्ति-संदर्भ देखें।</span>
   </p>
   <div class="collection-hero-media">
-    <img class="collection-hero-image" src="/images/{{ collection_key }}/{{ theme_name }}/title-page.png" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
+    <img class="collection-hero-image" src="/images/{{ collection_key }}/{{ theme_name }}/card-page.png" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
   </div>
   {% assign verse_count = 0 %}
   {% for verse in site.verses %}

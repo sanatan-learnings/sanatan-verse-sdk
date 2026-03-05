@@ -133,6 +133,7 @@ def test_config_does_not_reference_minima(tmp_path):
     assert "jekyll-seo-tag" in content
     assert "banner_title:" in content
     assert "banner_subtitle:" in content
+    assert "search_verses_url:" in content
 
 
 def test_config_prefills_project_repository_url_from_git_origin(tmp_path, monkeypatch):
@@ -176,6 +177,10 @@ def test_index_page_has_jekyll_frontmatter(tmp_path):
     assert "site.data.collections" in content
     assert "cfg.enabled" in content
     assert "class=\"collections-grid card-grid\"" in content
+    assert "home-hero-media" in content
+    assert "Ask Shiva" in content
+    assert "Search Verses" in content
+    assert "site.search_verses_url" in content
     assert "Sacred Text" in content
     assert "End-to-End Workflow" not in content
     assert "Enabled collections" not in content
@@ -357,7 +362,7 @@ def test_collection_layout_references_title_image(tmp_path):
 
     layout = (tmp_path / "_layouts" / "collection.html").read_text()
     assert "{% assign theme_name = collection_cfg.image_theme | default: collection_cfg.theme | default: collection_cfg.default_theme" in layout
-    assert "/images/{{ collection_key }}/{{ theme_name }}/title-page.png" in layout
+    assert "/images/{{ collection_key }}/{{ theme_name }}/card-page.png" in layout
     assert "this.src='/images/{{ collection_key }}/title.png'" not in layout
     assert "verse.collection_key == collection_key" in layout
     assert "<span data-lang=\"en\">{{ collection_name_en }}</span>" in layout
@@ -371,6 +376,13 @@ def test_collection_layout_references_title_image(tmp_path):
     assert "site.static_files" in layout
     assert "{{ verse.verse_id | default: verse.title | default: verse.basename }}" not in layout
     assert "v.path contains" not in layout
+
+
+def test_index_layout_orders_hero_then_sacred_text(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+    content = (tmp_path / "index.html").read_text()
+    assert content.index("home-hero") < content.index("Sacred Text")
 
 
 def test_resolve_collection_theme_uses_project_default(tmp_path):
