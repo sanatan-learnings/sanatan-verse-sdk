@@ -59,6 +59,7 @@ COLLECTIONS_YML_CONTENT = """# Collection registry
 #   # subject and subject_type are optional here if set in _data/verse-config.yml defaults
 #   # subject: Hanuman
 #   # subject_type: deity
+#   # banner_theme: shiva   # optional UI header palette override (e.g., shiva, saffron, krishna, rama)
 """
 
 VERSE_CONFIG_CONTENT = """# Project-level configuration for sanatan-verse-sdk
@@ -67,6 +68,7 @@ VERSE_CONFIG_CONTENT = """# Project-level configuration for sanatan-verse-sdk
 defaults:
   # subject: Hanuman        # primary deity / subject of this project
   # subject_type: deity     # deity | avatar | concept | figure
+  # banner_theme: saffron   # optional default UI header palette override
 
   # subject and subject_type are used by verse-puranic-context to filter
   # RAG retrieval to episodes where the subject is a direct participant.
@@ -208,7 +210,22 @@ DEFAULT_LAYOUT_TEMPLATE = """<!doctype html>
     <link rel="stylesheet" href="{{ '/assets/css/print.css' | relative_url }}" media="print">
     {% seo %}
   </head>
-  <body>
+  {% assign active_collection_key = page.collection_key | default: page.collection %}
+  {% assign active_collection_cfg = site.data.collections[active_collection_key] %}
+  {% assign verse_defaults = site.data["verse-config"].defaults %}
+  {% assign configured_banner_theme = active_collection_cfg.banner_theme | default: verse_defaults.banner_theme | default: site.banner_theme %}
+  {% assign subject_hint = active_collection_cfg.subject | default: verse_defaults.subject | default: active_collection_key | default: site.title %}
+  {% assign subject_hint_lc = subject_hint | downcase %}
+  {% assign auto_banner_theme = 'saffron' %}
+  {% if subject_hint_lc contains 'shiv' or subject_hint_lc contains 'shiva' %}
+    {% assign auto_banner_theme = 'shiva' %}
+  {% elsif subject_hint_lc contains 'krishna' %}
+    {% assign auto_banner_theme = 'krishna' %}
+  {% elsif subject_hint_lc contains 'ram' or subject_hint_lc contains 'rama' %}
+    {% assign auto_banner_theme = 'rama' %}
+  {% endif %}
+  {% assign banner_theme = configured_banner_theme | default: auto_banner_theme %}
+  <body class="banner-theme-{{ banner_theme | slugify }}">
     <header>
       <div class="container">
         <div class="header-content">
@@ -231,6 +248,21 @@ DEFAULT_LAYOUT_TEMPLATE = """<!doctype html>
     <main class="container">
       {{ content }}
     </main>
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p class="footer-blessing">
+          <span data-lang="en">May divine wisdom guide your study and practice.</span>
+          <span data-lang="hi">ईश्वरीय ज्ञान आपकी साधना और अध्ययन का मार्गदर्शन करे।</span>
+        </p>
+        <nav class="footer-links" aria-label="Footer links">
+          <a href="https://github.com/sanatan-learnings/sanatan-verse-sdk" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md" target="_blank" rel="noopener">Usage Guide</a>
+          <a href="https://github.com/sanatan-learnings/sanatan-verse-sdk/issues/new/choose" target="_blank" rel="noopener">Ask</a>
+          <a href="/quiz/">Quiz</a>
+          <a href="https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute</a>
+        </nav>
+      </div>
+    </footer>
     <script src="{{ '/assets/js/navigation.js' | relative_url }}"></script>
     <script src="{{ '/assets/js/language.js' | relative_url }}"></script>
     <script src="{{ '/assets/js/theme.js' | relative_url }}"></script>
@@ -303,21 +335,42 @@ layout: default
 {% assign theme_name = collection_cfg.image_theme | default: collection_cfg.theme | default: collection_cfg.default_theme | default: verse_defaults.image_theme | default: verse_defaults.theme | default: verse_defaults.default_theme | default: 'modern-minimalist' %}
 {% assign collection_name_en = collection_cfg.name.en | default: collection_cfg.name_en | default: collection_key %}
 {% assign collection_name_hi = collection_cfg.name.hi | default: collection_cfg.name_hi %}
-
-<h1>
-  <span data-lang="en">{{ collection_name_en }}</span>
-  <span data-lang="hi">{{ collection_name_hi | default: collection_name_en }}</span>
-</h1>
-
-<img class="collection-hero-image" src="/images/{{ collection_key }}/{{ theme_name }}/title-page.png" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
-
-{% assign verse_count = 0 %}
+{% assign first_verse_url = '' %}
 {% for verse in site.verses %}
   {% if verse.collection_key == collection_key %}
-    {% assign verse_count = verse_count | plus: 1 %}
+    {% assign first_verse_url = verse.url %}
+    {% break %}
   {% endif %}
 {% endfor %}
-<p>Total verses: {{ collection_cfg.total_verses | default: verse_count }}</p>
+
+<section class="collection-hero card">
+  <h1>
+    <span data-lang="en">{{ collection_name_en }}</span>
+    <span data-lang="hi">{{ collection_name_hi | default: collection_name_en }}</span>
+  </h1>
+  <p class="collection-intro">
+    <span data-lang="en">Explore verses, visuals, and devotional context for this collection.</span>
+    <span data-lang="hi">इस संग्रह के श्लोक, चित्र और भक्ति-संदर्भ देखें।</span>
+  </p>
+  <div class="collection-hero-media">
+    <img class="collection-hero-image" src="/images/{{ collection_key }}/{{ theme_name }}/title-page.png" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
+  </div>
+  {% assign verse_count = 0 %}
+  {% for verse in site.verses %}
+    {% if verse.collection_key == collection_key %}
+      {% assign verse_count = verse_count | plus: 1 %}
+    {% endif %}
+  {% endfor %}
+  <p class="collection-meta">Total verses: {{ collection_cfg.total_verses | default: verse_count }}</p>
+  {% if first_verse_url != '' %}
+  <div class="button-row">
+    <a class="button" href="{{ first_verse_url }}">
+      <span data-lang="en">Start Reading</span>
+      <span data-lang="hi">पठन प्रारंभ करें</span>
+    </a>
+  </div>
+  {% endif %}
+</section>
 
 <div class="verse-list card-grid">
 {% assign listed = false %}
@@ -411,6 +464,9 @@ STYLE_CSS_TEMPLATE = """:root {
   --accent: #b35c1e;
   --accent-soft: #f6e2c5;
   --border: #e4d8c2;
+  --banner-grad-start: #fff3db;
+  --banner-grad-mid: #ffe7c5;
+  --banner-grad-end: #f3d7aa;
 }
 * { box-sizing: border-box; }
 body {
@@ -422,8 +478,32 @@ body {
 }
 header {
   border-bottom: 1px solid var(--border);
-  background: rgba(255, 250, 240, 0.88);
+  background: linear-gradient(120deg, var(--banner-grad-start), var(--banner-grad-mid) 55%, var(--banner-grad-end));
   backdrop-filter: blur(4px);
+}
+body.banner-theme-shiva {
+  --accent: #2a5fa8;
+  --accent-soft: #d7e8ff;
+  --border: #c9d9ef;
+  --banner-grad-start: #e8f1ff;
+  --banner-grad-mid: #d2e4ff;
+  --banner-grad-end: #bfd8ff;
+}
+body.banner-theme-krishna {
+  --accent: #225ab8;
+  --accent-soft: #dbe6ff;
+  --border: #c8d5f2;
+  --banner-grad-start: #eef2ff;
+  --banner-grad-mid: #dbe5ff;
+  --banner-grad-end: #ccd9ff;
+}
+body.banner-theme-rama {
+  --accent: #3f7a3b;
+  --accent-soft: #dff0d9;
+  --border: #cfe5c8;
+  --banner-grad-start: #f1fae8;
+  --banner-grad-mid: #deefcf;
+  --banner-grad-end: #cde6ba;
 }
 .container {
   max-width: 1080px;
@@ -544,13 +624,48 @@ code {
 }
 .collection-hero-image {
   width: 100%;
-  max-width: 960px;
+  max-width: 900px;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   height: auto;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface-strong);
+}
+.collection-hero {
+  margin-bottom: 1.1rem;
+}
+.collection-hero-media {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0 0.7rem;
+}
+.collection-intro,
+.collection-meta {
+  color: var(--muted);
+}
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  margin-top: 2rem;
+}
+.footer-inner {
+  padding: 1.2rem 1rem 1.6rem;
+  text-align: center;
+}
+.footer-blessing {
+  margin: 0 0 0.6rem;
+  color: var(--muted);
+}
+.footer-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  font-size: 0.95rem;
+}
+.footer-links a {
+  text-decoration: none;
 }
 .verse-list {
   list-style: none;

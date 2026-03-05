@@ -330,6 +330,9 @@ def test_collection_layout_references_title_image(tmp_path):
     assert "Back to Home" not in layout
     assert "Workflow Guide" not in layout
     assert "class=\"card verse-card\"" in layout
+    assert "collection-hero card" in layout
+    assert "collection-hero-media" in layout
+    assert "Start Reading" in layout
     assert "site.static_files" in layout
     assert "{{ verse.verse_id | default: verse.title | default: verse.basename }}" not in layout
     assert "v.path contains" not in layout
@@ -378,6 +381,17 @@ def test_default_layout_uses_assets_and_configurable_header(tmp_path):
     assert "{% seo %}" in layout
     assert "site.banner_title | default: site.title" in layout
     assert "site.banner_subtitle | default: site.description" in layout
+    assert "active_collection_cfg.banner_theme" in layout
+    assert "banner-theme-{{ banner_theme | slugify }}" in layout
+    assert "subject_hint_lc contains 'shiv'" in layout
+    assert "footer-links" in layout
+    assert "May divine wisdom guide your study and practice." in layout
+    assert "Usage Guide" in layout
+    assert "Contribute" in layout
+
+    css = (tmp_path / "assets" / "css" / "style.css").read_text()
+    assert "body.banner-theme-shiva" in css
+    assert ".site-footer" in css
 
 
 def test_home_layout_does_not_duplicate_title_and_description(tmp_path):

@@ -96,6 +96,10 @@ verse-init --project-name my-project \
 - ✅ Collection landing page: `<collection>/index.html`
 - ✅ Collection entry in `_data/collections.yml`
 
+**UI theming defaults:**
+- Header banner palette auto-adapts by collection subject (for example, Shiva collections use a blue-toned banner).
+- You can override this per collection with `banner_theme` in `_data/collections.yml` (example: `banner_theme: shiva`).
+
 ## Created Structure
 
 The command creates the following directory structure:
