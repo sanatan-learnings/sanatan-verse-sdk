@@ -181,6 +181,11 @@ JEKYLL_CONFIG_TEMPLATE = """title: "{project_name}"
 description: "Verse collection project powered by Sanatan Verse SDK"
 banner_title: "{project_name}"
 banner_subtitle: "Verse collection project powered by Sanatan Verse SDK"
+project_repository_url: "https://github.com/<your-org>/<your-repo>"
+usage_guide_url: "#"
+ask_shiva_url: "#"
+shiva_quiz_url: "#"
+contribute_url: "#"
 markdown: kramdown
 collections:
   verses:
@@ -255,11 +260,11 @@ DEFAULT_LAYOUT_TEMPLATE = """<!doctype html>
           <span data-lang="hi">ईश्वरीय ज्ञान आपकी साधना और अध्ययन का मार्गदर्शन करे।</span>
         </p>
         <nav class="footer-links" aria-label="Footer links">
-          <a href="https://github.com/sanatan-learnings/sanatan-verse-sdk" target="_blank" rel="noopener">GitHub</a>
-          <a href="https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md" target="_blank" rel="noopener">Usage Guide</a>
-          <a href="https://github.com/sanatan-learnings/sanatan-verse-sdk/issues/new/choose" target="_blank" rel="noopener">Ask</a>
-          <a href="/quiz/">Quiz</a>
-          <a href="https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute</a>
+          <a href="{{ site.project_repository_url | default: '#' }}" target="_blank" rel="noopener">GitHub</a>
+          <a href="{{ site.usage_guide_url | default: '#' }}" target="_blank" rel="noopener">Usage Guide</a>
+          <a href="{{ site.ask_shiva_url | default: '#' }}" target="_blank" rel="noopener">Ask Shiva</a>
+          <a href="{{ site.shiva_quiz_url | default: '#' }}">Shiva Quiz</a>
+          <a href="{{ site.contribute_url | default: '#' }}" target="_blank" rel="noopener">Contribute</a>
         </nav>
       </div>
     </footer>

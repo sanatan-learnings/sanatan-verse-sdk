@@ -386,12 +386,26 @@ def test_default_layout_uses_assets_and_configurable_header(tmp_path):
     assert "subject_hint_lc contains 'shiv'" in layout
     assert "footer-links" in layout
     assert "May divine wisdom guide your study and practice." in layout
-    assert "Usage Guide" in layout
+    assert "site.project_repository_url" in layout
+    assert "site.usage_guide_url" in layout
+    assert "site.ask_shiva_url" in layout
+    assert "site.shiva_quiz_url" in layout
+    assert "site.contribute_url" in layout
+    assert "Ask Shiva" in layout
+    assert "Shiva Quiz" in layout
     assert "Contribute" in layout
+    assert "sanatan-learnings/sanatan-verse-sdk" not in layout
 
     css = (tmp_path / "assets" / "css" / "style.css").read_text()
     assert "body.banner-theme-shiva" in css
     assert ".site-footer" in css
+
+    config = (tmp_path / "_config.yml").read_text()
+    assert "project_repository_url:" in config
+    assert "usage_guide_url:" in config
+    assert "ask_shiva_url:" in config
+    assert "shiva_quiz_url:" in config
+    assert "contribute_url:" in config
 
 
 def test_home_layout_does_not_duplicate_title_and_description(tmp_path):
