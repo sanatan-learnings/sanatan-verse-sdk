@@ -80,6 +80,20 @@ _SCENE_SEQUENCE_WARNED_FILES = set()
 COLLECTION_OVERVIEW_VERSE_IDS = ("title-page", "card-page")
 
 
+def _is_verbose() -> bool:
+    return VERBOSE_MODE and not QUIET_MODE
+
+
+def _log_info(message: str) -> None:
+    if not QUIET_MODE:
+        print(message)
+
+
+def _log_verbose(message: str) -> None:
+    if _is_verbose():
+        print(message)
+
+
 # ==================== Custom Exception Classes ====================
 
 class UserFriendlyError(Exception):
@@ -495,7 +509,8 @@ def generate_verse_content(devanagari_text: str, collection: str, verse_id: str 
         Tuple of (content_dict, cost)
     """
     if dry_run:
-        print("  → [DRY-RUN] Would generate AI content from canonical text...", file=sys.stderr)
+        if _is_verbose():
+            print("  → [DRY-RUN] Would generate AI content from canonical text...", file=sys.stderr)
         mock_result = {
             "devanagari": devanagari_text,
             "transliteration": "[mock transliteration]",
@@ -584,7 +599,8 @@ When to Use (Hindi): [कब उपयोग करें]
 Format your response exactly as above with clear section headers."""
 
     try:
-        print("  → Generating AI content from canonical text...", file=sys.stderr)
+        if _is_verbose():
+            print("  → Generating AI content from canonical text...", file=sys.stderr)
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
@@ -718,9 +734,11 @@ Format your response exactly as above with clear section headers."""
                                     "emphasis": emphasis
                                 })
                             else:
-                                print(f"  ⚠ Warning: Skipping phonetic note for '{word}' - not found in verse", file=sys.stderr)
+                                if _is_verbose():
+                                    print(f"  ⚠ Warning: Skipping phonetic note for '{word}' - not found in verse", file=sys.stderr)
                 except Exception:
-                    print(f"  ⚠ Warning: Failed to parse phonetic note: {line_stripped}", file=sys.stderr)
+                    if _is_verbose():
+                        print(f"  ⚠ Warning: Failed to parse phonetic note: {line_stripped}", file=sys.stderr)
                     pass  # Skip malformed entries
             elif current_section == "word_meanings" and line_stripped and "WORD:" in line_stripped:
                 # Parse word meaning entry: WORD: ... | ROMAN: ... | EN: ... | HI: ...
@@ -788,7 +806,8 @@ Format your response exactly as above with clear section headers."""
                 devanagari_text
             )
 
-        print("  ✓ Generated complete verse content with titles, translations, story, and practical applications", file=sys.stderr)
+        if _is_verbose():
+            print("  ✓ Generated complete verse content with titles, translations, story, and practical applications", file=sys.stderr)
         return result, cost
 
     except Exception as e:
@@ -1926,22 +1945,22 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
             ]
             return False, "\n".join([error_msg] + [f"  → {inst}" for inst in instructions])
         else:
-            print(f"  ✓ Using existing scene description for {verse_type_title} {verse_number}")
+            _log_verbose(f"  ✓ Using existing scene description for {verse_type_title} {verse_number}")
             return True, "existing"
 
     elif scene_mode == "prefer-existing":
         # Smart default: Use existing if found, generate if missing
         if scene_exists:
-            print(f"  ✓ Using existing scene description for {verse_type_title} {verse_number}")
+            _log_verbose(f"  ✓ Using existing scene description for {verse_type_title} {verse_number}")
             return True, "existing"
         else:
-            print("  → Existing scene not found, generating with AI...")
+            _log_verbose("  → Existing scene not found, generating with AI...")
             # Fall through to generation logic below
             pass
 
     elif scene_mode == "auto-generate":
         # Always generate: Ignore existing
-        print("  → Generating scene description with AI (auto-generate mode)...")
+        _log_verbose("  → Generating scene description with AI (auto-generate mode)...")
         # Fall through to generation logic below
         pass
 
@@ -1949,11 +1968,11 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
     scenes_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate new scene description
-    print(f"  → Generating scene description for {verse_type_title} {verse_number}...")
+    _log_verbose(f"  → Generating scene description for {verse_type_title} {verse_number}...")
     scene_description = generate_scene_description(devanagari_text, verse_id, collection)
 
     if not scene_description:
-        print("  ✗ Failed to generate scene description")
+        print("  ✗ Failed to generate scene description", file=sys.stderr)
         return False, "generation_failed"
 
     # Load existing scenes or create new structure
@@ -1961,7 +1980,7 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
         with open(scenes_file, 'r', encoding='utf-8') as f:
             scenes_data = yaml.safe_load(f) or {}
     else:
-        print(f"  → Creating scene descriptions file: {scenes_file.name}")
+        _log_verbose(f"  → Creating scene descriptions file: {scenes_file.name}")
         scenes_data = {
             '_meta': {
                 'collection': collection,
@@ -1995,11 +2014,11 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
                      width=120)
 
         if scene_exists:
-            print(f"  ✓ Updated scene description for {verse_type_title} {verse_number} in {scenes_file.name}")
+            _log_verbose(f"  ✓ Updated scene description for {verse_type_title} {verse_number} in {scenes_file.name}")
         else:
-            print(f"  ✓ Added scene description for {verse_type_title} {verse_number} to {scenes_file.name}")
+            _log_verbose(f"  ✓ Added scene description for {verse_type_title} {verse_number} to {scenes_file.name}")
 
-        print("  ⚠ [AI-Generated - Review Recommended]")
+        _log_verbose("  ⚠ [AI-Generated - Review Recommended]")
         return True, "generated"
 
     except Exception as e:
@@ -2850,14 +2869,14 @@ Environment Variables:
         verse_numbers = get_all_verse_positions(args.collection)
         if not verse_numbers:
             sys.exit(1)
-        print(f"✓ Resolved --all to positions {verse_numbers[0]}-{verse_numbers[-1]} ({len(verse_numbers)} verses)")
+        _log_verbose(f"✓ Resolved --all to positions {verse_numbers[0]}-{verse_numbers[-1]} ({len(verse_numbers)} verses)")
     elif args.next:
         # Handle --next by finding the next verse to generate
         next_verse = find_next_verse(args.collection)
         if next_verse is None:
             print(f"✗ Error: Could not determine next verse for collection '{args.collection}'")
             sys.exit(1)
-        print(f"✓ Auto-detected next verse: {next_verse}")
+        _log_verbose(f"✓ Auto-detected next verse: {next_verse}")
         verse_numbers = [next_verse]
     else:
         # Parse verse argument (supports single number or range)
@@ -2903,40 +2922,43 @@ Environment Variables:
         sys.exit(1)
 
     # Display header
-    print("\n" + "="*60)
-    print("VERSE CONTENT GENERATOR")
-    print("="*60)
+    if _is_verbose():
+        print("\n" + "="*60)
+        print("VERSE CONTENT GENERATOR")
+        print("="*60)
 
-    print(f"\nCollection: {args.collection}")
-    if len(verse_numbers) == 1:
-        print(f"Position: {verse_numbers[0]}")
+        print(f"\nCollection: {args.collection}")
+        if len(verse_numbers) == 1:
+            print(f"Position: {verse_numbers[0]}")
+        else:
+            print(f"Positions: {verse_numbers[0]}-{verse_numbers[-1]} ({len(verse_numbers)} verses)")
+        if generate_image_flag:
+            print(f"Theme: {args.theme}")
+
+        print("\nOperations:")
+        if regenerate_content_flag:
+            print("  ✓ Regenerate AI content (transliteration, meaning, translation, story)")
+        if generate_image_flag:
+            print("  ✓ Generate image")
+        if generate_audio_flag:
+            print("  ✓ Generate audio")
+        if update_embeddings_flag:
+            print("  ✓ Update embeddings")
+        if puranic_context_flag:
+            print("  ✓ Generate Puranic context")
+
+        if args.dry_run:
+            print("\n⚠ DRY-RUN MODE: No files will be created or API calls made")
+
+        print()
     else:
-        print(f"Positions: {verse_numbers[0]}-{verse_numbers[-1]} ({len(verse_numbers)} verses)")
-    if generate_image_flag:
-        print(f"Theme: {args.theme}")
-
-    print("\nOperations:")
-    if regenerate_content_flag:
-        print("  ✓ Regenerate AI content (transliteration, meaning, translation, story)")
-    if generate_image_flag:
-        print("  ✓ Generate image")
-    if generate_audio_flag:
-        print("  ✓ Generate audio")
-    if update_embeddings_flag:
-        print("  ✓ Update embeddings")
-    if puranic_context_flag:
-        print("  ✓ Generate Puranic context")
-
-    if args.dry_run:
-        print("\n⚠ DRY-RUN MODE: No files will be created or API calls made")
-
-    print()
+        _log_info(f"→ Generating {len(verse_numbers)} verse(s) for '{args.collection}'")
 
     # Pre-generation validation for all verses
-    print("="*60)
-    print("PRE-GENERATION VALIDATION")
-    print("="*60)
-    print()
+    _log_verbose("="*60)
+    _log_verbose("PRE-GENERATION VALIDATION")
+    _log_verbose("="*60)
+    _log_verbose("")
 
     validation_failed = False
     for idx, verse_position in enumerate(verse_numbers, 1):
@@ -2950,7 +2972,7 @@ Environment Variables:
                 validation_failed = True
                 continue
 
-        print(f"Validating position {verse_position} ({verse_id})...")
+        _log_verbose(f"Validating position {verse_position} ({verse_id})...")
 
         # Run comprehensive validation
         is_valid, errors = validate_generation_requirements(
@@ -2969,9 +2991,9 @@ Environment Variables:
                 print(f"  - {error}")
             validation_failed = True
         else:
-            print(f"✓ Validation passed for {verse_id}")
+            _log_verbose(f"✓ Validation passed for {verse_id}")
 
-    print()
+    _log_verbose("")
 
     if validation_failed:
         print("="*60)
@@ -2980,10 +3002,10 @@ Environment Variables:
         print("\nPlease fix the errors above and try again.")
         sys.exit(1)
 
-    print("="*60)
-    print("✓ ALL VALIDATIONS PASSED - Starting generation")
-    print("="*60)
-    print()
+    _log_verbose("="*60)
+    _log_verbose("✓ ALL VALIDATIONS PASSED - Starting generation")
+    _log_verbose("="*60)
+    _log_verbose("")
 
     overview_check_required = generate_image_flag and should_auto_generate_collection_overview_images(
         verse_numbers,
@@ -2991,10 +3013,10 @@ Environment Variables:
     )
 
     if overview_check_required:
-        print("="*60)
-        print("COLLECTION OVERVIEW IMAGE CHECK")
-        print("="*60)
-        print()
+        _log_verbose("="*60)
+        _log_verbose("COLLECTION OVERVIEW IMAGE CHECK")
+        _log_verbose("="*60)
+        _log_verbose("")
         overview_ok = ensure_collection_overview_images(
             args.collection,
             args.theme,
@@ -3005,7 +3027,7 @@ Environment Variables:
         )
         if not overview_ok:
             print("⚠ Warning: Failed to generate collection overview images (title/card).")
-        print()
+        _log_verbose("")
     elif args.verbose and generate_image_flag and not args.quiet:
         print("Skipping collection overview image check (only auto-run for verse 1).")
         print("Use --generate-overview-images to run it explicitly.")
@@ -3020,7 +3042,7 @@ Environment Variables:
     # Initialize progress bar for batch operations
     progress_bar = None
     if len(verse_numbers) > 1:
-        print("\nProcessing verses:")
+        _log_info("\nProcessing verses:")
         # Count total steps: for each verse, we might do content + image + audio + embeddings
         # But we'll just show verse-level progress for simplicity
         progress_bar = ProgressBar(total=len(verse_numbers), width=20)
@@ -3032,10 +3054,11 @@ Environment Variables:
             if progress_bar:
                 verse_id_preview = f"verse {idx}/{len(verse_numbers)}"
                 progress_bar.update(idx - 1, f"Processing {verse_id_preview}...")
-                print()  # New line after progress bar
+                if _is_verbose():
+                    print()  # New line after progress bar
 
             # Show progress for batch operations
-            if len(verse_numbers) > 1:
+            if len(verse_numbers) > 1 and _is_verbose():
                 print(f"\n{'#'*60}")
                 print(f"# Processing verse {idx}/{len(verse_numbers)}: Position {verse_position}")
                 print(f"{'#'*60}\n")
@@ -3059,7 +3082,7 @@ Environment Variables:
                 verse_id = inferred
 
                 # Show inference result
-                if len(verse_numbers) == 1:
+                if len(verse_numbers) == 1 and _is_verbose():
                     print(f"\n✓ Position {verse_position} → Verse ID: {verse_id}")
                     print("  (To override, use --verse-id)\n")
 
@@ -3091,10 +3114,10 @@ Environment Variables:
 
             # Step 0: Create verse file if it doesn't exist (required for audio generation)
             if not verse_file_existed:
-                print(f"\n{'='*60}")
-                print("CREATING VERSE FILE")
-                print(f"{'='*60}\n")
-                print("  → Verse file not found, creating from canonical source...")
+                _log_verbose(f"\n{'='*60}")
+                _log_verbose("CREATING VERSE FILE")
+                _log_verbose(f"{'='*60}\n")
+                _log_info("→ Verse file not found, creating from canonical source...")
 
                 from verse_sdk.fetch.fetch_verse_text import fetch_from_local_file
 
@@ -3125,7 +3148,7 @@ Environment Variables:
                     )
 
                     if results['verse_file_created']:
-                        print("  ✓ Verse file created successfully")
+                        _log_info("  ✓ Verse file created successfully")
                         # Update previous verse's next_verse field
                         update_previous_verse_navigation(args.collection, verse_id, Path.cwd())
                     else:
@@ -3162,9 +3185,9 @@ Environment Variables:
                 # Ensure scene description exists before generating image
                 from verse_sdk.fetch.fetch_verse_text import fetch_from_local_file
 
-                print(f"\n{'='*60}")
-                print("PREPARING SCENE DESCRIPTION")
-                print(f"{'='*60}\n")
+                _log_verbose(f"\n{'='*60}")
+                _log_verbose("PREPARING SCENE DESCRIPTION")
+                _log_verbose(f"{'='*60}\n")
 
                 canonical_data = fetch_from_local_file(args.collection, verse_id)
                 if not canonical_data or not canonical_data.get('devanagari'):
