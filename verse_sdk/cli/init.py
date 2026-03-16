@@ -30,6 +30,8 @@ from typing import List, Optional
 
 import yaml
 
+from verse_sdk.utils.credentials import resolve_api_key
+
 # Template files content
 ENV_EXAMPLE_CONTENT = """# OpenAI API Key (for images, embeddings, and content generation)
 # Get your key from: https://platform.openai.com/api-keys
@@ -1133,7 +1135,7 @@ def generate_collection_images_with_verse_images(
 
 def ensure_collection_images(base_path: Path, collection: str, theme: str = "modern-minimalist") -> None:
     """Generate collection/site cover images when possible; otherwise mark them as pending."""
-    openai_key = os.environ.get("OPENAI_API_KEY")
+    openai_key = resolve_api_key("OPENAI_API_KEY", project_dir=base_path)
     if openai_key:
         try:
             if generate_collection_images_with_verse_images(base_path, collection, theme=theme):

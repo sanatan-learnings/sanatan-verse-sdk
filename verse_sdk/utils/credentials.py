@@ -31,6 +31,9 @@ def load_project_dotenv(project_dir: Optional[Path] = None, override: bool = Fal
     """
     Load .env without overriding already-exported environment variables.
 
+    When project_dir is set, only that directory's .env is loaded (no cwd fallback).
+    When project_dir is None, loads from cwd's .env or dotenv's default search.
+
     Returns True when python-dotenv is available and load was attempted.
     """
     if load_dotenv is None:
@@ -40,8 +43,10 @@ def load_project_dotenv(project_dir: Optional[Path] = None, override: bool = Fal
     dotenv_path = base_dir / ".env"
     if dotenv_path.exists():
         load_dotenv(dotenv_path=dotenv_path, override=override)
-    else:
+        return True
+    if project_dir is None:
         load_dotenv(override=override)
+        return True
     return True
 
 

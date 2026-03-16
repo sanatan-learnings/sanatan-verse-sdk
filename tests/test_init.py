@@ -350,6 +350,32 @@ def test_reports_images_pending_when_api_key_missing(tmp_path, monkeypatch, caps
     assert "verse-images --collection shiv-puran --theme modern-minimalist --verse cover" in out
 
 
+def test_ensure_collection_images_loads_dotenv(tmp_path, monkeypatch, capsys):
+    """When OPENAI_API_KEY is only in .env (not in os.environ), verse-init should use it."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "test")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    (tmp_path / ".env").write_text("OPENAI_API_KEY=sk-dotenv-key\n", encoding="utf-8")
+
+    monkeypatch.setattr("shutil.which", lambda cmd: "verse-images" if cmd == "verse-images" else None)
+    calls = []
+
+    def _fake_run(cmd, cwd, check, capture_output, text):
+        calls.append(cmd)
+        verse_id = cmd[cmd.index("--verse") + 1]
+        out = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / f"{verse_id}.png"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(b"x")
+        return None
+
+    monkeypatch.setattr("subprocess.run", _fake_run)
+    create_example_collection(tmp_path, "shiv-puran", num_verses=2)
+
+    out = capsys.readouterr().out
+    assert "no OPENAI_API_KEY" not in out, "should use OPENAI_API_KEY from .env"
+    assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "cover.png").exists()
+
+
 def test_collection_layout_references_title_image(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "test")
