@@ -50,6 +50,8 @@ cp /path/to/sanatan-verse-sdk/.env.example .env
 # - ElevenLabs: https://elevenlabs.io/app/settings/api-keys
 ```
 
+`.env.example` also includes **optional** placeholders (commented out), for example `ELEVENLABS_VOICE_ID` and, for maintainers who publish to PyPI, `TWINE_USERNAME` / `TWINE_PASSWORD`. You can ignore the PyPI ones unless you are releasing the package; see [Publishing](publishing.md).
+
 ### Verify Installation
 
 ```bash

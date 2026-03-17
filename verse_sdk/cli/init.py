@@ -43,6 +43,11 @@ ELEVENLABS_API_KEY=your_elevenlabs_key_here
 # Optional: Voice ID (use premade voice on free tier; default is premade Sarah)
 # ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL
 
+# Optional: PyPI publish (maintainers only; used by scripts/publish.sh / twine)
+# Not required for most contributors. See docs/publishing.md.
+# TWINE_USERNAME=__token__
+# TWINE_PASSWORD=pypi-your-pypi-token-here
+
 # Hugging Face token (for gated/model downloads where required)
 # Get your token from: https://huggingface.co/settings/tokens
 HF_TOKEN=your_huggingface_token_here

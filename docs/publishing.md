@@ -44,6 +44,28 @@ API tokens are more secure than passwords and recommended for publishing.
 
 ### 4. Configure PyPI Credentials
 
+**Optional.** Only maintainers who publish to PyPI need to set this. Most contributors can skip it.
+
+#### Option A: Environment variables (recommended for `scripts/publish.sh`)
+
+Set `TWINE_USERNAME` and `TWINE_PASSWORD` so twine (and the publish script) can upload without interactive prompts. Put them in a `.env` file in the project root; `scripts/publish.sh` will load `.env` automatically if it exists:
+
+```bash
+# .env (do not commit; .env is in .gitignore)
+TWINE_USERNAME=__token__
+TWINE_PASSWORD=pypi-your-actual-token-here
+```
+
+Then run:
+
+```bash
+./scripts/publish.sh --yes --skip-testpypi
+```
+
+The repo’s `.env.example` includes commented placeholders for these optional variables.
+
+#### Option B: `~/.pypirc`
+
 Create or edit `~/.pypirc`:
 
 ```ini
@@ -62,10 +84,7 @@ username = __token__
 password = pypi-AgENdGVzdC5weXBpLm9yZwI...your-test-pypi-token...
 ```
 
-**Security Note**: Protect this file:
-```bash
-chmod 600 ~/.pypirc
-```
+**Security note:** Protect this file: `chmod 600 ~/.pypirc`
 
 ### 5. Managing Published Projects
 

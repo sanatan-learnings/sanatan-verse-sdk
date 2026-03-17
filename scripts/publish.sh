@@ -85,6 +85,13 @@ if [ ! -f "setup.py" ]; then
     exit 1
 fi
 
+# Load optional PyPI credentials from .env if present (maintainers only)
+if [ -f ".env" ]; then
+    set -a
+    source .env
+    set +a
+fi
+
 # Check if required tools are installed
 echo -e "${YELLOW}Checking required tools...${NC}"
 if ! command -v python &> /dev/null; then
