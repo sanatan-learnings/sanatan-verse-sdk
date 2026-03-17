@@ -13,6 +13,7 @@ Usage:
 
 Environment Variables:
     ELEVENLABS_API_KEY - Your Eleven Labs API key (required)
+    ELEVENLABS_VOICE_ID - Optional voice ID (overrides default; use a premade voice on free tier)
 
 Output:
     audio/doha-01-full.mp3, audio/doha-01-slow.mp3
@@ -46,8 +47,8 @@ except ImportError:
 # This allows the SDK to work with any project structure
 PROJECT_DIR = Path.cwd()
 
-# Voice settings
-DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel voice (female, clear)
+# Voice settings: premade Sarah works on ElevenLabs free tier; library voices (e.g. Rachel) require paid plan (402).
+DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"  # Sarah (premade, free-tier compatible)
 FULL_SPEED_STABILITY = 0.5
 FULL_SPEED_SIMILARITY = 0.75
 SLOW_SPEED_STABILITY = 0.7
@@ -348,12 +349,15 @@ class AudioGenerator:
             only_file: Optional single filename to generate (e.g., 'doha-01-full.mp3')
             regenerate_files: Optional list of filenames to regenerate
             specific_verse: Optional verse stem to generate only (e.g., 'verse-01')
+
+        Returns:
+            Tuple of (generated, failed, skipped, total_files). Callers should exit non-zero if failed > 0.
         """
         verses = self.parse_verse_files(specific_verse=specific_verse)
 
         if not verses:
             print(f"Error: No verses found in {self.verses_dir}")
-            return
+            return (0, 0, 0, 0)
 
         # Handle --regenerate option: delete specified files
         if regenerate_files:
@@ -449,6 +453,8 @@ class AudioGenerator:
         if failed > 0:
             print(f"\n⚠ {failed} files failed to generate. You can regenerate them by deleting and running again.")
 
+        return (generated, failed, skipped, total_files)
+
 
 def validate_collection(collection: str, project_dir: Path = PROJECT_DIR) -> bool:
     """Validate that collection exists."""
@@ -519,8 +525,8 @@ def main():
     )
     parser.add_argument(
         "--voice-id",
-        help=f"Eleven Labs voice ID (default: {DEFAULT_VOICE_ID})",
-        default=DEFAULT_VOICE_ID,
+        help=f"Eleven Labs voice ID (default: ELEVENLABS_VOICE_ID env or {DEFAULT_VOICE_ID})",
+        default=None,
         metavar="VOICE_ID"
     )
     parser.add_argument(
@@ -568,6 +574,9 @@ def main():
             print("Install with: pip install python-dotenv")
         print("\nGet your API key from: https://elevenlabs.io/app/settings/api-keys")
         sys.exit(1)
+
+    # Resolve voice ID: --voice-id > ELEVENLABS_VOICE_ID env (from .env) > default premade voice
+    voice_id = (args.voice_id or os.environ.get("ELEVENLABS_VOICE_ID") or "").strip() or DEFAULT_VOICE_ID
 
     # Validate collection
     if not validate_collection(args.collection):
@@ -621,17 +630,20 @@ def main():
     # Initialize generator with collection
     generator = AudioGenerator(
         api_key=api_key,
-        voice_id=args.voice_id,
+        voice_id=voice_id,
         collection=args.collection
     )
 
     # Generate audio files
-    generator.generate_all(
+    generated, failed, skipped, total_files = generator.generate_all(
         start_from=args.start_from,
         only_file=args.only,
         regenerate_files=regenerate_files,
         specific_verse=args.verse
     )
+
+    if failed > 0:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

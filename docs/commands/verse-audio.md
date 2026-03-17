@@ -24,7 +24,7 @@ The `verse-audio` command generates pronunciation audio files using ElevenLabs' 
 
 - `--verse ID` - Generate audio for specific verse only
 - `--api-key KEY` - ElevenLabs API key (precedence: `--api-key` > `ELEVENLABS_API_KEY` env > `.env` fallback)
-- `--voice-id ID` - ElevenLabs voice ID (default: pre-configured voice)
+- `--voice-id ID` - ElevenLabs voice ID (default: `ELEVENLABS_VOICE_ID` env or built-in premade voice)
 - `--regenerate FILE[,FILE...]` - Regenerate specific audio files
 - `--force` - Regenerate all audio files (prompts for confirmation)
 - `--list-collections` - List all available collections
@@ -87,13 +87,24 @@ Example paths:
 
 ## Voice Configuration
 
-The SDK uses a pre-configured voice ID. To use a different voice:
+**Free-tier users:** ElevenLabs free accounts cannot use *library* voices via the API (HTTP 402). The default voice is a **premade** voice (Sarah) that works on the free tier. If you see "Free users cannot use library voices", set a premade voice (see below).
+
+Precedence: `--voice-id` → `ELEVENLABS_VOICE_ID` (env or `.env`) → built-in premade default.
+
+To use a different voice once (CLI):
 
 ```bash
 verse-audio --voice-id YOUR_VOICE_ID
 ```
 
-Find voice IDs in your ElevenLabs dashboard: https://elevenlabs.io/app/voice-library
+To use a premade voice for all runs (e.g. for free tier), set in `.env`:
+
+```bash
+# .env
+ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL
+```
+
+Find voice IDs in your ElevenLabs dashboard: https://elevenlabs.io/app/voice-library (use **Premade** voices on free tier).
 
 ## Verse File Format
 
@@ -154,9 +165,10 @@ Very affordable compared to image generation.
   - `--api-key` flag
   - `ELEVENLABS_API_KEY` exported environment variable
   - `.env` fallback (`ELEVENLABS_API_KEY=...`)
+- Optional: `ELEVENLABS_VOICE_ID` in env or `.env` to use a specific voice (e.g. premade voice for free tier)
 - Verse files in `_verses/<collection-key>/` with `devanagari:` field populated
 - Collection enabled in `_data/collections.yml`
-- ElevenLabs account with sufficient credits
+- ElevenLabs account with sufficient credits (or free tier with premade voice)
 
 ## Notes
 
@@ -164,6 +176,7 @@ Very affordable compared to image generation.
 - The slow speed version (0.75x) is ideal for learning pronunciation
 - Generated files are MP3 format for broad compatibility
 - Both EU and US production environments are supported (auto-detected)
+- If any file fails to generate, the command exits with status **1** so callers (e.g. `verse-generate`) can detect failure
 
 ## Troubleshooting
 
@@ -192,14 +205,11 @@ devanagari: |
 ---
 ```
 
-### "Generation failed for some files"
+### "Generation failed for some files" / HTTP 402 "Free users cannot use library voices"
 
-Check:
-- ElevenLabs API key is valid
-- Account has sufficient credits
-- Internet connection is stable
-
-Use `--regenerate` to retry failed files.
+- **402 / library voices:** On the free tier, use a **premade** voice. Set `ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL` (Sarah) in `.env`, or pass `--voice-id` with a premade ID from the ElevenLabs dashboard.
+- Check API key is valid, account has sufficient credits, and internet is stable.
+- Use `--regenerate` to retry failed files.
 
 ## See Also
 
