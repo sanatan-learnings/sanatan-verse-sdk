@@ -31,6 +31,8 @@ import time
 from pathlib import Path
 from typing import Dict, Optional
 
+import yaml
+
 from verse_sdk.utils.credentials import has_dotenv_support, resolve_api_key
 
 try:
@@ -47,18 +49,43 @@ except ImportError:
 # This allows the SDK to work with any project structure
 PROJECT_DIR = Path.cwd()
 
-# Voice settings: premade Sarah works on ElevenLabs free tier; library voices (e.g. Rachel) require paid plan (402).
-DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"  # Sarah (premade, free-tier compatible)
+# Default voice: same as .env.example (Sarah, premade, free-tier). Override via ELEVENLABS_VOICE_ID or verse-config.yml.
+DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"
 FULL_SPEED_STABILITY = 0.5
 FULL_SPEED_SIMILARITY = 0.75
 SLOW_SPEED_STABILITY = 0.7
 SLOW_SPEED_SIMILARITY = 0.8
 
 
+def resolve_voice_id(project_dir: Path, cli_voice_id: Optional[str] = None) -> str:
+    """
+    Resolve ElevenLabs voice ID: CLI > ELEVENLABS_VOICE_ID env > project verse-config.yml > default (see .env.example).
+    """
+    if cli_voice_id and str(cli_voice_id).strip():
+        return str(cli_voice_id).strip()
+    env_id = (os.environ.get("ELEVENLABS_VOICE_ID") or "").strip()
+    if env_id:
+        return env_id
+    # Project config: _data/verse-config.yml -> defaults.voice_id
+    verse_config_path = project_dir / "_data" / "verse-config.yml"
+    if verse_config_path.exists():
+        try:
+            data = yaml.safe_load(verse_config_path.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                defaults = data.get("defaults")
+                if isinstance(defaults, dict):
+                    vid = defaults.get("voice_id")
+                    if isinstance(vid, str) and vid.strip():
+                        return vid.strip()
+        except Exception:
+            pass
+    return DEFAULT_VOICE_ID
+
+
 class AudioGenerator:
     """Generate audio files using Eleven Labs API."""
 
-    def __init__(self, api_key: str, voice_id: str = DEFAULT_VOICE_ID, collection: str = None):
+    def __init__(self, api_key: str, voice_id: str, collection: str = None):
         """
         Initialize the audio generator.
 
@@ -525,7 +552,7 @@ def main():
     )
     parser.add_argument(
         "--voice-id",
-        help=f"Eleven Labs voice ID (default: ELEVENLABS_VOICE_ID env or {DEFAULT_VOICE_ID})",
+        help="Eleven Labs voice ID (default: ELEVENLABS_VOICE_ID in .env or project verse-config.yml)",
         default=None,
         metavar="VOICE_ID"
     )
@@ -575,8 +602,8 @@ def main():
         print("\nGet your API key from: https://elevenlabs.io/app/settings/api-keys")
         sys.exit(1)
 
-    # Resolve voice ID: --voice-id > ELEVENLABS_VOICE_ID env (from .env) > default premade voice
-    voice_id = (args.voice_id or os.environ.get("ELEVENLABS_VOICE_ID") or "").strip() or DEFAULT_VOICE_ID
+    # Resolve voice ID from config (no hardcoded default in code): CLI > env > project config > SDK defaults.yml
+    voice_id = resolve_voice_id(PROJECT_DIR, cli_voice_id=args.voice_id)
 
     # Validate collection
     if not validate_collection(args.collection):

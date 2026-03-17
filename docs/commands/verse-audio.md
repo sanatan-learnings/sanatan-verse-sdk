@@ -87,9 +87,13 @@ Example paths:
 
 ## Voice Configuration
 
-**Free-tier users:** ElevenLabs free accounts cannot use *library* voices via the API (HTTP 402). The default voice is a **premade** voice (Sarah) that works on the free tier. If you see "Free users cannot use library voices", set a premade voice (see below).
+**Free-tier users:** ElevenLabs free accounts cannot use *library* voices via the API (HTTP 402). The default voice (when not set) is Sarah, a premade voice that works on the free tier—see `.env.example` for the default value. If you see "Free users cannot use library voices", set a premade voice (see below).
 
-Precedence: `--voice-id` → `ELEVENLABS_VOICE_ID` (env or `.env`) → built-in premade default.
+Precedence:
+
+1. `--voice-id` (CLI)
+2. `ELEVENLABS_VOICE_ID` (env or `.env`; default when unset is documented in `.env.example`)
+3. Project `_data/verse-config.yml` → `defaults.voice_id`
 
 To use a different voice once (CLI):
 
@@ -97,12 +101,10 @@ To use a different voice once (CLI):
 verse-audio --voice-id YOUR_VOICE_ID
 ```
 
-To use a premade voice for all runs (e.g. for free tier), set in `.env`:
+To set a voice for the project, use **one** of:
 
-```bash
-# .env
-ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL
-```
+- **`.env`:** `ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL` (same as the default in `.env.example`)
+- **Project config:** in `_data/verse-config.yml`, set `defaults.voice_id: EXAVITQu4vr4xnSDxMaL`
 
 Find voice IDs in your ElevenLabs dashboard: https://elevenlabs.io/app/voice-library (use **Premade** voices on free tier).
 

@@ -33,24 +33,20 @@ import yaml
 from verse_sdk.utils.credentials import resolve_api_key
 
 # Template files content
-ENV_EXAMPLE_CONTENT = """# OpenAI API Key (for images, embeddings, and content generation)
-# Get your key from: https://platform.openai.com/api-keys
+ENV_EXAMPLE_CONTENT = """# Copy to .env and add your keys
+
+# https://platform.openai.com/api-keys
 OPENAI_API_KEY=sk-your_openai_key_here
-
-# ElevenLabs API Key (for audio generation)
-# Get your key from: https://elevenlabs.io/app/settings/api-keys
+# https://elevenlabs.io/app/settings/api-keys
 ELEVENLABS_API_KEY=your_elevenlabs_key_here
-# Optional: Voice ID (use premade voice on free tier; default is premade Sarah)
-# ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL
-
-# Optional: PyPI publish (maintainers only; used by scripts/publish.sh / twine)
-# Not required for most contributors. See docs/publishing.md.
-# TWINE_USERNAME=__token__
-# TWINE_PASSWORD=pypi-your-pypi-token-here
-
-# Hugging Face token (for gated/model downloads where required)
-# Get your token from: https://huggingface.co/settings/tokens
+# https://elevenlabs.io/app/voice-library (premade = free tier)
+ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL
+# https://huggingface.co/settings/tokens
 HF_TOKEN=your_huggingface_token_here
+
+# Optional: PyPI publish (maintainers only) — https://pypi.org/manage/account/token/
+# TWINE_USERNAME=__token__
+# TWINE_PASSWORD=pypi-your-token
 """
 
 COLLECTIONS_YML_CONTENT = """# Collection registry
@@ -78,6 +74,7 @@ defaults:
   # subject: Hanuman        # primary deity / subject of this project
   # subject_type: deity     # deity | avatar | concept | figure
   # banner_theme: saffron   # optional default UI header palette override
+  # voice_id: EXAVITQu4vr4xnSDxMaL   # optional: ElevenLabs voice for verse-audio (premade = free tier)
 
   # subject and subject_type are used by verse-puranic-context to filter
   # RAG retrieval to episodes where the subject is a direct participant.
