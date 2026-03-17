@@ -324,17 +324,20 @@ def test_prefers_verse_images_generation_when_api_key_present(tmp_path, monkeypa
     def _fake_run(cmd, cwd, check, capture_output, text):
         calls.append(cmd)
         verse_id = cmd[cmd.index("--verse") + 1]
-        out = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / f"{verse_id}.png"
+        collection = cmd[cmd.index("--collection") + 1]
+        theme = cmd[cmd.index("--theme") + 1]
+        out = tmp_path / "images" / collection / theme / f"{verse_id}.png"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(b"x")
         return None
 
     monkeypatch.setattr("subprocess.run", _fake_run)
 
-    create_example_collection(tmp_path, "shiv-puran", num_verses=2)
+    create_example_collection(tmp_path, "shiv-puran", num_verses=2, ensure_site_cover=True)
 
-    assert len(calls) == 1
-    assert any("--verse" in cmd and "cover" in cmd for cmd in calls)
+    assert len(calls) == 2
+    assert any("--collection" in cmd and "shiv-puran" in cmd and "--verse" in cmd and "cover" in cmd for cmd in calls)
+    assert any("--collection" in cmd and "site" in cmd and "--verse" in cmd and "cover" in cmd for cmd in calls)
     assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "cover.png").exists()
     assert (tmp_path / "images" / "cover.png").exists()
 
@@ -363,17 +366,20 @@ def test_ensure_collection_images_loads_dotenv(tmp_path, monkeypatch, capsys):
     def _fake_run(cmd, cwd, check, capture_output, text):
         calls.append(cmd)
         verse_id = cmd[cmd.index("--verse") + 1]
-        out = tmp_path / "images" / "shiv-puran" / "modern-minimalist" / f"{verse_id}.png"
+        collection = cmd[cmd.index("--collection") + 1]
+        theme = cmd[cmd.index("--theme") + 1]
+        out = tmp_path / "images" / collection / theme / f"{verse_id}.png"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(b"x")
         return None
 
     monkeypatch.setattr("subprocess.run", _fake_run)
-    create_example_collection(tmp_path, "shiv-puran", num_verses=2)
+    create_example_collection(tmp_path, "shiv-puran", num_verses=2, ensure_site_cover=True)
 
     out = capsys.readouterr().out
     assert "no OPENAI_API_KEY" not in out, "should use OPENAI_API_KEY from .env"
     assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "cover.png").exists()
+    assert (tmp_path / "images" / "cover.png").exists()
 
 
 def test_collection_layout_references_title_image(tmp_path):

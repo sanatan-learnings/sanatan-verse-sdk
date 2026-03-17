@@ -1144,12 +1144,6 @@ def ensure_collection_images(base_path: Path, collection: str, theme: str = "mod
         try:
             if generate_collection_images_with_verse_images(base_path, collection, theme=theme):
                 print(f"✓ Generated images/{collection}/{theme}/cover.png via verse-images")
-                collection_cover = base_path / "images" / collection / theme / "cover.png"
-                site_cover = base_path / "images" / "cover.png"
-                if collection_cover.exists() and not site_cover.exists():
-                    site_cover.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(collection_cover, site_cover)
-                    print("✓ Created images/cover.png from collection cover")
                 return
         except Exception as exc:
             print(f"⚠ verse-images generation failed for {collection}: {exc}")
@@ -1164,8 +1158,65 @@ def ensure_collection_images(base_path: Path, collection: str, theme: str = "mod
         f"   verse-images --collection {collection} --theme {theme} --verse cover"
     )
 
+def ensure_site_images(base_path: Path, site_theme: str, site_source_collection: str) -> None:
+    """
+    Generate the home page hero image at images/cover.png from data/scenes/site.yml.
 
-def create_example_collection(base_path: Path, collection: str, num_verses: int = 3) -> str:
+    We generate a temporary/normalized image via:
+      verse-images --collection site --theme <site_theme> --verse cover
+
+    Output from verse-images:
+      images/site/<site_theme>/cover.png
+
+    Then we copy to:
+      images/cover.png
+    """
+    openai_key = resolve_api_key("OPENAI_API_KEY", project_dir=base_path)
+    if not openai_key:
+        print(
+            "◌ Images pending for site hero (no OPENAI_API_KEY). Run:\n"
+            f"   verse-images --collection site --theme {site_theme} --verse cover"
+        )
+        return
+
+    # Ensure there's a theme config for site/<theme> so verse-images can style correctly.
+    site_theme_file = base_path / "data" / "themes" / "site" / f"{site_theme}.yml"
+    if not site_theme_file.exists():
+        # Best-effort: copy from the primary collection's theme (so site visually matches).
+        source_theme_file = base_path / "data" / "themes" / site_source_collection / f"{site_theme}.yml"
+        site_theme_file.parent.mkdir(parents=True, exist_ok=True)
+        if source_theme_file.exists():
+            shutil.copy2(source_theme_file, site_theme_file)
+        else:
+            # Fallback to the example theme so generation can proceed.
+            site_theme_file.write_text(EXAMPLE_THEME_YML, encoding="utf-8")
+
+    try:
+        generate_collection_images_with_verse_images(base_path, "site", theme=site_theme)
+        site_cover_src = base_path / "images" / "site" / site_theme / "cover.png"
+        site_cover_dst = base_path / "images" / "cover.png"
+        if site_cover_src.exists() and not site_cover_dst.exists():
+            site_cover_dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(site_cover_src, site_cover_dst)
+            print("✓ Generated home hero images/cover.png from data/scenes/site.yml")
+        elif site_cover_dst.exists():
+            print("⊙ Skipping images/cover.png (already exists)")
+        else:
+            raise RuntimeError(f"Expected generated home hero image missing: {site_cover_src}")
+    except Exception as exc:
+        print(f"⚠ verse-images generation failed for site hero: {exc}")
+        print(
+            "⚠ Images pending for site hero. Run:\n"
+            f"   verse-images --collection site --theme {site_theme} --verse cover"
+        )
+
+
+def create_example_collection(
+    base_path: Path,
+    collection: str,
+    num_verses: int = 3,
+    ensure_site_cover: bool = False,
+) -> str:
     """
     Create an example collection with sample files.
 
@@ -1234,6 +1285,8 @@ verse-03:
 
     # Ensure canonical title/card images, preferring verse-images generation logic.
     ensure_collection_images(base_path, collection, theme=active_theme)
+    if ensure_site_cover:
+        ensure_site_images(base_path, site_theme=active_theme, site_source_collection=collection)
 
     # Create canonical plain-text source placeholder for parse-source auto-discovery
     source_file = base_path / "data" / "sources" / f"{collection}.txt"
@@ -1377,7 +1430,13 @@ def init_project(
         print("=" * 70)
         collection_themes = {}
         for collection in collections:
-            collection_themes[collection] = create_example_collection(base_path, collection, num_verses)
+            ensure_site = collection == collections[0]
+            collection_themes[collection] = create_example_collection(
+                base_path,
+                collection,
+                num_verses,
+                ensure_site_cover=ensure_site,
+            )
 
     # Success message
     print()
