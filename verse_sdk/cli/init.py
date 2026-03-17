@@ -1112,6 +1112,91 @@ def resolve_collection_theme(base_path: Path, collection: str) -> str:
     return default_theme
 
 
+def enrich_site_scenes_with_collection_context(base_path: Path, collection: str) -> None:
+    """
+    Enrich data/scenes/site.yml cover description with context from the first collection.
+
+    This makes the home hero deity/project-aware instead of purely generic.
+    """
+    site_scenes_file = base_path / "data" / "scenes" / "site.yml"
+    if not site_scenes_file.exists():
+        return
+
+    # Load collection + project defaults for context.
+    collections_file = base_path / "_data" / "collections.yml"
+    verse_config_file = base_path / "_data" / "verse-config.yml"
+    collection_cfg = {}
+    defaults = {}
+
+    if collections_file.exists():
+        try:
+            collections_cfg = yaml.safe_load(collections_file.read_text(encoding="utf-8")) or {}
+            if isinstance(collections_cfg, dict):
+                cfg = collections_cfg.get(collection, {})
+                if isinstance(cfg, dict):
+                    collection_cfg = cfg
+        except Exception:
+            pass
+
+    if verse_config_file.exists():
+        try:
+            verse_config = yaml.safe_load(verse_config_file.read_text(encoding="utf-8")) or {}
+            if isinstance(verse_config, dict):
+                defaults = verse_config.get("defaults", {}) or {}
+                if not isinstance(defaults, dict):
+                    defaults = {}
+        except Exception:
+            defaults = {}
+
+    # Derive labels.
+    collection_name_en = (
+        (collection_cfg.get("name") or {}).get("en")
+        if isinstance(collection_cfg.get("name"), dict)
+        else None
+    )
+    if not isinstance(collection_name_en, str) or not collection_name_en.strip():
+        collection_name_en = collection.replace("-", " ").title()
+
+    subject = collection_cfg.get("subject") or defaults.get("subject")
+    if not isinstance(subject, str) or not subject.strip():
+        subject = collection_name_en
+
+    context_line = (
+        f"Home hero for {collection_name_en} ({subject}) – devotional website cover"
+        " with calm sacred atmosphere and clear branding for this project."
+    )
+
+    try:
+        raw = site_scenes_file.read_text(encoding="utf-8")
+        data = yaml.safe_load(raw) or {}
+        if not isinstance(data, dict):
+            return
+        scenes = data.get("scenes") or {}
+        if not isinstance(scenes, dict):
+            return
+        cover = scenes.get("cover") or {}
+        if not isinstance(cover, dict):
+            return
+        desc = cover.get("description")
+        if isinstance(desc, str):
+            if "Home hero for" in desc:
+                # Already enriched; avoid duplicating the prefix.
+                return
+            new_desc = context_line + "\n" + desc.strip()
+        else:
+            new_desc = context_line
+        cover["description"] = new_desc
+        scenes["cover"] = cover
+        data["scenes"] = scenes
+        site_scenes_file.write_text(
+            yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=1000),
+            encoding="utf-8",
+        )
+    except Exception:
+        # Best-effort enrichment; do not block init flow.
+        return
+
+
 def generate_collection_images_with_verse_images(
     base_path: Path,
     collection: str,
@@ -1191,6 +1276,9 @@ def ensure_site_images(base_path: Path, site_theme: str, site_source_collection:
         else:
             # Fallback to the example theme so generation can proceed.
             site_theme_file.write_text(EXAMPLE_THEME_YML, encoding="utf-8")
+
+    # Enrich site scenes with project/collection context before generating.
+    enrich_site_scenes_with_collection_context(base_path, site_source_collection)
 
     try:
         generate_collection_images_with_verse_images(base_path, "site", theme=site_theme)

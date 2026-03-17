@@ -7,13 +7,12 @@ from verse_sdk.cli.init import (
     create_directory_structure,
     create_example_collection,
     create_template_files,
+    enrich_site_scenes_with_collection_context,
     init_project,
     normalize_repo_url,
     resolve_collection_theme,
 )
-from verse_sdk.cli.init import (
-    main as init_main,
-)
+from verse_sdk.cli.init import main as init_main
 
 # ---------------------------------------------------------------------------
 # create_directory_structure
@@ -588,3 +587,48 @@ def test_issue_74_cli_output_uses_default_first_generation_command(tmp_path, mon
     out = capsys.readouterr().out
     assert "verse-generate --collection shiv-puran --verse 1" in out
     assert "verse-generate --collection shiv-puran --verse 1 --regenerate-content" not in out
+
+
+def test_enrich_site_scenes_uses_collection_context(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+
+    # Create a collection entry with name and subject.
+    collections_file = tmp_path / "_data" / "collections.yml"
+    collections_file.write_text(
+        "shiv-puran:\n"
+        "  enabled: true\n"
+        "  name:\n"
+        "    en: Shiv Puran\n"
+        "  subject: Lord Shiva\n",
+        encoding="utf-8",
+    )
+
+    # Enrich site scenes using this collection.
+    enrich_site_scenes_with_collection_context(tmp_path, "shiv-puran")
+
+    site_scenes = (tmp_path / "data" / "scenes" / "site.yml").read_text(encoding="utf-8")
+    assert "Home hero for Shiv Puran (Lord Shiva)" in site_scenes
+    # Ensure original generic text is preserved after the prefix.
+    assert "Devotional website cover image with calm sacred atmosphere" in site_scenes
+
+
+def test_enrich_site_scenes_is_idempotent(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+
+    collections_file = tmp_path / "_data" / "collections.yml"
+    collections_file.write_text(
+        "shiv-puran:\n"
+        "  enabled: true\n"
+        "  name:\n"
+        "    en: Shiv Puran\n",
+        encoding="utf-8",
+    )
+
+    # Call twice; prefix should not duplicate.
+    enrich_site_scenes_with_collection_context(tmp_path, "shiv-puran")
+    enrich_site_scenes_with_collection_context(tmp_path, "shiv-puran")
+
+    site_scenes = (tmp_path / "data" / "scenes" / "site.yml").read_text(encoding="utf-8")
+    assert site_scenes.count("Home hero for Shiv Puran") == 1
