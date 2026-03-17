@@ -95,6 +95,28 @@ def test_verse_config_contains_defaults_section(tmp_path):
     assert "defaults" in content
 
 
+def test_verse_layout_matches_generate_frontmatter(tmp_path):
+    """Scaffolded verse layout should render verse-generate YAML keys (#121)."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+    layout = (tmp_path / "_layouts" / "verse.html").read_text()
+    for needle in [
+        "page.devanagari",
+        "page.transliteration",
+        "page.phonetic_notes",
+        "page.word_meanings",
+        "literal_translation",
+        "interpretive_meaning",
+        "practical_application",
+        "puranic_context",
+        "page.collection_key",
+        "data-lang",
+        "previous_verse",
+        "next_verse",
+    ]:
+        assert needle in layout, f"expected verse layout to reference {needle!r}"
+
+
 def test_gitignore_excludes_env(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "my-project")

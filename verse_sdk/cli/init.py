@@ -449,20 +449,265 @@ layout: default
 VERSE_LAYOUT_TEMPLATE = """---
 layout: default
 ---
+{% comment %}
+  Rich verse layout aligned with verse-generate frontmatter (issue #121).
+  Keys: title_en/title_hi, devanagari, transliteration, phonetic_notes, word_meanings,
+  literal_translation, interpretive_meaning, story, practical_application, puranic_context, etc.
+{% endcomment %}
+{% assign ck = page.collection_key | default: page.collection %}
+{% assign verse_slug = page.name | replace: '.md', '' %}
+{% assign theme_fallback = 'modern-minimalist' %}
+{% assign auto_image = '/images/' | append: ck | append: '/' | append: theme_fallback | append: '/' | append: verse_slug | append: '.png' %}
 
-<h1>{{ page.title | default: page.verse_id | default: page.basename }}</h1>
-{% if page.verse_number %}<p>Verse {{ page.verse_number }}</p>{% endif %}
+<article class="verse-page">
+  <header class="verse-header">
+    <nav class="verse-nav" aria-label="Verse navigation">
+      {% if page.previous_verse %}
+        <a class="verse-nav-link" href="{{ page.previous_verse | relative_url }}"><span data-lang="en">← Previous</span><span data-lang="hi">← पिछला</span></a>
+      {% else %}
+        <span class="verse-nav-spacer"></span>
+      {% endif %}
+      {% if page.next_verse %}
+        <a class="verse-nav-link" href="{{ page.next_verse | relative_url }}"><span data-lang="en">Next →</span><span data-lang="hi">अगला →</span></a>
+      {% endif %}
+    </nav>
 
-{% assign auto_image = '/images/' | append: page.collection | append: '/' | append: page.verse_id | append: '.png' %}
-<img src="{{ page.image | default: auto_image }}" alt="{{ page.title | default: page.verse_id }}" style="max-width:100%;height:auto;border-radius:10px;" />
+    <h1 class="verse-title">
+      {% if page.title_en or page.title_hi %}
+        <span data-lang="en">{{ page.title_en | default: page.title | default: verse_slug }}</span>
+        <span data-lang="hi">{{ page.title_hi | default: page.title_hi | default: page.title_en | default: page.title | default: verse_slug }}</span>
+      {% else %}
+        {{ page.title | default: verse_slug }}
+      {% endif %}
+    </h1>
 
-{% if page.audio %}
-<audio controls style="width:100%;margin-top:1rem;">
-  <source src="{{ page.audio }}" />
-</audio>
-{% endif %}
+    {% if page.chapter or page.verse_number or page.section_verse_number %}
+      <p class="verse-meta muted">
+        {% if page.chapter %}<span data-lang="en">Chapter {{ page.chapter }}</span><span data-lang="hi">अध्याय {{ page.chapter }}</span>{% endif %}
+        {% if page.verse_number %}{% if page.chapter %} · {% endif %}<span data-lang="en">Verse {{ page.verse_number }}</span><span data-lang="hi">श्लोक {{ page.verse_number }}</span>{% endif %}
+        {% if page.section_verse_number and page.section_verse_number != page.verse_number %}
+          · <span data-lang="en">#{{ page.section_verse_number }}</span><span data-lang="hi">#{{ page.section_verse_number }}</span>
+        {% endif %}
+      </p>
+    {% endif %}
+  </header>
 
-{{ content }}
+  <figure class="verse-figure">
+    <img class="verse-hero-image" src="{{ page.image | default: auto_image }}" alt="{{ page.title_en | default: page.title | default: verse_slug }}" loading="lazy" />
+  </figure>
+
+  {% if page.audio %}
+  <div class="verse-audio-wrap">
+    <audio class="verse-audio" controls preload="metadata">
+      <source src="{% if page.audio contains '://' %}{{ page.audio }}{% else %}{{ page.audio | relative_url }}{% endif %}" />
+    </audio>
+  </div>
+  {% endif %}
+
+  {% if page.devanagari != blank %}
+  <section class="verse-section" aria-labelledby="heading-original">
+    <h2 id="heading-original"><span data-lang="en">Original text</span><span data-lang="hi">मूल पाठ</span></h2>
+    <p class="verse-devanagari" lang="sa">{{ page.devanagari | newline_to_br }}</p>
+  </section>
+  {% endif %}
+
+  {% if page.transliteration != blank %}
+  <section class="verse-section" aria-labelledby="heading-translit">
+    <h2 id="heading-translit"><span data-lang="en">Transliteration</span><span data-lang="hi">लिप्यंतरण</span></h2>
+    <p class="verse-transliteration">{{ page.transliteration | newline_to_br }}</p>
+  </section>
+  {% endif %}
+
+  {% if page.phonetic_notes and page.phonetic_notes.size > 0 %}
+  <section class="verse-section" aria-labelledby="heading-phonetic">
+    <h2 id="heading-phonetic"><span data-lang="en">Pronunciation guide</span><span data-lang="hi">उच्चारण मार्गदर्शन</span></h2>
+    <div class="table-wrap">
+      <table class="verse-table verse-phonetic-table">
+        <thead>
+          <tr>
+            <th><span data-lang="en">Word</span><span data-lang="hi">शब्द</span></th>
+            <th><span data-lang="en">Pronunciation</span><span data-lang="hi">उच्चारण</span></th>
+            <th><span data-lang="en">Emphasis</span><span data-lang="hi">बलाघात</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for n in page.phonetic_notes %}
+          <tr>
+            <td lang="sa">{{ n.word }}</td>
+            <td>{{ n.phonetic }}</td>
+            <td>{% if n.emphasis %}{{ n.emphasis }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if page.word_meanings and page.word_meanings.size > 0 %}
+  <section class="verse-section" aria-labelledby="heading-words">
+    <h2 id="heading-words"><span data-lang="en">Word-by-word meaning</span><span data-lang="hi">शब्दार्थ</span></h2>
+    <div class="table-wrap">
+      <table class="verse-table verse-word-table">
+        <thead>
+          <tr>
+            <th><span data-lang="en">Sanskrit</span><span data-lang="hi">संस्कृत</span></th>
+            <th><span data-lang="en">Roman</span><span data-lang="hi">रोमन</span></th>
+            <th><span data-lang="en">Meaning</span><span data-lang="hi">अर्थ</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for wm in page.word_meanings %}
+          <tr>
+            <td lang="sa">{{ wm.word }}</td>
+            <td>{{ wm.roman }}</td>
+            <td class="verse-meaning-cell">
+              {% assign m = wm.meaning %}
+              {% if m.en or m.hi %}
+                <span data-lang="en">{{ m.en | default: '—' }}</span>
+                <span data-lang="hi">{{ m.hi | default: m.en | default: '—' }}</span>
+              {% elsif m != blank %}
+                {{ m }}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if page.literal_translation %}
+  {% assign lt = page.literal_translation %}
+  {% if lt.en != blank or lt.hi != blank %}
+  <section class="verse-section" aria-labelledby="heading-literal">
+    <h2 id="heading-literal"><span data-lang="en">Literal translation</span><span data-lang="hi">शाब्दिक अनुवाद</span></h2>
+    <div class="verse-prose">
+      <span data-lang="en">{{ lt.en | markdownify }}</span>
+      <span data-lang="hi">{{ lt.hi | default: lt.en | markdownify }}</span>
+    </div>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  {% if page.interpretive_meaning %}
+  {% assign im = page.interpretive_meaning %}
+  {% if im.en != blank or im.hi != blank %}
+  <section class="verse-section" aria-labelledby="heading-interpretive">
+    <h2 id="heading-interpretive"><span data-lang="en">Interpretive meaning</span><span data-lang="hi">व्याख्यात्मक अर्थ</span></h2>
+    <div class="verse-prose">
+      <span data-lang="en">{{ im.en | markdownify }}</span>
+      <span data-lang="hi">{{ im.hi | default: im.en | markdownify }}</span>
+    </div>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  {% if page.meaning != blank %}
+  <section class="verse-section" aria-labelledby="heading-meaning">
+    <h2 id="heading-meaning"><span data-lang="en">Meaning</span><span data-lang="hi">अर्थ</span></h2>
+    <div class="verse-prose">{{ page.meaning | markdownify }}</div>
+  </section>
+  {% endif %}
+
+  {% if page.translation and page.translation.en != blank %}
+  <section class="verse-section" aria-labelledby="heading-translation">
+    <h2 id="heading-translation"><span data-lang="en">Translation</span><span data-lang="hi">अनुवाद</span></h2>
+    <div class="verse-prose">{{ page.translation.en | markdownify }}</div>
+  </section>
+  {% endif %}
+
+  {% if page.story %}
+  {% assign st = page.story %}
+  {% if st.en != blank or st.hi != blank %}
+  <section class="verse-section" aria-labelledby="heading-story">
+    <h2 id="heading-story"><span data-lang="en">Story & context</span><span data-lang="hi">कथा व संदर्भ</span></h2>
+    <div class="verse-prose">
+      <span data-lang="en">{{ st.en | markdownify }}</span>
+      <span data-lang="hi">{{ st.hi | default: st.en | markdownify }}</span>
+    </div>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  {% if page.practical_application %}
+  {% assign pa = page.practical_application %}
+  {% assign patech = pa.teaching %}
+  {% assign pawhen = pa.when_to_use %}
+  {% assign show_pa = false %}
+  {% if patech %}{% if patech.en != blank or patech.hi != blank %}{% assign show_pa = true %}{% endif %}{% endif %}
+  {% if pawhen %}{% if pawhen.en != blank or pawhen.hi != blank %}{% assign show_pa = true %}{% endif %}{% endif %}
+  {% if show_pa %}
+  <section class="verse-section" aria-labelledby="heading-practical">
+    <h2 id="heading-practical"><span data-lang="en">Practical application</span><span data-lang="hi">व्यावहारिक अनुप्रयोग</span></h2>
+    {% if patech %}
+      {% if patech.en != blank or patech.hi != blank %}
+      <h3 class="verse-subhead"><span data-lang="en">Teaching</span><span data-lang="hi">शिक्षा</span></h3>
+      <div class="verse-prose">
+        <span data-lang="en">{{ patech.en | markdownify }}</span>
+        <span data-lang="hi">{{ patech.hi | default: patech.en | markdownify }}</span>
+      </div>
+      {% endif %}
+    {% endif %}
+    {% if pawhen %}
+      {% if pawhen.en != blank or pawhen.hi != blank %}
+      <h3 class="verse-subhead"><span data-lang="en">When to use</span><span data-lang="hi">कब उपयोग करें</span></h3>
+      <div class="verse-prose">
+        <span data-lang="en">{{ pawhen.en | markdownify }}</span>
+        <span data-lang="hi">{{ pawhen.hi | default: pawhen.en | markdownify }}</span>
+      </div>
+      {% endif %}
+    {% endif %}
+  </section>
+  {% endif %}
+  {% endif %}
+
+  {% if page.puranic_context and page.puranic_context.size > 0 %}
+  <section class="verse-section" aria-labelledby="heading-puranic">
+    <h2 id="heading-puranic"><span data-lang="en">Puranic context</span><span data-lang="hi">पौराणिक संदर्भ</span></h2>
+    {% for entry in page.puranic_context %}
+      <article class="puranic-entry">
+        {% assign et = entry.title %}
+        {% if et.en or et.hi %}
+          <h3 class="puranic-entry-title">
+            <span data-lang="en">{{ et.en | default: et }}</span>
+            <span data-lang="hi">{{ et.hi | default: et.en | default: et }}</span>
+          </h3>
+        {% elsif et != blank %}
+          <h3 class="puranic-entry-title">{{ et }}</h3>
+        {% endif %}
+        {% assign ss = entry.story_summary %}
+        {% if ss.en != blank or ss.hi != blank %}
+          <div class="verse-prose puranic-summary">
+            <span data-lang="en">{{ ss.en | markdownify }}</span>
+            <span data-lang="hi">{{ ss.hi | default: ss.en | markdownify }}</span>
+          </div>
+        {% elsif ss != blank %}
+          <div class="verse-prose puranic-summary">{{ ss | markdownify }}</div>
+        {% endif %}
+        {% if entry.source_texts and entry.source_texts.size > 0 %}
+          <ul class="puranic-sources">
+            {% for st in entry.source_texts %}
+              <li>
+                <strong>{{ st.text }}</strong>
+                {% if st.section %}<span class="puranic-section"> — {{ st.section }}</span>{% endif %}
+                {% if st.excerpt %}<div class="puranic-excerpt">{{ st.excerpt | markdownify }}</div>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if content != blank %}
+  <section class="verse-section verse-body-md">
+    <div class="verse-prose">{{ content }}</div>
+  </section>
+  {% endif %}
+</article>
 """
 
 COLLECTION_INDEX_TEMPLATE = """---
@@ -722,6 +967,140 @@ code {
   background: var(--surface-strong);
   padding: 0.6rem 0.8rem;
   text-decoration: none;
+}
+.muted {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.verse-page {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.verse-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.verse-nav-link {
+  font-weight: 600;
+}
+.verse-nav-spacer {
+  flex: 1;
+  min-width: 0;
+}
+.verse-title {
+  margin-bottom: 0.35rem;
+}
+.verse-figure {
+  margin: 1.25rem 0;
+  text-align: center;
+}
+.verse-hero-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(61, 39, 16, 0.08);
+}
+.verse-audio-wrap {
+  margin: 1rem 0 1.5rem;
+}
+.verse-audio {
+  width: 100%;
+  max-width: 100%;
+}
+.verse-section {
+  margin-top: 2rem;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-strong);
+  box-shadow: 0 6px 18px rgba(61, 39, 16, 0.04);
+}
+.verse-section h2 {
+  margin-top: 0;
+  font-size: 1.15rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+.verse-subhead {
+  font-size: 1.02rem;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--text);
+}
+.verse-devanagari {
+  font-size: 1.45rem;
+  line-height: 1.75;
+  font-family: "Noto Serif Devanagari", "Mukta Mahee", "Kohinoor Devanagari", Georgia, serif;
+}
+.verse-transliteration {
+  font-size: 1.08rem;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.verse-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.verse-table th,
+.verse-table td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+.verse-table th {
+  background: var(--accent-soft);
+  color: #5a3d12;
+}
+.verse-phonetic-table th:nth-child(1),
+.verse-phonetic-table td:nth-child(1) {
+  width: 22%;
+}
+.verse-word-table th:nth-child(1),
+.verse-word-table td:nth-child(1) {
+  width: 20%;
+}
+.verse-prose {
+  line-height: 1.7;
+}
+.verse-prose p {
+  margin: 0.5rem 0 0;
+}
+.verse-prose p:first-child {
+  margin-top: 0;
+}
+.puranic-entry {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
+}
+.puranic-entry:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.puranic-sources {
+  margin: 0.75rem 0 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+}
+.puranic-excerpt {
+  margin-top: 0.35rem;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+.verse-body-md {
+  margin-top: 2rem;
 }
 """
 

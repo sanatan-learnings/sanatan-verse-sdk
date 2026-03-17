@@ -24,6 +24,8 @@ Additionally, you can regenerate AI content (transliteration, meaning, translati
 
 **Batch Processing**: Use range syntax `--verse M-N` (e.g., `1-10`) to generate multiple verses in one command.
 
+**Site display**: Projects initialized with `verse-init` ship `_layouts/verse.html` that renders the YAML frontmatter produced here (`devanagari`, `transliteration`, `word_meanings`, `literal_translation`, `interpretive_meaning`, `story`, `practical_application`, etc.). See `docs/commands/verse-init.md` § `_layouts/verse.html`.
+
 ## Options
 
 ### Required

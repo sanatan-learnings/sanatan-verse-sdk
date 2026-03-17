@@ -161,6 +161,12 @@ Project documentation with:
 - Directory structure explanation
 - Links to SDK documentation
 
+### `_layouts/verse.html`
+
+Default verse layout matches the frontmatter that **`verse-generate`** writes, so new projects show full verse UX (original text, transliteration, pronunciation table, word-by-word meanings, literal/interpretive meaning, story, practical application, optional puranic context). Bilingual blocks use `data-lang="en"` / `data-lang="hi"` and the header language switcher.
+
+Expected frontmatter keys (when generated): `title_en`, `title_hi`, `collection_key`, `permalink`, `image`, optional `audio`, `devanagari`, `transliteration`, `phonetic_notes`, `word_meanings`, `literal_translation`, `interpretive_meaning`, `story`, `practical_application`, `previous_verse`, `next_verse`, and optionally `puranic_context` (from `verse-generate --puranic-context`).
+
 ## Workflow
 
 For the full lifecycle (init → generate → embeddings → index → deploy), see `docs/end-to-end-workflow.md`.
