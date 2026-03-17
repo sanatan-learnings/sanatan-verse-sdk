@@ -376,7 +376,7 @@ git push origin v0.1.1
 
 ## Automation with GitHub Actions
 
-For automatic publishing on git tags, create `.github/workflows/publish.yml`:
+For automatic publishing on git tags, create `.github/workflows/publish.yml` (recommended for most releases):
 
 ```yaml
 name: Publish to PyPI
@@ -414,6 +414,11 @@ Add your PyPI token to GitHub secrets:
 1. Go to repository Settings → Secrets → Actions
 2. Add secret: `PYPI_API_TOKEN`
 3. Paste your PyPI token
+
+> Note: For **local/manual** publishing (outside CI), maintainers can optionally set
+> `TWINE_USERNAME` / `TWINE_PASSWORD` in a local `.env` file. The repo’s `.env.example`
+> includes these lines **commented out** by default so they are only used when
+> explicitly uncommented; CI uses the `PYPI_API_TOKEN` secret instead.
 
 ## Resources
 

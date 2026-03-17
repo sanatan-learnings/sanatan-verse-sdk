@@ -44,7 +44,8 @@ ELEVENLABS_VOICE_ID=EXAVITQu4vr4xnSDxMaL
 # https://huggingface.co/settings/tokens
 HF_TOKEN=your_huggingface_token_here
 
-# Optional: PyPI publish (maintainers only) — https://pypi.org/manage/account/token/
+# Optional: local PyPI publish (maintainers only; CI uses PYPI_API_TOKEN secret)
+# https://pypi.org/manage/account/token/
 # TWINE_USERNAME=__token__
 # TWINE_PASSWORD=pypi-your-token
 """
