@@ -314,13 +314,29 @@ title: __PROJECT_NAME__
   <div class="home-hero-media">
     <img class="collection-hero-image" src="/images/cover.png" alt="{{ site.title }} title image" />
   </div>
-  <p>
-    <span data-lang="en">This is placeholder intro text for your website. Update it with your collection vision, audience, and devotional context.</span>
-    <span data-lang="hi">यह आपके वेबसाइट परिचय का प्लेसहोल्डर पाठ है। इसे अपनी संग्रह-दृष्टि, पाठक-वर्ग और भक्ति-संदर्भ के अनुसार अद्यतन करें।</span>
-  </p>
-  <div class="button-row">
-    <a class="button" href="{{ site.ask_shiva_url | default: '#' }}">Ask Shiva</a>
-    <a class="button secondary" href="{{ site.search_verses_url | default: '#' }}">Search Verses</a>
+  <div class="home-hero-copy">
+    <h1>
+      <span data-lang="en">{{ site.banner_title | default: site.title }}</span>
+      <span data-lang="hi">{{ site.banner_title_hi | default: site.banner_title | default: site.title }}</span>
+    </h1>
+    <p class="home-hero-subtitle">
+      <span data-lang="en">{{ site.banner_subtitle | default: "Ask questions, explore verses, and deepen your devotional study with guided AI support." }}</span>
+      <span data-lang="hi">{{ site.banner_subtitle_hi | default: "प्रश्न पूछें, श्लोकों का अध्ययन करें और मार्गदर्शित AI के साथ अपनी साधना को गहरा बनाएं।" }}</span>
+    </p>
+    <div class="button-row">
+      <a class="button" href="{{ site.ask_shiva_url | default: '#' }}">
+        <span data-lang="en">Ask Shiva</span>
+        <span data-lang="hi">शिव से पूछें</span>
+      </a>
+      <a class="button secondary" href="{{ site.search_verses_url | default: '#' }}">
+        <span data-lang="en">Search Verses</span>
+        <span data-lang="hi">श्लोक खोजें</span>
+      </a>
+      <a class="button secondary" href="{{ site.shiva_quiz_url | default: '#' }}">
+        <span data-lang="en">Shiva Quiz</span>
+        <span data-lang="hi">शिव क्विज़</span>
+      </a>
+    </div>
   </div>
 </section>
 {% endif %}

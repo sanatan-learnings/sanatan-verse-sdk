@@ -200,6 +200,7 @@ def test_index_page_has_jekyll_frontmatter(tmp_path):
     assert "home-hero-media" in content
     assert "Ask Shiva" in content
     assert "Search Verses" in content
+    assert "Shiva Quiz" in content
     assert "site.search_verses_url" in content
     assert "Sacred Text" in content
     assert "End-to-End Workflow" not in content
