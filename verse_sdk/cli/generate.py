@@ -2145,7 +2145,7 @@ def ensure_collection_overview_images(
 
     success = True
     for verse_id in missing:
-        ok = generate_image(collection, 0, theme, verse_id=verse_id, verbose=verbose, quiet=quiet)
+        ok, _ = generate_image(collection, 0, theme, verse_id=verse_id, verbose=verbose, quiet=quiet)
         success = success and ok
 
     if success and collection_cover.exists() and not site_cover.exists():
@@ -2163,8 +2163,13 @@ def generate_image(
     verse_id: str = None,
     verbose: bool = False,
     quiet: bool = False,
-) -> bool:
-    """Generate image for the specified verse."""
+    cost_tracker: Optional[CostTracker] = None,
+) -> Tuple[bool, float]:
+    """Generate image for the specified verse and track approximate cost.
+
+    Returns:
+        (success, image_cost)
+    """
     if verbose and not quiet:
         print(f"\n{'='*60}")
         print("GENERATING IMAGE")
@@ -2196,11 +2201,15 @@ def generate_image(
         run_subcommand(cmd, step_name="image generation", verbose=verbose, quiet=quiet)
         if not quiet:
             print("  ✓ Image generated")
-        return True
+        image_cost = 0.0
+        if cost_tracker is not None:
+            # Approximate: verse-images defaults to DALL-E 3 standard pricing.
+            image_cost = cost_tracker.track_dalle3(hd=False)
+        return True, image_cost
     except subprocess.CalledProcessError as e:
         if verbose or not quiet:
             print(f"  ✗ Error generating image: {e}", file=sys.stderr)
-        return False
+        return False, 0.0
 
 
 def generate_audio(
@@ -2209,8 +2218,13 @@ def generate_audio(
     verse_id: str = None,
     verbose: bool = False,
     quiet: bool = False,
-) -> bool:
-    """Generate audio for the specified verse."""
+    cost_tracker: Optional[CostTracker] = None,
+) -> Tuple[bool, float]:
+    """Generate audio for the specified verse and track approximate cost.
+
+    Returns:
+        (success, audio_cost)
+    """
     if verbose and not quiet:
         print(f"\n{'='*60}")
         print("GENERATING AUDIO")
@@ -2259,7 +2273,7 @@ def generate_audio(
             if not slow_audio.exists():
                 print(f"  Missing: {slow_audio}", file=sys.stderr)
             print("\nThis may indicate an issue with the audio generation workflow.", file=sys.stderr)
-            return False
+            return False, 0.0
 
         # Check if files have non-zero size (not corrupted/empty)
         full_size = full_audio.stat().st_size
@@ -2276,18 +2290,32 @@ def generate_audio(
             print("  - Network interruption during download", file=sys.stderr)
             print("  - Insufficient disk space", file=sys.stderr)
             print(f"\nTry regenerating with: verse-audio --collection {collection} --verse {verse_id} --force", file=sys.stderr)
-            return False
+            return False, 0.0
 
         if not quiet:
             print("  ✓ Audio generated")
         if verbose and not quiet:
             print(f"  ✓ {full_audio.name}")
             print(f"  ✓ {slow_audio.name}")
-        return True
+
+        audio_cost = 0.0
+        if cost_tracker is not None:
+            # Approximate ElevenLabs billing: based on canonical Devanagari length,
+            # counting both full and slow versions.
+            from verse_sdk.fetch.fetch_verse_text import fetch_from_local_file
+
+            canonical_data = fetch_from_local_file(collection, verse_id)
+            text = canonical_data.get("devanagari") if canonical_data else None
+            if isinstance(text, str) and text.strip():
+                char_count = len(text)
+                # Two calls (full + slow) over the same text.
+                audio_cost = cost_tracker.track_elevenlabs(char_count * 2)
+
+        return True, audio_cost
     except subprocess.CalledProcessError as e:
         if verbose or not quiet:
             print(f"\n✗ Error generating audio: {e}", file=sys.stderr)
-        return False
+        return False, 0.0
 
 
 def fetch_verse_text(collection: str, verse_id: str) -> Optional[dict]:
@@ -3224,27 +3252,33 @@ Environment Variables:
                     )
 
                     if scene_ready:
-                        results['image'] = generate_image(
+                        img_ok, img_cost = generate_image(
                             args.collection,
                             verse_position,
                             args.theme,
                             verse_id,
                             verbose=args.verbose,
                             quiet=args.quiet,
+                            cost_tracker=cost_tracker,
                         )
+                        results['image'] = img_ok
+                        results['image_cost'] = img_cost
                     else:
                         print("  ✗ Failed to prepare scene description", file=sys.stderr)
                         results['image'] = False
 
             # Step 3: Generate audio
             if generate_audio_flag:
-                results['audio'] = generate_audio(
+                audio_ok, audio_cost = generate_audio(
                     args.collection,
                     verse_position,
                     verse_id,
                     verbose=args.verbose,
                     quiet=args.quiet,
+                    cost_tracker=cost_tracker,
                 )
+                results['audio'] = audio_ok
+                results['audio_cost'] = audio_cost
 
             # Step 4: Generate Puranic context
             if puranic_context_flag:
