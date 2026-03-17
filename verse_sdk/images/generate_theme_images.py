@@ -482,7 +482,20 @@ def _normalize_image_to_aspect_ratio(path: Path, target_ratio: float) -> bool:
 
 
 def validate_collection(collection: str, project_dir: Path = PROJECT_DIR) -> bool:
-    """Validate that collection exists."""
+    """
+    Validate that collection exists.
+
+    Special case:
+      - 'site' is a pseudo-collection used for the home page hero.
+        It does not have _verses/site/, so we only require site scenes.
+    """
+    if collection == "site":
+        scenes_file = project_dir / "data" / "scenes" / "site.yml"
+        if not scenes_file.exists():
+            print(f"✗ Error: Site scenes file not found: {scenes_file}")
+            return False
+        return True
+
     verses_dir = project_dir / "_verses" / collection
     if not verses_dir.exists():
         print(f"✗ Error: Collection directory not found: {verses_dir}")

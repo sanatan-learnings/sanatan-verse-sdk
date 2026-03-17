@@ -16,6 +16,7 @@ from verse_sdk.images.generate_theme_images import (
     resolve_collection_arg,
     resolve_openai_api_key,
     resolve_theme_arg,
+    validate_collection,
 )
 
 
@@ -249,3 +250,23 @@ def test_generate_all_images_accepts_multiple_specific_verses(monkeypatch):
         ("title-page.png", "Title scene"),
         ("card-page.png", "Card scene"),
     ]
+
+
+def test_validate_collection_allows_site_without_verses(tmp_path, monkeypatch):
+    # Create only site scenes; no _verses/site/ directory.
+    scenes_dir = tmp_path / "data" / "scenes"
+    scenes_dir.mkdir(parents=True, exist_ok=True)
+    (scenes_dir / "site.yml").write_text(
+        "scenes:\n  cover:\n    description: Site hero\n", encoding="utf-8"
+    )
+
+    monkeypatch.chdir(tmp_path)
+    assert validate_collection("site", project_dir=tmp_path) is True
+
+
+def test_validate_collection_rejects_missing_site_scenes(tmp_path, monkeypatch, capsys):
+    # No data/scenes/site.yml present.
+    monkeypatch.chdir(tmp_path)
+    assert validate_collection("site", project_dir=tmp_path) is False
+    out = capsys.readouterr().out
+    assert "Site scenes file not found" in out
