@@ -113,6 +113,10 @@ def test_verse_layout_matches_generate_frontmatter(tmp_path):
         "data-lang",
         "previous_verse",
         "next_verse",
+        "audio_full",
+        "audio_slow",
+        "Full speed",
+        "Slow speed",
     ]:
         assert needle in layout, f"expected verse layout to reference {needle!r}"
 
@@ -122,6 +126,15 @@ def test_gitignore_excludes_env(tmp_path):
     create_template_files(tmp_path, "my-project")
     content = (tmp_path / ".gitignore").read_text()
     assert ".env" in content
+
+
+def test_gitignore_does_not_ignore_audio_dir(tmp_path):
+    """audio/ should be committable for static Jekyll sites (#126)."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+    content = (tmp_path / ".gitignore").read_text()
+    assert "audio/" not in content
+    assert "images/" in content
 
 
 def test_env_example_includes_hf_token(tmp_path):

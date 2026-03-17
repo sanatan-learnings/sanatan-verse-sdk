@@ -215,9 +215,10 @@ When generating multimedia (default, or with `--image --audio`), the command cre
    - Portrait format (1024x1792)
    - Styled according to theme configuration
 
-3. **Audio files**: `audio/<collection-key>/verse_NN_*.mp3`
-   - `verse_NN_full.mp3` - Full speed
-   - `verse_NN_slow.mp3` - Slow speed (0.75x)
+3. **Audio files**: `audio/<collection-key>/<verse-id>-full.mp3` and `<verse-id>-slow.mp3`
+   - Full speed and slow (learning) speed
+
+4. **Verse frontmatter** (when audio succeeds): `audio_full`, `audio_slow`, and legacy `audio` (same as full) as site paths, e.g. `/audio/<collection>/<verse-id>-full.mp3`, so `_layouts/verse.html` can show both players in the pronunciation guide.
 
 ## Workflow
 

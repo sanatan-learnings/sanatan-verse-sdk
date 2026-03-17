@@ -558,10 +558,14 @@ Hindi: [शीर्षक हिंदी में]
 IMPORTANT: If the Devanagari text includes verse markers (॥ digits ॥), preserve them EXACTLY as they appear.
 [Your transliteration here]
 
-3. PHONETIC NOTES (for 2-3 key words that may be difficult to pronounce):
-CRITICAL: Only include words that ACTUALLY APPEAR in the Devanagari text above.
-Format each as:
-PHONETIC: [Devanagari word from verse] | PRONUNCIATION: [syllable-by-syllable] | EMPHASIS: [which syllable]
+3. PHONETIC NOTES — complete pronunciation guide for the ENTIRE verse (not just the first line):
+- Include EVERY substantive word from the Devanagari text above (nouns, verbs, adjectives, and important particles).
+- Skip ONLY: standalone danda markers (॥), standalone numerals, and punctuation with no lexical content.
+- Typical chaupai-length verses need roughly 12–30+ PHONETIC lines; short dohas need fewer but still cover ALL words.
+- Do NOT stop after 2–3 words — users expect a full word-by-word pronunciation breakdown like a study guide.
+CRITICAL: Each PHONETIC word must appear VERBATIM as a substring of the Devanagari verse above.
+Format each line exactly as:
+PHONETIC: [Devanagari word from verse] | PRONUNCIATION: [syllable-by-syllable roman] | EMPHASIS: [which syllable]
 
 Example (only if these words appear in the verse):
 PHONETIC: हनुमंत | PRONUNCIATION: ha-nu-mant | EMPHASIS: first syllable
@@ -2212,6 +2216,36 @@ def generate_image(
         return False, 0.0
 
 
+def update_verse_frontmatter_audio_urls(verse_file: Path, collection: str, verse_id: str) -> bool:
+    """
+    Write audio_full, audio_slow, and legacy audio paths into verse frontmatter (#122/#125).
+    Paths match verse-audio output: audio/<collection>/<verse_id>-full.mp3 (site URL /audio/...).
+    """
+    full_url = f"/audio/{collection}/{verse_id}-full.mp3"
+    slow_url = f"/audio/{collection}/{verse_id}-slow.mp3"
+    try:
+        raw = verse_file.read_text(encoding="utf-8")
+        if not raw.startswith("---"):
+            return False
+        parts = raw.split("---", 2)
+        if len(parts) < 3:
+            return False
+        frontmatter = yaml.safe_load(parts[1]) or {}
+        frontmatter["audio_full"] = full_url
+        frontmatter["audio_slow"] = slow_url
+        frontmatter["audio"] = full_url
+        body = parts[2]
+        out = "---\n"
+        out += yaml.dump(frontmatter, allow_unicode=True, sort_keys=False, default_flow_style=False)
+        out += "---"
+        out += body
+        verse_file.write_text(out, encoding="utf-8")
+        return True
+    except Exception as e:
+        print(f"  ⚠ Could not update verse frontmatter with audio URLs: {e}", file=sys.stderr)
+        return False
+
+
 def generate_audio(
     collection: str,
     verse: int,
@@ -2241,7 +2275,7 @@ def generate_audio(
     if not verse_file.exists():
         print(f"✗ Error: Verse file not found: {verse_file}", file=sys.stderr)
         print("Please create the verse markdown file first", file=sys.stderr)
-        return False
+        return False, 0.0
 
     if not quiet:
         print(f"→ Generating audio for {verse_id}")
@@ -2297,6 +2331,8 @@ def generate_audio(
         if verbose and not quiet:
             print(f"  ✓ {full_audio.name}")
             print(f"  ✓ {slow_audio.name}")
+
+        update_verse_frontmatter_audio_urls(verse_file, collection, verse_id)
 
         audio_cost = 0.0
         if cost_tracker is not None:
@@ -2431,7 +2467,7 @@ def show_directory_structure():
 │   └── <collection-key>/
 │       └── <theme-name>/
 │           └── verse-01.png
-└── audio/                                # Generated audio (gitignored)
+└── audio/                                # Generated MP3s (commit for static site)
     └── <collection-key>/
         ├── verse-01-full.mp3
         └── verse-01-slow.mp3

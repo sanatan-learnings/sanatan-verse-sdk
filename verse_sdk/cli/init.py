@@ -82,9 +82,9 @@ defaults:
   # Collections can override by setting subject / subject_type in collections.yml.
 """
 
-GITIGNORE_CONTENT = """# Generated content
+GITIGNORE_CONTENT = """# Generated images (large DALL-E binaries).
+# ElevenLabs MP3 output is not gitignored — commit for Jekyll/static hosting (#126).
 images/
-audio/
 
 # Environment
 .env
@@ -169,7 +169,7 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
 │   └── embeddings/              # Vector embeddings
 │       └── puranic/             # Puranic source embeddings
 ├── images/                      # Generated images (gitignored)
-├── audio/                       # Generated audio (gitignored)
+├── audio/                       # Generated MP3s (commit for static hosting)
 └── .env                         # API keys (gitignored)
 ```
 
@@ -512,14 +512,6 @@ layout: default
     <img class="verse-hero-image" src="{{ page.image | default: auto_image }}" alt="{{ page.title_en | default: page.title | default: verse_slug }}" loading="lazy" />
   </figure>
 
-  {% if page.audio %}
-  <div class="verse-audio-wrap">
-    <audio class="verse-audio" controls preload="metadata">
-      <source src="{% if page.audio contains '://' %}{{ page.audio }}{% else %}{{ page.audio | relative_url }}{% endif %}" />
-    </audio>
-  </div>
-  {% endif %}
-
   {% if page.devanagari != blank %}
   <section class="verse-section" aria-labelledby="heading-original">
     <h2 id="heading-original"><span data-lang="en">Original text</span><span data-lang="hi">मूल पाठ</span></h2>
@@ -529,14 +521,38 @@ layout: default
 
   {% if page.transliteration != blank %}
   <section class="verse-section" aria-labelledby="heading-translit">
-    <h2 id="heading-translit"><span data-lang="en">Transliteration</span><span data-lang="hi">लिप्यंतरण</span></h2>
+    <h2 id="heading-translit"><span data-lang="en">Simplified transliteration</span><span data-lang="hi">सरलीकृत लिप्यंतरण</span></h2>
     <p class="verse-transliteration">{{ page.transliteration | newline_to_br }}</p>
   </section>
   {% endif %}
 
-  {% if page.phonetic_notes and page.phonetic_notes.size > 0 %}
-  <section class="verse-section" aria-labelledby="heading-phonetic">
+  {% assign _au_full = page.audio_full | default: page.audio %}
+  {% assign _au_slow = page.audio_slow %}
+  {% assign _has_phonetic = page.phonetic_notes and page.phonetic_notes.size > 0 %}
+  {% if _has_phonetic or _au_full or _au_slow %}
+  <section class="verse-section verse-section-pronunciation" aria-labelledby="heading-phonetic">
     <h2 id="heading-phonetic"><span data-lang="en">Pronunciation guide</span><span data-lang="hi">उच्चारण मार्गदर्शन</span></h2>
+    {% if _au_full or _au_slow %}
+    <div class="verse-pronunciation-audios">
+      {% if _au_full %}
+      <div class="verse-audio-block">
+        <p class="verse-audio-label"><span data-lang="en">Full speed</span><span data-lang="hi">पूर्ण गति</span></p>
+        <audio class="verse-audio" controls preload="metadata">
+          <source src="{% if _au_full contains '://' %}{{ _au_full }}{% else %}{{ _au_full | relative_url }}{% endif %}" type="audio/mpeg" />
+        </audio>
+      </div>
+      {% endif %}
+      {% if _au_slow %}
+      <div class="verse-audio-block">
+        <p class="verse-audio-label"><span data-lang="en">Slow speed (learning)</span><span data-lang="hi">धीमी गति (अध्ययन)</span></p>
+        <audio class="verse-audio" controls preload="metadata">
+          <source src="{% if _au_slow contains '://' %}{{ _au_slow }}{% else %}{{ _au_slow | relative_url }}{% endif %}" type="audio/mpeg" />
+        </audio>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if _has_phonetic %}
     <div class="table-wrap">
       <table class="verse-table verse-phonetic-table">
         <thead>
@@ -557,6 +573,7 @@ layout: default
         </tbody>
       </table>
     </div>
+    {% endif %}
   </section>
   {% endif %}
 
@@ -718,7 +735,8 @@ layout: default
   </section>
   {% endif %}
 
-  {% if content != blank %}
+  {% assign _body = content | strip %}
+  {% if _body != "" %}
   <section class="verse-section verse-body-md">
     <div class="verse-prose">{{ content }}</div>
   </section>
@@ -1023,6 +1041,23 @@ code {
 }
 .verse-audio-wrap {
   margin: 1rem 0 1.5rem;
+}
+.verse-pronunciation-audios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2rem;
+  margin-bottom: 1.25rem;
+}
+.verse-audio-block {
+  flex: 1 1 220px;
+  min-width: 200px;
+  max-width: 100%;
+}
+.verse-audio-label {
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--accent);
 }
 .verse-audio {
   width: 100%;
@@ -1827,12 +1862,12 @@ def print_collection_next_steps(
     print(f"      Output: data/verses/{collection}.yaml")
     print(f"      (Optional fallback: edit data/verses/{collection}.yaml manually)")
     print(f"   4. Optional: customize theme in data/themes/{collection}/{theme}.yml")
-    print("   5. Generate first verse content + assets from canonical YAML:")
+    print("   5. Generate the first verse and assets:")
     print(f"      verse-generate --collection {collection} --verse 1")
-    print("      (Scene descriptions can be auto-generated by verse-generate, or edited in data/scenes manually.)")
-    print("      Collection cover image is auto-generated in this first-verse flow when OPENAI_API_KEY is available.")
-    print("      Paths: images/cover.png and images/<collection>/<theme>/cover.png")
-    print("      Scene prompts: data/scenes/site.yml (site) and data/scenes/<collection>.yml (collection)")
+    print("      # Creates:")
+    print(f"      #   - Verses: _verses/{collection}/")
+    print(f"      #   - Covers: images/cover.png and images/{collection}/{theme}/cover.png")
+    print(f"      #   - Scene prompts: data/scenes/site.yml and data/scenes/{collection}.yml")
     print(f"   6. Review/edit generated verses in _verses/{collection}/ for quality")
     print("   7. Preview locally and verify output:")
     print("      bundle install")

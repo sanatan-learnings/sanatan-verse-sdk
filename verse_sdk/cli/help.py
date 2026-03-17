@@ -219,7 +219,7 @@ your-project/
 │   └── <collection>/
 │       └── <theme>/
 │           └── verse-01.png
-└── audio/                                # Generated audio (gitignored)
+└── audio/                                # Generated MP3s (commit for static site)
     └── <collection>/
         ├── verse-01-full.mp3
         └── verse-01-slow.mp3

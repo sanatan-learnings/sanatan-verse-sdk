@@ -125,7 +125,7 @@ your-project/
 │   ├── scenes/                  # Scene descriptions
 │   └── sources/                 # Canonical plain-text source files
 ├── images/                      # Generated images (gitignored)
-└── audio/                       # Generated audio (gitignored)
+└── audio/                       # Generated MP3s (versioned by default)
 ```
 
 ## Template Files
@@ -150,7 +150,7 @@ Includes Jekyll plugin wiring and configurable header keys:
 ### .gitignore
 
 Configured to ignore:
-- Generated content (images, audio, embeddings)
+- Generated images and embeddings (not `audio/` — commit MP3s for static hosting unless you opt out)
 - Environment files (.env)
 - Python cache files
 
