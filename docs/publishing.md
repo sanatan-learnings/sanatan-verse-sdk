@@ -354,12 +354,15 @@ pip install dist/sanatan-verse-sdk-*.whl
 
 ## Updating After Initial Release
 
-For subsequent releases:
+For subsequent releases, the **recommended path** is:
 
 1. Make your changes
 2. Update version in `setup.py`
 3. Update `CHANGELOG.md`
-4. Clean, build, and upload:
+4. Commit and push to `main`
+5. Create a GitHub Release (tag `vX.Y.Z`) – CI will build and upload to PyPI
+
+If you need a **manual/local** publish (e.g. hotfix, testing), you can still:
 
 ```bash
 rm -rf dist/ build/ *.egg-info/
@@ -368,11 +371,8 @@ python -m twine upload --repository testpypi dist/*  # Test first
 python -m twine upload dist/*  # Then production
 ```
 
-5. Tag in git:
-```bash
-git tag -a v0.1.1 -m "Release version 0.1.1"
-git push origin v0.1.1
-```
+Or use `scripts/publish.sh` (maintainers only), which automates these steps using
+local `TWINE_USERNAME`/`TWINE_PASSWORD` when explicitly configured in `.env`.
 
 ## Automation with GitHub Actions
 

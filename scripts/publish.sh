@@ -1,4 +1,14 @@
 #!/bin/bash
+# Local PyPI publishing helper for sanatan-verse-sdk.
+#
+# Primary / recommended publish path is GitHub Actions:
+#   - Version bump in setup.py
+#   - Git tag + GitHub Release (vX.Y.Z)
+#   - CI workflow .github/workflows/publish.yml builds + uploads with PYPI_API_TOKEN
+#
+# This script is kept for optional manual/local publishes by maintainers only.
+# It expects TWINE_USERNAME/TWINE_PASSWORD in the environment or .env, and should
+# not be required for normal release flows.
 set -e
 
 # Colors for output

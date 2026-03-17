@@ -104,7 +104,7 @@ sanatan-verse-sdk/
 │   └── troubleshooting.md       # Common issues
 ├── examples/                    # Example configurations
 ├── scripts/                     # Development scripts
-│   ├── publish.sh               # PyPI publishing
+│   ├── publish.sh               # Optional local PyPI publishing helper (CI is primary)
 │   └── test_multi_collection.py # Multi-collection testing
 ├── setup.py                     # Package configuration
 ├── requirements.txt             # Dependencies
