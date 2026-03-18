@@ -110,6 +110,7 @@ your-project/
 ├── .env.example                 # API keys template
 ├── .gitignore                   # Git ignore file
 ├── README.md                    # Project documentation
+├── favicon.ico                  # Default site icon (avoids Jekyll `/favicon.ico` 404 noise)
 ├── _data/
 │   ├── collections.yml          # Collection registry
 │   ├── verse-config.yml         # Project defaults

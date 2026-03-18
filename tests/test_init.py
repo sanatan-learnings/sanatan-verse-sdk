@@ -69,8 +69,18 @@ def test_creates_required_files(tmp_path):
         "assets/js/guidance.js",
         "index.html",
         "README.md",
+        "favicon.ico",
     ]:
         assert (tmp_path / f).exists(), f"Missing file: {f}"
+    assert (tmp_path / "favicon.ico").stat().st_size >= 100
+
+
+def test_default_layout_includes_favicon(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "p")
+    layout = (tmp_path / "_layouts" / "default.html").read_text()
+    assert 'rel="icon"' in layout
+    assert "favicon.ico" in layout
 
 
 def test_readme_contains_project_name(tmp_path):

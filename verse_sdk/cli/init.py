@@ -218,6 +218,7 @@ DEFAULT_LAYOUT_TEMPLATE = """<!doctype html>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="{{ '/favicon.ico' | relative_url }}" type="image/x-icon">
     <title>{{ page.title | default: site.title }}</title>
     <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
     <link rel="stylesheet" href="{{ '/assets/css/print.css' | relative_url }}" media="print">
@@ -1600,6 +1601,15 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
             print(f"✓ Created {file_path}")
         else:
             print(f"⚠ Skipped {file_path} (already exists)")
+
+    favicon_dest = base_path / "favicon.ico"
+    if not favicon_dest.exists():
+        favicon_src = Path(__file__).resolve().parent / "_scaffold_favicon.ico"
+        if favicon_src.is_file():
+            favicon_dest.write_bytes(favicon_src.read_bytes())
+            print("✓ Created favicon.ico")
+        else:
+            print("⚠ Skipped favicon.ico (bundled asset missing)", file=sys.stderr)
 
 
 def to_hindi_name(collection: str) -> str:

@@ -16,6 +16,7 @@ setup(
     include_package_data=True,
     package_data={
         "verse_sdk.deployment": ["deploy-cloudflare-worker.sh"],
+        "verse_sdk.cli": ["_scaffold_favicon.ico"],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
