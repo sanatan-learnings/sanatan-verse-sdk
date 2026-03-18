@@ -46,6 +46,7 @@ Additionally, you can regenerate AI content (transliteration, meaning, translati
 - `--verbose` - Show full nested subcommand logs (including `verse-images`/`verse-audio` details)
 - `--quiet` - Minimal output (compact progress + errors)
 - `--generate-overview-images` - Force cover overview image check on this run (default auto-check only when verse 1 is included)
+- `--cleanup-stale` - When chapter-based canonical IDs exist, delete legacy/non-canonical `_verses/<collection>/verse-*.md` files that are not referenced by the canonical sequence
 - `--list-collections` - List all available collections
 
 ## Examples
@@ -83,6 +84,9 @@ verse-generate --collection bhagavad-gita --next
 
 **Important:** Canonical sequence is read only from `data/verses/<collection>.yaml`.  
 If `_meta.sequence` appears in `data/scenes/<collection>.yml`, it is ignored.
+
+**Strict canonical verse-id mapping (issue #142):**
+When a chapter-based canonical sequence exists in `data/verses/<collection>.yaml`, `--verse N` resolves to the verse-id at position `N` from that canonical sequence and will not target legacy `verse-XX` naming unless it is explicitly part of the canonical sequence. If legacy files like `_verses/<collection>/verse-01.md` exist but do not match the canonical mapping, a warning is printed (use `--cleanup-stale` to remove them).
 
 ### Complete Workflow (Default)
 
