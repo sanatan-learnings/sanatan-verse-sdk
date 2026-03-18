@@ -1,5 +1,7 @@
 """Tests for source input resolution in verse_sdk/cli/parse_source.py."""
 
+import json
+
 import pytest
 
 from verse_sdk.cli.parse_source import (
@@ -218,6 +220,60 @@ def test_count_verse_entries_excludes_meta_key():
         "verse-02": {"devanagari": "हर हर महादेव ।"},
     }
     assert _count_verse_entries(data) == 2
+
+
+def test_parse_source_no_verses_detected_clean_cli_error(tmp_path, capsys, monkeypatch):
+    """
+    #147: when input does not contain any verse-like content, CLI should not
+    emit a Python traceback; it should exit with a friendly error message.
+    """
+    # Create minimal project structure for auto source discovery.
+    data_dir = tmp_path / "data" / "sources"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    (data_dir / "shiv-puran.txt").write_text(
+        "\n".join(
+            [
+                "# Preface",
+                "# Source text for shiv-puran",
+                "# Paste canonical plain-text verses here (UTF-8).",
+                "# Then run:",
+                "#   verse-parse-source --collection shiv-puran",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    # Needed because parse_source can update collections.yml after success;
+    # this test expects failure before that stage, but keep structure complete.
+    (tmp_path / "_data").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "_data" / "collections.yml").write_text("shiv-puran:\n  enabled: true\n", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    report_path = tmp_path / "report.json"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "verse-parse-source",
+            "--collection",
+            "shiv-puran",
+            "--report",
+            str(report_path),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        parse_source_main()
+
+    assert exc.value.code == 1
+    captured = capsys.readouterr()
+    err = (captured.err or "") + (captured.out or "")
+    assert "Traceback" not in err
+    assert "No verses were detected" in err
+    assert report_path.exists()
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["collection"] == "shiv-puran"
+    assert report["verses"] == 0
+    assert "error" in report
 
 
 def test_parse_source_updates_collections_total_verses(tmp_path, monkeypatch):

@@ -664,8 +664,88 @@ def main():
         chapter_scope=args.chapter_scope,
         canto_regex=canto_regex,
     )
-    data = _build_yaml(entries, args.collection, chaptered=chaptered, existing_meta=existing_meta)
-    rendered = _render_yaml(data)
+    try:
+        data = _build_yaml(entries, args.collection, chaptered=chaptered, existing_meta=existing_meta)
+        rendered = _render_yaml(data)
+    except ValueError as exc:
+        # #147: no verses detected should produce a clean CLI error (no traceback),
+        # with actionable context to help users tune markers/filters.
+        anchor = stats.get("anchor", {}) if isinstance(stats, dict) else {}
+        anchor_found = bool(anchor.get("anchor_found"))
+        anchor_value = anchor.get("anchor_value")
+        anchor_line = anchor.get("anchor_line")
+
+        actual_format = "chaptered-plain" if chaptered else "devanagari-plain"
+
+        print(f"Error: {exc}", file=sys.stderr)
+        print("No verses were detected while parsing the input source text.", file=sys.stderr)
+        print(f"Collection: {args.collection}", file=sys.stderr)
+        print(f"Format: {actual_format} (requested --format={args.format})", file=sys.stderr)
+        print(f"Profile: {args.profile}", file=sys.stderr)
+        print(
+            "Scanned files:",
+            file=sys.stderr,
+        )
+        for p in files:
+            print(f"  - {p}", file=sys.stderr)
+        print(
+            f"Start anchor: {'found' if anchor_found else 'not found'}"
+            + (f" (line {anchor_line}, value={anchor_value!r})" if anchor_found else ""),
+            file=sys.stderr,
+        )
+
+        print(f"Lines scanned: {stats.get('lines_scanned')}", file=sys.stderr)
+        print(
+            "Drops: frontmatter="
+            f"{stats.get('lines_frontmatter_dropped', 0)}, "
+            f"noise={stats.get('lines_noise_dropped', 0)}, "
+            f"prose={stats.get('lines_prose_dropped', 0)}, "
+            f"heading={stats.get('lines_heading_dropped', 0)}",
+            file=sys.stderr,
+        )
+
+        if args.start_marker:
+            print(f"Start marker: {args.start_marker!r}", file=sys.stderr)
+        if start_marker_regex is not None:
+            print(f"Start marker regex: {start_marker_regex.pattern!r}", file=sys.stderr)
+        if args.disable_start_anchor:
+            print("Start anchor behavior: disabled (--disable-start-anchor)", file=sys.stderr)
+
+        print("", file=sys.stderr)
+        print("Suggestions:", file=sys.stderr)
+        print("  - Add `--report <path>` to inspect parse stats/samples.", file=sys.stderr)
+        print("  - If your input uses different headings, try `--disable-heading-filter`.", file=sys.stderr)
+        print("  - If OCR/noise removal is too aggressive, try `--filter-ocr-noise=false`.", file=sys.stderr)
+        print("  - If verses start after a specific header, try `--start-marker` / `--start-marker-regex`.", file=sys.stderr)
+        print("  - If you know you don't need a start-anchor, try `--disable-start-anchor`.", file=sys.stderr)
+
+        if args.report:
+            report_path = Path(args.report)
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            report = {
+                "collection": args.collection,
+                "files": [str(p) for p in files],
+                "format": actual_format,
+                "requested_format": args.format,
+                "profile": args.profile,
+                "filter_frontmatter": filter_frontmatter,
+                "filter_ocr_noise": filter_ocr_noise,
+                "frontmatter_max_lines": args.frontmatter_max_lines,
+                "noise_threshold": args.noise_threshold,
+                "verses": 0,
+                "lines_scanned": stats.get("lines_scanned"),
+                "lines_frontmatter_dropped": stats.get("lines_frontmatter_dropped"),
+                "lines_noise_dropped": stats.get("lines_noise_dropped"),
+                "lines_prose_dropped": stats.get("lines_prose_dropped"),
+                "lines_heading_dropped": stats.get("lines_heading_dropped"),
+                "samples": stats.get("samples", {}),
+                "start_anchor": anchor,
+                "error": str(exc),
+            }
+            report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+            print(f"Wrote report: {report_path}", file=sys.stderr)
+
+        sys.exit(1)
 
     if args.diff and existing is not None and existing != rendered:
         diff = difflib.unified_diff(
