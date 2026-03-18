@@ -50,7 +50,7 @@ def test_ensure_collection_overview_images_only_generates_missing(tmp_path, monk
 
     assert ok is True
     assert calls == []
-    assert (tmp_path / "images" / "cover.png").exists()
+    assert (tmp_path / "images" / "site" / "modern-minimalist" / "cover.png").exists()
 
 
 def test_ensure_collection_overview_images_dry_run_does_not_call_generator(tmp_path, monkeypatch):
@@ -95,4 +95,4 @@ def test_ensure_collection_overview_images_generates_collection_cover_when_missi
     assert ok is True
     assert calls == [("shiv-puran", 0, "modern-minimalist", "cover", False, False)]
     assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "cover.png").exists()
-    assert (tmp_path / "images" / "cover.png").exists()
+    assert (tmp_path / "images" / "site" / "modern-minimalist" / "cover.png").exists()

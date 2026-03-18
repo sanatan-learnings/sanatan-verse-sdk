@@ -321,7 +321,7 @@ title: __PROJECT_NAME__
 {% if featured_key != '' %}
 <section class="hero home-hero">
   <div class="home-hero-media">
-    <img class="collection-hero-image" src="/images/cover.png" alt="{{ site.title }} title image" />
+    <img class="collection-hero-image" src="/images/site/{{ featured_theme_name }}/cover.png" alt="{{ site.title }} title image" />
   </div>
   <div class="home-hero-copy">
     {% if site.home_hero_title_en or site.home_hero_title_hi %}
@@ -1938,16 +1938,13 @@ def ensure_collection_images(base_path: Path, collection: str, theme: str = "mod
 
 def ensure_site_images(base_path: Path, site_theme: str, site_source_collection: str) -> None:
     """
-    Generate the home page hero image at images/cover.png from data/scenes/site.yml.
+    Generate the home page hero image at images/site/<site_theme>/cover.png from data/scenes/site.yml.
 
     We generate a temporary/normalized image via:
       verse-images --collection site --theme <site_theme> --verse cover
 
     Output from verse-images:
       images/site/<site_theme>/cover.png
-
-    Then we copy to:
-      images/cover.png
     """
     openai_key = resolve_api_key("OPENAI_API_KEY", project_dir=base_path)
     if not openai_key:
@@ -1975,13 +1972,8 @@ def ensure_site_images(base_path: Path, site_theme: str, site_source_collection:
     try:
         generate_collection_images_with_verse_images(base_path, "site", theme=site_theme)
         site_cover_src = base_path / "images" / "site" / site_theme / "cover.png"
-        site_cover_dst = base_path / "images" / "cover.png"
-        if site_cover_src.exists() and not site_cover_dst.exists():
-            site_cover_dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(site_cover_src, site_cover_dst)
-            print("✓ Generated home hero images/cover.png from data/scenes/site.yml")
-        elif site_cover_dst.exists():
-            print("⊙ Skipping images/cover.png (already exists)")
+        if site_cover_src.exists():
+            print(f"✓ Generated home hero images/site/{site_theme}/cover.png from data/scenes/site.yml")
         else:
             raise RuntimeError(f"Expected generated home hero image missing: {site_cover_src}")
     except Exception as exc:
@@ -2134,7 +2126,7 @@ def print_collection_next_steps(
     )
     print("      # Creates:")
     print(f"      #   - Verses: _verses/{collection}/")
-    print(f"      #   - Covers: images/cover.png and images/{collection}/{theme}/cover.png")
+    print(f"      #   - Covers: images/site/{theme}/cover.png and images/{collection}/{theme}/cover.png")
     print(f"      #   - Scene prompts: data/scenes/site.yml and data/scenes/{collection}.yml")
     print(f"   6. Review/edit generated verses in _verses/{collection}/ for quality")
     print("   7. Preview locally and verify output:")

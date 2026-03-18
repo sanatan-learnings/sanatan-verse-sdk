@@ -2202,7 +2202,10 @@ def ensure_collection_overview_images(
     ensure_collection_scene_entries(collection, project_dir, quiet=quiet)
 
     collection_cover = project_dir / "images" / collection / theme / "cover.png"
-    site_cover = project_dir / "images" / "cover.png"
+    # Home page hero now uses a single themed asset:
+    #   images/site/<site_theme>/cover.png
+    # (issue #143)
+    site_cover = project_dir / "images" / "site" / theme / "cover.png"
     missing = []
     if not collection_cover.exists():
         missing.append("cover")
@@ -2214,7 +2217,7 @@ def ensure_collection_overview_images(
             site_cover.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(collection_cover, site_cover)
             if verbose and not quiet:
-                print("✓ Created site cover image from collection cover")
+                print(f"✓ Created site hero image at images/site/{theme}/cover.png from collection cover")
         return True
 
     if not quiet:
@@ -2236,7 +2239,7 @@ def ensure_collection_overview_images(
         site_cover.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(collection_cover, site_cover)
         if not quiet:
-            print("  ✓ Created images/cover.png")
+            print(f"  ✓ Created images/site/{theme}/cover.png")
     return success
 
 

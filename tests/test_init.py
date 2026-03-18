@@ -459,7 +459,7 @@ def test_prefers_verse_images_generation_when_api_key_present(tmp_path, monkeypa
     assert any("--collection" in cmd and "shiv-puran" in cmd and "--verse" in cmd and "cover" in cmd for cmd in calls)
     assert any("--collection" in cmd and "site" in cmd and "--verse" in cmd and "cover" in cmd for cmd in calls)
     assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "cover.png").exists()
-    assert (tmp_path / "images" / "cover.png").exists()
+    assert (tmp_path / "images" / "site" / "modern-minimalist" / "cover.png").exists()
 
 
 def test_reports_images_pending_when_api_key_missing(tmp_path, monkeypatch, capsys):
@@ -499,7 +499,7 @@ def test_ensure_collection_images_loads_dotenv(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "no OPENAI_API_KEY" not in out, "should use OPENAI_API_KEY from .env"
     assert (tmp_path / "images" / "shiv-puran" / "modern-minimalist" / "cover.png").exists()
-    assert (tmp_path / "images" / "cover.png").exists()
+    assert (tmp_path / "images" / "site" / "modern-minimalist" / "cover.png").exists()
 
 
 def test_collection_layout_references_title_image(tmp_path):
@@ -542,7 +542,7 @@ def test_index_layout_orders_hero_then_sacred_text(tmp_path):
     create_template_files(tmp_path, "test")
     content = (tmp_path / "index.html").read_text()
     assert content.index("home-hero") < content.index("Sacred Text")
-    assert "/images/cover.png" in content
+    assert "/images/site/{{ featured_theme_name }}/cover.png" in content
 
 
 def test_resolve_collection_theme_uses_project_default(tmp_path):
@@ -654,7 +654,7 @@ def test_project_next_steps_with_collection_are_consolidated_and_concrete(tmp_pa
     assert "verse-images --verse title-page" not in out
     assert "verse-images --verse card-page" not in out
     assert "Collection cover image is auto-generated in this first-verse flow when OPENAI_API_KEY is available." in out
-    assert "images/cover.png and images/shiv-puran/modern-minimalist/cover.png" in out
+    assert "images/site/modern-minimalist/cover.png and images/shiv-puran/modern-minimalist/cover.png" in out
     assert "bundle install" in out
     assert "bundle exec jekyll serve" in out
     assert out.index("bundle install") < out.index("bundle exec jekyll serve")
