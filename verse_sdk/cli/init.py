@@ -465,38 +465,77 @@ layout: default
   {% endif %}
 </section>
 
-<div class="verse-list card-grid">
-{% assign listed = false %}
-{% for verse in site.verses %}
-  {% if verse.collection_key == collection_key %}
-    {% assign listed = true %}
-  {% assign verse_label = verse.verse_id | default: verse.title | default: verse.basename %}
-  {% assign verse_image = '/images/' | append: collection_key | append: '/' | append: theme_name | append: '/' | append: verse.verse_id | append: '.png' %}
-  {% assign has_verse_image = false %}
-  {% for static_file in site.static_files %}
-    {% if static_file.path == verse_image %}
-      {% assign has_verse_image = true %}
-      {% break %}
-    {% endif %}
-  {% endfor %}
-  <a class="card verse-card" href="{{ verse.url }}">
-    {% if has_verse_image %}
-    <img src="{{ verse_image }}" alt="{{ verse_label }} image" loading="lazy" />
-    {% endif %}
-    <div class="card-title">{{ verse_label }}</div>
-    {% if verse.title_en or verse.title_hi %}
-    <div class="card-subtitle">
-      <span data-lang="en">{{ verse.title_en | default: verse.title | default: verse_label }}</span>
-      <span data-lang="hi">{{ verse.title_hi | default: verse_label }}</span>
-    </div>
-    {% endif %}
-  </a>
+{% assign _all_collection_verses = site.verses | where: 'collection_key', collection_key %}
+{% assign _sorted_verses = _all_collection_verses | sort: 'verse_number' | sort: 'chapter' %}
+
+{% assign _chapters_concat = '' %}
+{% for verse in _sorted_verses %}
+  {% if verse.chapter %}
+    {% unless _chapters_concat contains verse.chapter | append: '||' %}
+      {% assign _chapters_concat = _chapters_concat | append: verse.chapter | append: '||' %}
+    {% endunless %}
   {% endif %}
 {% endfor %}
-{% unless listed %}
+
+{% assign _chapter_list = _chapters_concat | split: '||' %}
+
+{% if _sorted_verses.size == 0 %}
   <div class="card-subtitle">No verses generated yet for this collection.</div>
-{% endunless %}
-</div>
+{% else %}
+  {% if _chapter_list.size == 0 %}
+    {% assign _chapter_list = '1' | split: ',' %}
+  {% endif %}
+
+  {% for chapter_number in _chapter_list %}
+    {% if chapter_number == '' %}{% continue %}{% endif %}
+    {% assign chapter_verses = _sorted_verses | where: 'chapter', chapter_number %}
+    {% if chapter_verses.size == 0 %}
+      {% continue %}
+    {% endif %}
+    {% assign chapter_count = chapter_verses.size %}
+    {% assign sample = chapter_verses.first %}
+    {% assign chapter_title = sample.chapter_title | default: '' %}
+    {% assign verse_type = sample.verse_type | default: 'Shloka' %}
+    <section class="collection-chapter-section">
+      <header class="collection-chapter-header">
+        <h2 class="collection-chapter-title">
+          🎵 Chapter {{ chapter_number }}{% if chapter_title != '' %} – {{ chapter_title }}{% endif %}
+        </h2>
+        <span class="collection-chapter-count">
+          {{ chapter_count }} {{ verse_type | downcase }}{% if chapter_count != 1 %}s{% endif %}
+        </span>
+      </header>
+      <div class="verse-card-grid">
+        {% for verse in chapter_verses %}
+          {% assign verse_label = verse.title_en | default: verse.title | default: verse.verse_id | default: verse.basename %}
+          {% assign verse_id = verse.verse_id | default: verse.basename %}
+          {% assign verse_type = verse.verse_type | default: 'Verse' %}
+          {% assign verse_num = verse.verse_number | default: forloop.index %}
+          {% assign verse_image = verse.image %}
+          {% if verse_image == nil or verse_image == '' %}
+            {% assign verse_image = '/images/' | append: collection_key | append: '/' | append: theme_name | append: '/' | append: verse_id | append: '.png' %}
+          {% endif %}
+          {% assign has_verse_image = false %}
+          {% for static_file in site.static_files %}
+            {% if static_file.path == verse_image %}
+              {% assign has_verse_image = true %}
+              {% break %}
+            {% endif %}
+          {% endfor %}
+          <a class="card verse-card" href="{{ verse.url }}">
+            {% if has_verse_image %}
+            <img class="verse-card-image" src="{{ verse_image }}" alt="{{ verse_label }} image" loading="lazy" />
+            {% endif %}
+            <div class="verse-card-label">
+              {{ verse_type | upcase }} {{ verse_num }}
+            </div>
+            <div class="verse-card-title">{{ verse_label }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+{% endif %}
 """
 
 VERSE_LAYOUT_TEMPLATE = """---
@@ -535,9 +574,26 @@ layout: default
     </h1>
 
     {% if page.chapter or page.verse_number or page.section_verse_number %}
+      {% assign _raw_type = page.verse_type | downcase | default: '' %}
+      {% assign _display_type_en = 'Verse' %}
+      {% assign _display_type_hi = 'श्लोक' %}
+      {% if _raw_type == 'shloka' or _raw_type == 'chapter' %}
+        {% assign _display_type_en = 'Shloka' %}
+        {% assign _display_type_hi = 'श्लोक' %}
+      {% elsif _raw_type == 'chaupai' %}
+        {% assign _display_type_en = 'Chaupai' %}
+        {% assign _display_type_hi = 'चौपाई' %}
+      {% elsif _raw_type == 'doha' %}
+        {% assign _display_type_en = 'Doha' %}
+        {% assign _display_type_hi = 'दोहा' %}
+      {% endif %}
       <p class="verse-meta muted">
         {% if page.chapter %}<span data-lang="en">Chapter {{ page.chapter }}</span><span data-lang="hi">अध्याय {{ page.chapter }}</span>{% endif %}
-        {% if page.verse_number %}{% if page.chapter %} · {% endif %}<span data-lang="en">Verse {{ page.verse_number }}</span><span data-lang="hi">श्लोक {{ page.verse_number }}</span>{% endif %}
+        {% if page.verse_number %}
+          {% if page.chapter %} · {% endif %}
+          <span data-lang="en">{{ _display_type_en }} {{ page.verse_number }}</span>
+          <span data-lang="hi">{{ _display_type_hi }} {{ page.verse_number }}</span>
+        {% endif %}
         {% if page.section_verse_number and page.section_verse_number != page.verse_number %}
           · <span data-lang="en">#{{ page.section_verse_number }}</span><span data-lang="hi">#{{ page.section_verse_number }}</span>
         {% endif %}
