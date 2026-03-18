@@ -1291,6 +1291,7 @@ def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> tuple
         if '_meta' in data and isinstance(data['_meta'], dict):
             sequence = data['_meta'].get('sequence')
             if sequence and isinstance(sequence, list):
+                sequence = filter_chapter_based_sequence(sequence)
                 return sequence, "explicit"
 
             # Method 2: Check for Bhagavad Gita chapter structure
@@ -1316,6 +1317,8 @@ def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> tuple
                         sequence.append(verse_id)
 
                 if sequence:
+                    # Already chapter-based IDs; keep but still safe.
+                    sequence = filter_chapter_based_sequence(sequence)
                     return sequence, "bhagavad-gita-auto"
 
         # Method 3: Fallback - extract verse IDs from YAML keys (sorted)
@@ -1327,6 +1330,7 @@ def get_verse_sequence(collection: str, project_dir: Path = Path.cwd()) -> tuple
                 return [int(n) for n in numbers]
 
             verse_ids.sort(key=sort_key)
+            verse_ids = filter_chapter_based_sequence(verse_ids)
             return verse_ids, "yaml-keys"
 
         return None, None
@@ -1350,6 +1354,20 @@ def extract_verse_number_from_id(verse_id: str) -> Optional[int]:
     if match:
         return int(match.group(1))
     return None
+
+
+def filter_chapter_based_sequence(sequence: list) -> list:
+    """
+    Strict canonical mapping (issue #142):
+    If chapter-based IDs exist in the canonical sequence, drop legacy non-canonical
+    IDs (e.g. `verse-01`) so `--verse N` never targets a stale file naming scheme.
+    """
+    if not sequence:
+        return sequence
+    chapter_items = [v for v in sequence if isinstance(v, str) and v.startswith("chapter-")]
+    if chapter_items:
+        return chapter_items
+    return sequence
 
 
 def extract_verse_type_from_id(verse_id: str) -> str:
@@ -2825,6 +2843,12 @@ Environment Variables:
         help="Force cover overview image check for this run (default auto-check only when verse 1 is included)"
     )
 
+    parser.add_argument(
+        "--cleanup-stale",
+        action="store_true",
+        help="When chapter-based IDs exist, delete legacy non-canonical _verses/<collection>/verse-*.md files not in the canonical sequence",
+    )
+
     # Verse ID override (for non-numeric verse identifiers)
     parser.add_argument(
         "--verse-id",
@@ -3061,6 +3085,47 @@ Environment Variables:
         print("✗ Error: Cannot use --verse-id with verse ranges")
         print("The verse ID is auto-detected for each verse in the range")
         sys.exit(1)
+
+    # Detect chapter-based canonical sequences (issue #142 strict mapping)
+    project_dir = Path.cwd()
+    canonical_sequence, canonical_source = get_verse_sequence(args.collection, project_dir)
+    strict_chapter_sequence = bool(
+        canonical_sequence and any(isinstance(v, str) and v.startswith("chapter-") for v in canonical_sequence)
+    )
+
+    if strict_chapter_sequence and args.cleanup_stale:
+        verses_dir = project_dir / "_verses" / args.collection
+        if verses_dir.exists():
+            canonical_set = set(canonical_sequence or [])
+            deleted = 0
+            for p in list(verses_dir.glob("verse-*.md")) + list(verses_dir.glob("verse_*.md")):
+                if p.stem not in canonical_set:
+                    try:
+                        p.unlink()
+                        deleted += 1
+                    except Exception:
+                        pass
+            if deleted and not args.quiet:
+                print(f"  ⊘ Cleanup: removed {deleted} stale legacy verse file(s)")
+
+    if strict_chapter_sequence and not args.quiet:
+        verses_dir = project_dir / "_verses" / args.collection
+        if verses_dir.exists() and canonical_sequence:
+            for verse_position in verse_numbers:
+                if verse_position < 1 or verse_position > len(canonical_sequence):
+                    continue
+                expected_verse_id = canonical_sequence[verse_position - 1]
+                legacy_candidates = [
+                    verses_dir / f"verse-{verse_position:02d}.md",
+                    verses_dir / f"verse_{verse_position:02d}.md",
+                ]
+                for legacy_path in legacy_candidates:
+                    if legacy_path.exists() and legacy_path.stem != expected_verse_id:
+                        print(
+                            f"  ⚠ Warning: legacy verse file '{legacy_path.name}' exists but canonical sequence maps position {verse_position} → '{expected_verse_id}'. "
+                            f"Consider running with --cleanup-stale to remove stale legacy IDs."
+                        )
+                        break
 
     # Display header
     if _is_verbose():
