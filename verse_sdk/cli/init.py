@@ -343,7 +343,7 @@ title: __PROJECT_NAME__
 
   <h2><span data-lang="en">{{ site.data.translations.en.home.sacred_text | default: "Sacred Text" }}</span><span data-lang="hi">{{ site.data.translations.hi.home.sacred_text | default: "पवित्र ग्रंथ" }}</span></h2>
 {% if has_enabled %}
-<div class="collections-grid card-grid">
+<div class="home-collections-grid">
 {% for pair in site.data.collections %}
   {% assign key = pair[0] %}
   {% assign cfg = pair[1] %}
@@ -356,15 +356,43 @@ title: __PROJECT_NAME__
       {% assign generated_count = generated_count | plus: 1 %}
     {% endif %}
   {% endfor %}
-  <a class="collection-card card" href="/{{ key }}/">
-    <img src="/images/{{ key }}/{{ theme_name }}/cover.png" alt="{{ cfg.name.en | default: key }} card image" />
-    <div class="card-title">{{ cfg.name.en | default: key }}</div>
-    {% if cfg.name.hi %}<div class="card-subtitle">{{ cfg.name.hi }}</div>{% endif %}
-    {% if cfg.total_verses %}
-    <div class="card-subtitle">{{ generated_count }} of {{ cfg.total_verses }}</div>
-    {% else %}
-    <div class="card-subtitle">{{ generated_count }} of ?</div>
-    {% endif %}
+  <a class="home-collection-card" href="/{{ key }}/">
+    <div class="home-collection-card-bg" style="background-image: url('/images/{{ key }}/{{ theme_name }}/cover.png');"></div>
+    <div class="home-collection-card-overlay">
+      <div class="home-collection-card-header">
+        <div class="home-collection-title">{{ cfg.name.en | default: key }}</div>
+        {% if cfg.name.hi %}<div class="home-collection-title-hi">{{ cfg.name.hi }}</div>{% endif %}
+      </div>
+      {% assign author_en = cfg.author.en | default: cfg.author_en | default: cfg.author %}
+      {% assign author_hi = cfg.author.hi | default: cfg.author_hi | default: cfg.author %}
+      {% if author_en or author_hi %}
+      <p class="home-collection-author">
+        <span data-lang="en">{{ author_en }}</span>
+        <span data-lang="hi">{{ author_hi | default: author_en }}</span>
+      </p>
+      {% endif %}
+      {% assign desc_en = cfg.description.en | default: cfg.description_en | default: cfg.description %}
+      {% assign desc_hi = cfg.description.hi | default: cfg.description_hi | default: cfg.description %}
+      {% if desc_en or desc_hi %}
+      <p class="home-collection-description">
+        <span data-lang="en">{{ desc_en }}</span>
+        <span data-lang="hi">{{ desc_hi | default: desc_en }}</span>
+      </p>
+      {% endif %}
+      <div class="home-collection-card-footer">
+        <span class="home-collection-meta">
+          {% if cfg.total_verses %}
+            {{ generated_count }} of {{ cfg.total_verses }} verses
+          {% else %}
+            {{ generated_count }} verses
+          {% endif %}
+        </span>
+        <span class="home-collection-cta">
+          <span data-lang="en">Explore</span>
+          <span data-lang="hi">और देखें</span>
+        </span>
+      </div>
+    </div>
   </a>
 {% endfor %}
 </div>
@@ -988,6 +1016,98 @@ code {
 .collection-intro,
 .collection-meta {
   color: var(--muted);
+}
+.home-collections-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem;
+  margin-top: 1.2rem;
+}
+@media (max-width: 768px) {
+  .home-collections-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.home-collection-card {
+  position: relative;
+  display: block;
+  border-radius: 18px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  min-height: 220px;
+  background: #1b1209;
+  box-shadow: 0 12px 26px rgba(43, 26, 8, 0.35);
+}
+.home-collection-card-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(4px);
+  transform: scale(1.08);
+  opacity: 0.45;
+}
+.home-collection-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.22), transparent 55%),
+              linear-gradient(145deg, rgba(8, 4, 0, 0.9), rgba(4, 2, 0, 0.96));
+  mix-blend-mode: multiply;
+}
+.home-collection-card-overlay {
+  position: relative;
+  z-index: 1;
+  padding: 1.1rem 1.2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: #fff9f0;
+}
+.home-collection-card-header {
+  margin-bottom: 0.35rem;
+}
+.home-collection-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.home-collection-title-hi {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+.home-collection-author {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin: 0.1rem 0 0.3rem;
+}
+.home-collection-description {
+  font-size: 0.9rem;
+  line-height: 1.35;
+  opacity: 0.9;
+  margin: 0 0 0.4rem;
+}
+.home-collection-card-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+.home-collection-meta {
+  opacity: 0.9;
+}
+.home-collection-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 244, 225, 0.7);
+  background: linear-gradient(135deg, rgba(255, 222, 153, 0.16), rgba(255, 191, 105, 0.32));
+  font-weight: 600;
+  white-space: nowrap;
 }
 .site-footer {
   border-top: 1px solid var(--border);

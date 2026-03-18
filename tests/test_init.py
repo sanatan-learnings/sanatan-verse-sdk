@@ -209,7 +209,7 @@ def test_index_page_has_jekyll_frontmatter(tmp_path):
     assert "layout: home" in content
     assert "site.data.collections" in content
     assert "cfg.enabled" in content
-    assert "class=\"collections-grid card-grid\"" in content
+    assert "home-collections-grid" in content
     assert "home-hero-media" in content
     assert "Ask Shiva" in content
     assert "Search Verses" in content
@@ -230,6 +230,18 @@ def test_scaffold_css_home_hero_compact_centered(tmp_path):
     assert "28rem" in css
     assert ".home-hero .button-row" in css
     assert "text-align: center" in css.split(".home-hero {")[1].split("}")[0]
+
+
+def test_scaffold_css_home_collections_grid_2_up_image_backed(tmp_path):
+    """#131: home collections use 2-up, image-backed cards with Explore CTA."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+    css = (tmp_path / "assets" / "css" / "style.css").read_text()
+    assert ".home-collections-grid" in css
+    assert "grid-template-columns: repeat(2" in css
+    assert ".home-collection-card-bg" in css
+    assert "filter: blur" in css
+    assert ".home-collection-cta" in css
 
 
 # ---------------------------------------------------------------------------
@@ -437,10 +449,10 @@ def test_collection_layout_references_title_image(tmp_path):
     assert "{% assign theme_name = cfg.image_theme | default: cfg.theme | default: cfg.default_theme" in index_content
     assert "{% assign generated_count = 0 %}" in index_content
     assert "/images/{{ key }}/{{ theme_name }}/cover.png" in index_content
-    assert "{{ generated_count }} of {{ cfg.total_verses }}" in index_content
-    assert "{{ generated_count }} of ?" in index_content
+    assert "{{ generated_count }} of {{ cfg.total_verses }} verses" in index_content
+    assert "{{ generated_count }} verses" in index_content
     assert "this.src='/images/{{ key }}/card.png'" not in index_content
-    assert "class=\"collection-card card\"" in index_content
+    assert "home-collection-card" in index_content
 
     layout = (tmp_path / "_layouts" / "collection.html").read_text()
     assert "{% assign theme_name = collection_cfg.image_theme | default: collection_cfg.theme | default: collection_cfg.default_theme" in layout

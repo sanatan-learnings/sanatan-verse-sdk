@@ -2,15 +2,13 @@
 
 ## Release Workflow
 
-When the user asks to publish/release, bump the version in `setup.py`, commit, then run:
+Preferred: **GitHub release → publish.yml**.
 
-```bash
-# Build, upload to PyPI, commit version bump, create + push git tag
-bash scripts/publish.sh --yes --skip-testpypi
+1. Bump `setup.py` version (middle number only; see below).
+2. Commit + push to `main`.
+3. Create GitHub release `vX.Y.Z` (tag, title, notes); CI publishes to PyPI.
 
-# Create GitHub release
-gh release create vX.Y.Z --title "vX.Y.Z" --notes "..."
-```
+`scripts/publish.sh` is optional/local; use only if explicitly requested.
 
 **Version guidelines:** Always bump the middle number only: `0.31.x` → `0.32.0` → `0.33.0` etc. Never use patch versions (x.x.N). Only bump as part of the release commit — never during development.
 
@@ -23,6 +21,11 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```
 
 Types: `feat`, `fix`, `docs`, `refactor`, `chore`
+
+When work comes from a GitHub issue, prefer to link it so issues close automatically:
+
+- In PR descriptions or commits, use `Fixes #NNN` / `Closes #NNN` (either location is fine).
+- If changes land directly on `main` without a PR, close the issue via `gh issue close NNN` once verified.
 
 ## Project Structure
 
