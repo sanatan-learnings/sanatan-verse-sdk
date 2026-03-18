@@ -2167,7 +2167,8 @@ def init_project(
     project_name: Optional[str] = None,
     minimal: bool = False,
     collections: Optional[List[str]] = None,
-    num_verses: int = 3
+    num_verses: int = 3,
+    assume_yes: bool = False,
 ) -> None:
     """
     Initialize a new verse project.
@@ -2190,8 +2191,12 @@ def init_project(
         base_path = Path.cwd()
         # Check if directory is empty (excluding hidden files)
         if any(base_path.iterdir()):
-            response = input("⚠️  Current directory is not empty. Continue? [y/N] ")
-            if response.lower() != 'y':
+            if assume_yes:
+                response = "y"
+            else:
+                response = input("⚠️  Current directory is not empty. Continue? [y/N] ")
+
+            if response.lower() != "y":
                 print("Aborted.")
                 sys.exit(0)
         print("📁 Initializing project in current directory")
@@ -2312,6 +2317,13 @@ For more information:
         help="Create minimal structure without example files"
     )
 
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Assume yes for confirmation prompts (skip interactive input)"
+    )
+
     args = parser.parse_args()
 
     # Handle deprecated --with-example flag
@@ -2325,7 +2337,8 @@ For more information:
             project_name=args.project_name,
             minimal=args.minimal,
             collections=collections if collections else None,
-            num_verses=args.num_verses
+            num_verses=args.num_verses,
+            assume_yes=args.yes,
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

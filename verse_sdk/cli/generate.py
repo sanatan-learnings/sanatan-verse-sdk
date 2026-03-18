@@ -1553,7 +1553,11 @@ def validate_generation_requirements(
     return len(errors) == 0, errors
 
 
-def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional[int]:
+def find_next_verse(
+    collection: str,
+    project_dir: Path = Path.cwd(),
+    assume_yes: bool = False,
+) -> Optional[int]:
     """
     Find the next verse position to generate.
 
@@ -1596,15 +1600,16 @@ def find_next_verse(collection: str, project_dir: Path = Path.cwd()) -> Optional
         print("      - ...", file=sys.stderr)
         print("", file=sys.stderr)
 
-        # Ask for confirmation
-        try:
-            response = input("Continue with auto-generated sequence? (y/n): ").strip().lower()
-            if response not in ['y', 'yes']:
-                print("Cancelled.", file=sys.stderr)
+        # Ask for confirmation (or assume yes for non-interactive usage)
+        if not assume_yes:
+            try:
+                response = input("Continue with auto-generated sequence? (y/n): ").strip().lower()
+                if response not in ["y", "yes"]:
+                    print("Cancelled.", file=sys.stderr)
+                    return None
+            except (EOFError, KeyboardInterrupt):
+                print("\nCancelled.", file=sys.stderr)
                 return None
-        except (EOFError, KeyboardInterrupt):
-            print("\nCancelled.", file=sys.stderr)
-            return None
 
         print("")  # Add spacing after confirmation
 
@@ -2725,6 +2730,13 @@ Environment Variables:
         help="List available collections and exit"
     )
 
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Assume yes for confirmation prompts (skip interactive input)"
+    )
+
     # Show structure
     parser.add_argument(
         "--show-structure",
@@ -3002,7 +3014,7 @@ Environment Variables:
         _log_verbose(f"✓ Resolved --all to positions {verse_numbers[0]}-{verse_numbers[-1]} ({len(verse_numbers)} verses)")
     elif args.next:
         # Handle --next by finding the next verse to generate
-        next_verse = find_next_verse(args.collection)
+        next_verse = find_next_verse(args.collection, assume_yes=args.yes)
         if next_verse is None:
             print(f"✗ Error: Could not determine next verse for collection '{args.collection}'")
             sys.exit(1)

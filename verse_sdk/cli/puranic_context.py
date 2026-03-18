@@ -636,6 +636,7 @@ def process_verse(
     subject: Optional[str] = None,
     subject_type: Optional[str] = None,
     embeddings_dir_override: Optional[Path] = None,
+    assume_yes: bool = False,
 ) -> str:
     """
     Process a single verse file.
@@ -699,7 +700,11 @@ def process_verse(
     else:
         print(f"  ⚠ {verse_id}: No indexed Puranic sources found.")
         print("    Run 'verse-index-sources --file data/sources/<file>' to index source documents.")
-        answer = input("    Continue with GPT-4 free recall? [y/N] ").strip().lower()
+        if assume_yes:
+            answer = "y"
+        else:
+            answer = input("    Continue with GPT-4 free recall? [y/N] ").strip().lower()
+
         if answer != "y":
             print(f"  ⊘ {verse_id}: Skipped")
             return 'skipped'
@@ -793,6 +798,13 @@ Note:
         default=Path.cwd(),
         help="Project directory (default: current directory)"
     )
+
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Assume yes for confirmation prompts (skip interactive input)"
+    )
     parser.add_argument(
         "--config",
         type=Path,
@@ -884,6 +896,7 @@ Note:
                 subject=subject,
                 subject_type=subject_type,
                 embeddings_dir_override=puranic_dir,
+                assume_yes=args.yes,
             )
             counts[result] = counts.get(result, 0) + 1
     except KeyboardInterrupt:
