@@ -912,20 +912,20 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
             project_dir = verse_file.parent.parent.parent  # Go up from _verses/collection/file.md
         prev_id, next_id = get_navigation_from_sequence(collection, verse_id, project_dir)
 
-        # Format titles with verse type and number prefix
+        # Keep titles descriptive-only: do not embed "Shloka N:" / "Chapter N:" prefixes
+        # into `title_en` / `title_hi`. The verse meta line already displays type+number.
         title_en_base = content.get('title_en', '')
         title_hi_base = content.get('title_hi', '')
 
-        # Add prefix if title exists, otherwise use default format
-        if title_en_base:
-            title_en = format_title_with_prefix(title_en_base, verse_type, id_number, 'en')
-        else:
-            title_en = f'{verse_type.title()} {id_number}'
+        title_en = strip_verse_prefix_from_title(title_en_base) if title_en_base else ""
+        title_hi = strip_verse_prefix_from_title(title_hi_base) if title_hi_base else ""
 
-        if title_hi_base:
-            title_hi = format_title_with_prefix(title_hi_base, verse_type, id_number, 'hi')
-        else:
-            title_hi = f'{verse_type} {id_number}'
+        # If generator didn't provide titles, fall back to an empty string so the template
+        # defaults to `page.title` / `verse_slug` instead of repeating type+number.
+        if not title_en:
+            title_en = strip_verse_prefix_from_title(f"{verse_type.title()} {id_number}") if verse_type else ""
+        if not title_hi:
+            title_hi = strip_verse_prefix_from_title(f"{verse_type} {id_number}") if verse_type else ""
 
         # section_verse_number: position within verse type section, derived from the
         # numeric suffix of the verse ID (chaupai-01 → 1, doha-closing → None).
@@ -1101,20 +1101,18 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
         project_dir = verse_file.parent.parent.parent  # Go up from _verses/collection/file.md
         prev_id, next_id = get_navigation_from_sequence(collection, verse_id, project_dir)
 
-        # Format titles with verse type and number prefix
+        # Keep titles descriptive-only: do not embed "Shloka N:" / "Chapter N:" prefixes
+        # into `title_en` / `title_hi`. The verse meta line already displays type+number.
         title_en_base = content.get('title_en') or frontmatter.get('title_en', '')
         title_hi_base = content.get('title_hi') or frontmatter.get('title_hi', '')
 
-        # Add prefix if title exists, otherwise use default format
-        if title_en_base:
-            title_en = format_title_with_prefix(title_en_base, verse_type, id_number, 'en')
-        else:
-            title_en = f'{verse_type.title()} {id_number}'
+        title_en = strip_verse_prefix_from_title(title_en_base) if title_en_base else ""
+        title_hi = strip_verse_prefix_from_title(title_hi_base) if title_hi_base else ""
 
-        if title_hi_base:
-            title_hi = format_title_with_prefix(title_hi_base, verse_type, id_number, 'hi')
-        else:
-            title_hi = f'{verse_type} {id_number}'
+        if not title_en:
+            title_en = strip_verse_prefix_from_title(f"{verse_type.title()} {id_number}") if verse_type else ""
+        if not title_hi:
+            title_hi = strip_verse_prefix_from_title(f"{verse_type} {id_number}") if verse_type else ""
 
         # Update frontmatter with ALL generated content (complete chaupai format)
         # Preserve existing metadata fields but add/update with new structure
@@ -1385,8 +1383,9 @@ def strip_verse_prefix_from_title(title: str) -> str:
     if not title or not isinstance(title, str):
         return title
 
+    # English + Devanagari + optional colon (covers cases like "Shloka 1:" and "Shloka 1").
     stripped = re.sub(
-        r"^(shloka|chaupai|doha|verse|mantra|stanza|chapter)\s+\d+\s*:\s*",
+        r"^(shloka|chaupai|doha|verse|mantra|stanza|chapter|श्लोक|चौपाई|दोहा|पद|मंत्र|अध्याय)\s+\d+\s*:?\s*",
         "",
         title.strip(),
         flags=re.IGNORECASE,
