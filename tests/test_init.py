@@ -1,7 +1,7 @@
 """Tests for verse_sdk/cli/init.py — project scaffolding."""
 
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 from verse_sdk.cli.init import (
     create_directory_structure,

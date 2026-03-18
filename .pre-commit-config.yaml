@@ -1,0 +1,8 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.6
+    hooks:
+      - id: ruff-check
+        name: ruff check (verse_sdk + tests)
+        files: ^(verse_sdk|tests)/.*\.py$
+        # Keep it aligned with CI: rely on pyproject.toml [tool.ruff] configuration.
