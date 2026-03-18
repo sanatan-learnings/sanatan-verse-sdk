@@ -115,7 +115,7 @@ your-project/
 │   ├── verse-config.yml         # Project defaults
 │   └── translations/            # UI translation keys (e.g. en.yml)
 ├── assets/
-│   ├── css/style.css            # Hanuman-style baseline stylesheet
+│   ├── css/style.css            # Baseline CSS (compact centered home hero; larger hero on collection pages)
 │   ├── css/print.css            # Print stylesheet
 │   └── js/                      # Baseline JS bundle (navigation/language/theme/guidance)
 ├── _verses/                     # Verse markdown files

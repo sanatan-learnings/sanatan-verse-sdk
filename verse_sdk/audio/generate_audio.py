@@ -51,6 +51,101 @@ PROJECT_DIR = Path.cwd()
 
 # Default voice: same as .env.example (Sarah, premade, free-tier). Override via ELEVENLABS_VOICE_ID or verse-config.yml.
 DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"
+
+
+def extract_devanagari_from_frontmatter(front_matter: str) -> Optional[str]:
+    """
+    Parse devanagari from verse frontmatter YAML.
+
+    Prefer yaml.safe_load so folded multiline scalars, literal (|) / folded (>)
+    blocks, and quoted strings all resolve to the full text (#127). Regex paths
+    are fallbacks when frontmatter is not valid YAML.
+    """
+    if not front_matter or not str(front_matter).strip():
+        return None
+    try:
+        data = yaml.safe_load(front_matter)
+        if isinstance(data, dict):
+            dev = data.get("devanagari")
+            if isinstance(dev, str):
+                s = dev.strip()
+                if s:
+                    return s
+            elif dev is not None:
+                s = str(dev).strip()
+                if s:
+                    return s
+    except yaml.YAMLError:
+        pass
+
+    # Fallback: literal block devanagari: |
+    match = re.search(
+        r"devanagari:\s*\|\s*\n(.*?)(?=\n[a-zA-Z_][a-zA-Z0-9_]*\s*:\s|\Z)",
+        front_matter,
+        re.DOTALL,
+    )
+    if match:
+        return match.group(1).strip()
+    match = re.search(
+        r"devanagari:\s*>\s*\n(.*?)(?=\n[a-zA-Z_][a-zA-Z0-9_]*\s*:\s|\Z)",
+        front_matter,
+        re.DOTALL,
+    )
+    if match:
+        return " ".join(match.group(1).split())
+
+    match = re.search(
+        r"devanagari:\s*['\"](.*?)['\"]",
+        front_matter,
+        re.DOTALL,
+    )
+    if match:
+        return match.group(1).strip()
+
+    match = re.search(
+        r"devanagari:\s*([^\n]+?)(?:\n|$)",
+        front_matter,
+    )
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+# Trailing print-only verse labels (॥ १॥) — stripped for TTS only (#129).
+_TRAILING_VERSE_NUMBER = re.compile(r"\s*॥\s*[0-9०-९]+\s*॥\s*$", re.UNICODE)
+
+
+def strip_trailing_verse_markers_for_tts(text: str) -> str:
+    """Remove trailing ॥ N ॥ markers before ElevenLabs; on-page devanagari unchanged."""
+    if not text or not isinstance(text, str):
+        return (text or "").strip() if text else ""
+    s = text.rstrip()
+    while True:
+        new = _TRAILING_VERSE_NUMBER.sub("", s)
+        if new == s:
+            break
+        s = new.rstrip()
+    return s
+
+
+def tts_input_from_verse_frontmatter(front_matter: str, devanagari: str) -> str:
+    """
+    Text sent to TTS: optional frontmatter override, else normalized devanagari.
+
+    Use `tts_text:` or `devanagari_audio:` for verbatim TTS (no auto-strip).
+    """
+    try:
+        data = yaml.safe_load(front_matter)
+        if isinstance(data, dict):
+            for key in ("tts_text", "devanagari_audio"):
+                v = data.get(key)
+                if isinstance(v, str) and v.strip():
+                    return v.strip()
+    except yaml.YAMLError:
+        pass
+    return strip_trailing_verse_markers_for_tts(devanagari)
+
+
 FULL_SPEED_STABILITY = 0.5
 FULL_SPEED_SIMILARITY = 0.75
 SLOW_SPEED_STABILITY = 0.7
@@ -129,7 +224,8 @@ class AudioGenerator:
             specific_verse: Optional verse stem to generate only (e.g., 'verse-01')
 
         Returns:
-            Dictionary mapping filename to Devanagari text
+            Dictionary mapping verse stem to text sent to TTS (may differ from
+            on-page devanagari: verse markers stripped, or tts_text override).
         """
         verses = {}
 
@@ -155,45 +251,14 @@ class AudioGenerator:
                 continue
 
             front_matter = parts[1]
-
-            # Extract devanagari text - support multiple YAML formats:
-            # 1. devanagari: 'text' (quoted string, possibly multi-line)
-            # 2. devanagari: text (plain string)
-            # 3. devanagari: | text (YAML literal block)
-            devanagari = None
-
-            # Try YAML literal block format first (devanagari: |)
-            match = re.search(
-                r'devanagari:\s*\|\s*\n(.*?)(?=\n\w+:|---|\Z)',
-                front_matter,
-                re.DOTALL
-            )
-            if match:
-                devanagari = match.group(1).strip()
-            else:
-                # Try quoted string format (devanagari: 'text' or devanagari: "text")
-                match = re.search(
-                    r'devanagari:\s*[\'\"](.*?)[\'\"]',
-                    front_matter,
-                    re.DOTALL
-                )
-                if match:
-                    devanagari = match.group(1).strip()
-                else:
-                    # Try plain string format (devanagari: text)
-                    match = re.search(
-                        r'devanagari:\s*([^\n]+?)(?:\n|$)',
-                        front_matter
-                    )
-                    if match:
-                        devanagari = match.group(1).strip()
+            devanagari = extract_devanagari_from_frontmatter(front_matter)
 
             if devanagari:
 
                 # Determine base filename (doha_01, verse_01, etc.)
                 base_name = verse_file.stem
 
-                verses[base_name] = devanagari
+                verses[base_name] = tts_input_from_verse_frontmatter(front_matter, devanagari)
             else:
                 # No devanagari field found - warn user
                 print(f"  ⚠ Warning: No 'devanagari' field found in {verse_file.name}")

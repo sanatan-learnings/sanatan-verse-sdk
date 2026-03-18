@@ -10,7 +10,7 @@ verse-audio --collection COLLECTION [OPTIONS]
 
 ## Description
 
-The `verse-audio` command generates pronunciation audio files using ElevenLabs' text-to-speech API. It reads text from the `devanagari:` field in verse markdown files and creates two versions:
+The `verse-audio` command generates pronunciation audio files using ElevenLabs' text-to-speech API. It reads text from the `devanagari:` field in verse markdown files (parsed as YAML so **folded multiline** scalars, `devanagari: |` blocks, and long single lines are read in full—not only the first line) and creates two versions:
 - Full speed (normal)
 - Slow speed (0.75x for learning pronunciation)
 
@@ -121,6 +121,25 @@ devanagari: |
 ```
 
 The command reads this field and generates audio pronunciation.
+
+### Verse numbers (॥ १॥) — TTS only
+
+Printed ślokas often end with **verse labels** (e.g. `॥ १॥`, `॥१॥`, Devanagari or ASCII digits). Those are **not** sent to TTS by default: trailing `॥` + number + `॥` is stripped from the string used for ElevenLabs only. The **`devanagari:`** field in the file is unchanged for the site.
+
+### Optional: custom TTS wording
+
+If you need exact control (non-standard numbering, edge cases), set either frontmatter key; that string is sent to TTS **verbatim** (no strip):
+
+- **`tts_text:`** — preferred if both are set
+- **`devanagari_audio:`** — alternate name
+
+```yaml
+---
+devanagari: |
+  पूर्ण पाठ ॥ १॥
+tts_text: पूर्ण पाठ
+---
+```
 
 ## Workflow
 

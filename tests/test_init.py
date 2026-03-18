@@ -220,6 +220,18 @@ def test_index_page_has_jekyll_frontmatter(tmp_path):
     assert "Enabled collections" not in content
 
 
+def test_scaffold_css_home_hero_compact_centered(tmp_path):
+    """#130: home hero image smaller and centered; collection hero unchanged."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+    css = (tmp_path / "assets" / "css" / "style.css").read_text()
+    assert ".home-hero .collection-hero-image" in css
+    assert "max-height: 14rem" in css
+    assert "28rem" in css
+    assert ".home-hero .button-row" in css
+    assert "text-align: center" in css.split(".home-hero {")[1].split("}")[0]
+
+
 # ---------------------------------------------------------------------------
 # create_example_collection
 # ---------------------------------------------------------------------------

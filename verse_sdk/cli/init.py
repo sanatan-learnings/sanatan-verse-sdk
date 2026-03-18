@@ -528,7 +528,10 @@ layout: default
 
   {% assign _au_full = page.audio_full | default: page.audio %}
   {% assign _au_slow = page.audio_slow %}
-  {% assign _has_phonetic = page.phonetic_notes and page.phonetic_notes.size > 0 %}
+  {% assign _has_phonetic = false %}
+  {% if page.phonetic_notes and page.phonetic_notes.size > 0 %}
+    {% assign _has_phonetic = true %}
+  {% endif %}
   {% if _has_phonetic or _au_full or _au_slow %}
   <section class="verse-section verse-section-pronunciation" aria-labelledby="heading-phonetic">
     <h2 id="heading-phonetic"><span data-lang="en">Pronunciation guide</span><span data-lang="hi">उच्चारण मार्गदर्शन</span></h2>
@@ -958,6 +961,29 @@ code {
   display: flex;
   justify-content: center;
   margin: 1rem 0 0.7rem;
+}
+/* Home only: compact centered banner (#130); collection index keeps larger hero */
+.home-hero {
+  text-align: center;
+}
+.home-hero .home-hero-media {
+  margin: 0 auto 1rem;
+  max-width: 28rem;
+}
+.home-hero .collection-hero-image {
+  width: 100%;
+  max-width: 28rem;
+  max-height: 14rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.home-hero .button-row {
+  justify-content: center;
+}
+.home-hero-copy {
+  max-width: 40rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 .collection-intro,
 .collection-meta {

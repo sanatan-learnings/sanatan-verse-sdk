@@ -965,7 +965,13 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
 
         # Build file content
         file_content = "---\n"
-        file_content += yaml.dump(frontmatter, allow_unicode=True, sort_keys=False, default_flow_style=False)
+        file_content += yaml.dump(
+            frontmatter,
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+            width=4096,
+        )
         file_content += "---\n"
 
         # Add body sections (minimal, most content is in frontmatter)
@@ -1035,7 +1041,9 @@ def update_previous_verse_navigation(collection: str, current_verse_id: str, pro
         frontmatter['next_verse'] = f'/{collection}/{current_verse_id}/'
 
         # Write back
-        frontmatter_str = yaml.dump(frontmatter, allow_unicode=True, sort_keys=False)
+        frontmatter_str = yaml.dump(
+            frontmatter, allow_unicode=True, sort_keys=False, default_flow_style=False, width=4096
+        )
         updated_content = f"---\n{frontmatter_str}---{body}"
 
         with open(prev_verse_file, 'w', encoding='utf-8') as f:
@@ -1141,7 +1149,13 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
 
         # Build updated content
         updated_content = "---\n"
-        updated_content += yaml.dump(frontmatter, allow_unicode=True, sort_keys=False, default_flow_style=False)
+        updated_content += yaml.dump(
+            frontmatter,
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+            width=4096,
+        )
         updated_content += "---"
 
         # Remove body sections (everything should be in frontmatter now for complete format)
@@ -2236,7 +2250,13 @@ def update_verse_frontmatter_audio_urls(verse_file: Path, collection: str, verse
         frontmatter["audio"] = full_url
         body = parts[2]
         out = "---\n"
-        out += yaml.dump(frontmatter, allow_unicode=True, sort_keys=False, default_flow_style=False)
+        out += yaml.dump(
+            frontmatter,
+            allow_unicode=True,
+            sort_keys=False,
+            default_flow_style=False,
+            width=4096,
+        )
         out += "---"
         out += body
         verse_file.write_text(out, encoding="utf-8")

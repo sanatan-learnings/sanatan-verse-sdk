@@ -536,12 +536,14 @@ def _count_verse_entries(data: Dict[str, Any]) -> int:
 
 
 def _render_yaml(data: Dict[str, Any]) -> str:
+    # Wide line length so long Devanagari verses stay on one line in canonical
+    # YAML when possible (avoids folded continuations that confuse naive parsers; #127).
     return yaml.safe_dump(
         data,
         allow_unicode=True,
         sort_keys=False,
         default_flow_style=False,
-        width=120,
+        width=4096,
     )
 
 
