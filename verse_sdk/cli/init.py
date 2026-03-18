@@ -473,8 +473,9 @@ layout: default
 {% assign _chapters_concat = '' %}
 {% for verse in _sorted_verses %}
   {% if verse.chapter %}
-    {% unless _chapters_concat contains verse.chapter | append: '||' %}
-      {% assign _chapters_concat = _chapters_concat | append: verse.chapter | append: '||' %}
+    {% assign chapter_marker = verse.chapter | append: '||' %}
+    {% unless _chapters_concat contains chapter_marker %}
+      {% assign _chapters_concat = _chapters_concat | append: chapter_marker %}
     {% endunless %}
   {% endif %}
 {% endfor %}

@@ -516,6 +516,10 @@ def test_collection_layout_references_title_image(tmp_path):
     assert "home-collection-card" in index_content
 
     layout = (tmp_path / "_layouts" / "collection.html").read_text()
+    # Liquid parser-friendly marker building (issue #138: avoid pipes inside `contains`).
+    assert "contains verse.chapter | append: '||'" not in layout
+    assert "assign chapter_marker = verse.chapter | append: '||'" in layout
+    assert "contains chapter_marker" in layout
     assert "{% assign theme_name = collection_cfg.image_theme | default: collection_cfg.theme | default: collection_cfg.default_theme" in layout
     assert "/images/{{ collection_key }}/{{ theme_name }}/cover.png" in layout
     assert "this.src='/images/{{ collection_key }}/title.png'" not in layout
