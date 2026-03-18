@@ -86,6 +86,10 @@ GITIGNORE_CONTENT = """# Generated images (large DALL-E binaries).
 # ElevenLabs MP3 output is not gitignored — commit for Jekyll/static hosting (#126).
 images/
 
+# Jekyll build output (local preview; regenerated each build) (#134)
+_site/
+.jekyll-cache/
+
 # Environment
 .env
 .venv/
@@ -118,9 +122,11 @@ gem "webrick", "~> 1.8"
 gem "jekyll-seo-tag", "~> 2.8"
 """
 
-README_TEMPLATE = """# {project_name}
+README_TEMPLATE = """# {banner_title}
 
 Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanatan-learnings/sanatan-verse-sdk).
+
+**Jekyll output:** `bundle exec jekyll serve` / `jekyll build` writes the compiled site to `_site/` (and cache under `.jekyll-cache/`). Source of truth is this repo (`index.html`, `_verses/`, `images/`, `audio/`, etc.); `_site/` is regenerated each build and is gitignored.
 
 ## Setup
 
@@ -184,10 +190,12 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
 MIT
 """
 
-JEKYLL_CONFIG_TEMPLATE = """title: "{project_name}"
+JEKYLL_CONFIG_TEMPLATE = """title: "{banner_title}"
 description: "Verse collection project powered by Sanatan Verse SDK"
-banner_title: "{project_name}"
-banner_subtitle: "Verse collection project powered by Sanatan Verse SDK"
+banner_title: "{banner_title}"
+banner_subtitle: "Sacred verses & guided study"
+home_hero_subtitle_en: "Ask questions, explore verses, and deepen your devotional study with guided AI support."
+home_hero_subtitle_hi: "प्रश्न पूछें, श्लोकों का अध्ययन करें और मार्गदर्शित AI के साथ अपनी साधना को गहरा बनाएं।"
 project_repository_url: "{project_repository_url}"
 usage_guide_url: "#"
 ask_shiva_url: "#"
@@ -321,8 +329,8 @@ title: __PROJECT_NAME__
       <span data-lang="hi">{{ site.banner_title_hi | default: site.banner_title | default: site.title }}</span>
     </h1>
     <p class="home-hero-subtitle">
-      <span data-lang="en">{{ site.banner_subtitle | default: "Ask questions, explore verses, and deepen your devotional study with guided AI support." }}</span>
-      <span data-lang="hi">{{ site.banner_subtitle_hi | default: "प्रश्न पूछें, श्लोकों का अध्ययन करें और मार्गदर्शित AI के साथ अपनी साधना को गहरा बनाएं।" }}</span>
+      <span data-lang="en">{{ site.home_hero_subtitle_en | default: site.banner_subtitle }}</span>
+      <span data-lang="hi">{{ site.home_hero_subtitle_hi | default: site.banner_subtitle_hi | default: site.home_hero_subtitle_en | default: site.banner_subtitle }}</span>
     </p>
     <div class="button-row">
       <a class="button" href="{{ site.ask_shiva_url | default: '#' }}">
@@ -1551,6 +1559,41 @@ def detect_project_repository_url(base_path: Path) -> str:
         return placeholder
 
 
+def human_readable_site_title(slug: str) -> str:
+    """
+    Turn directory/repo slug into a banner title (e.g. shiva-gpt → Shiva GPT). (#134)
+    """
+    if not slug or not str(slug).strip():
+        return "My Verse Site"
+    special = {
+        "gpt": "GPT",
+        "api": "API",
+        "ai": "AI",
+        "sdk": "SDK",
+        "ui": "UI",
+        "rss": "RSS",
+        "wasm": "WASM",
+        "io": "IO",
+    }
+    parts = [p for p in re.split(r"[-_\s]+", slug.strip()) if p]
+    if not parts:
+        return slug.strip()
+    words = []
+    for p in parts:
+        low = p.lower()
+        if low in special:
+            words.append(special[low])
+        elif len(p) == 1:
+            words.append(p.upper())
+        else:
+            words.append(p[0].upper() + p[1:].lower())
+    return " ".join(words)
+
+
+def _yaml_escape_double(s: str) -> str:
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
 def create_template_files(base_path: Path, project_name: str, minimal: bool = False) -> None:
     """
     Create template configuration files.
@@ -1562,6 +1605,7 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
     """
     # Always create these files
     project_repository_url = detect_project_repository_url(base_path)
+    banner_title = _yaml_escape_double(human_readable_site_title(project_name))
     files = {
         ".env.example": ENV_EXAMPLE_CONTENT,
         "_data/collections.yml": COLLECTIONS_YML_CONTENT,
@@ -1571,7 +1615,7 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
         ".gitignore": GITIGNORE_CONTENT,
         "Gemfile": GEMFILE_CONTENT,
         "_config.yml": JEKYLL_CONFIG_TEMPLATE.format(
-            project_name=project_name,
+            banner_title=banner_title,
             project_repository_url=project_repository_url,
         ),
         "_layouts/default.html": DEFAULT_LAYOUT_TEMPLATE,
@@ -1584,9 +1628,12 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
         "assets/js/language.js": LANGUAGE_JS_TEMPLATE,
         "assets/js/theme.js": THEME_JS_TEMPLATE,
         "assets/js/guidance.js": GUIDANCE_JS_TEMPLATE,
-        "index.html": INDEX_HTML_TEMPLATE.replace("__PROJECT_NAME__", project_name),
+        "index.html": INDEX_HTML_TEMPLATE.replace("__PROJECT_NAME__", banner_title),
         "data/scenes/site.yml": SITE_SCENES_YML_CONTENT,
-        "README.md": README_TEMPLATE.format(project_name=project_name),
+        "README.md": README_TEMPLATE.format(
+            project_name=project_name,
+            banner_title=human_readable_site_title(project_name),
+        ),
     }
 
     # Add example theme if not minimal

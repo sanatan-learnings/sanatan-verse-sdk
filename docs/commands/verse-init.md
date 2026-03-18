@@ -145,19 +145,22 @@ Template for defining collections with example structure.
 
 Includes Jekyll plugin wiring and configurable header keys:
 - `plugins: [jekyll-seo-tag]`
-- `banner_title`
-- `banner_subtitle`
+- `title` / `banner_title` — human-readable from the project folder name (e.g. `shiva-gpt` → **Shiva GPT**)
+- `banner_subtitle` — short tagline for the **site header** on every page
+- `home_hero_subtitle_en` / `home_hero_subtitle_hi` — longer copy under the **home hero** only (so it is not duplicated in the header)
 
 ### .gitignore
 
 Configured to ignore:
 - Generated images and embeddings (not `audio/` — commit MP3s for static hosting unless you opt out)
+- Jekyll build output: `_site/`, `.jekyll-cache/`
 - Environment files (.env)
 - Python cache files
 
 ### README.md
 
 Project documentation with:
+- Human-readable project title (from folder slug) and a short note on Jekyll `_site/` vs source
 - Setup instructions
 - Directory structure explanation
 - Links to SDK documentation

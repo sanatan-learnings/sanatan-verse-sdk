@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 from verse_sdk.cli.init import (
+    human_readable_site_title,
     create_directory_structure,
     create_example_collection,
     create_template_files,
@@ -83,11 +84,11 @@ def test_default_layout_includes_favicon(tmp_path):
     assert "favicon.ico" in layout
 
 
-def test_readme_contains_project_name(tmp_path):
+def test_readme_contains_project_slug_in_tree(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "awesome-project")
     readme = (tmp_path / "README.md").read_text()
-    assert "awesome-project" in readme
+    assert "awesome-project/" in readme
 
 
 def test_does_not_overwrite_existing_files(tmp_path):
@@ -209,6 +210,48 @@ def test_normalize_repo_url_handles_https_and_ssh():
     assert normalize_repo_url("git@github.com:org/repo.git") == "https://github.com/org/repo"
     assert normalize_repo_url("https://github.com/org/repo.git") == "https://github.com/org/repo"
     assert normalize_repo_url("https://github.com/org/repo") == "https://github.com/org/repo"
+
+
+def test_human_readable_site_title():
+    assert human_readable_site_title("shiva-gpt") == "Shiva GPT"
+    assert human_readable_site_title("my-awesome-sdk") == "My Awesome SDK"
+    assert human_readable_site_title("hanuman-chalisa") == "Hanuman Chalisa"
+
+
+def test_config_human_readable_banner_and_home_hero_keys(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "shiva-gpt")
+    cfg = (tmp_path / "_config.yml").read_text()
+    assert 'banner_title: "Shiva GPT"' in cfg
+    assert 'title: "Shiva GPT"' in cfg
+    assert "Sacred verses & guided study" in cfg
+    assert "home_hero_subtitle_en:" in cfg
+    assert "home_hero_subtitle_hi:" in cfg
+
+
+def test_gitignore_includes_jekyll_build_output(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "x")
+    gi = (tmp_path / ".gitignore").read_text()
+    assert "_site/" in gi
+    assert ".jekyll-cache/" in gi
+
+
+def test_readme_human_title_and_jekyll_note(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "awesome-project")
+    readme = (tmp_path / "README.md").read_text()
+    assert readme.startswith("# Awesome Project\n")
+    assert "awesome-project/" in readme
+    assert "_site/" in readme and "Jekyll output" in readme
+
+
+def test_index_home_hero_uses_site_home_hero_subtitles(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "p")
+    idx = (tmp_path / "index.html").read_text()
+    assert "home_hero_subtitle_en" in idx
+    assert "home_hero_subtitle_hi" in idx
 
 
 def test_index_page_has_jekyll_frontmatter(tmp_path):
