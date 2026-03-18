@@ -1100,6 +1100,24 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+/* Issue #146: chapter grid uses `verse-card-grid` */
+.verse-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.2rem;
+  margin-top: 1rem;
+}
+@media (max-width: 900px) {
+  .verse-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .verse-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .home-collection-card {
   position: relative;
   display: block;

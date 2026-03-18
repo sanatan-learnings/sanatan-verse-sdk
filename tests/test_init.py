@@ -305,6 +305,19 @@ def test_scaffold_css_home_collections_grid_2_up_image_backed(tmp_path):
     assert ".home-collection-cta" in css
 
 
+def test_scaffold_css_verse_card_grid_exists(tmp_path):
+    """#146: collection chapter grid uses `.verse-card-grid` and must be CSS-grid."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+    css = (tmp_path / "assets" / "css" / "style.css").read_text()
+    assert ".verse-card-grid" in css
+    assert "grid-template-columns: repeat(3" in css
+    assert "@media (max-width: 900px)" in css
+    assert "repeat(2" in css
+    assert "@media (max-width: 600px)" in css
+    assert "grid-template-columns: 1fr" in css
+
+
 # ---------------------------------------------------------------------------
 # create_example_collection
 # ---------------------------------------------------------------------------
