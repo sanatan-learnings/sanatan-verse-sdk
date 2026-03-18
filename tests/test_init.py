@@ -599,7 +599,7 @@ def test_project_next_steps_with_collection_are_consolidated_and_concrete(tmp_pa
     assert "verse-images --verse title-page" not in out
     assert "verse-images --verse card-page" not in out
     assert "Collection cover image is auto-generated in this first-verse flow when OPENAI_API_KEY is available." in out
-    assert "images/cover.png and images/<collection>/<theme>/cover.png" in out
+    assert "images/cover.png and images/shiv-puran/modern-minimalist/cover.png" in out
     assert "bundle install" in out
     assert "bundle exec jekyll serve" in out
     assert out.index("bundle install") < out.index("bundle exec jekyll serve")

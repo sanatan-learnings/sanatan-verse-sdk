@@ -2023,6 +2023,9 @@ def print_collection_next_steps(
     print(f"   4. Optional: customize theme in data/themes/{collection}/{theme}.yml")
     print("   5. Generate the first verse and assets:")
     print(f"      verse-generate --collection {collection} --verse 1")
+    print(
+        "      Collection cover image is auto-generated in this first-verse flow when OPENAI_API_KEY is available."
+    )
     print("      # Creates:")
     print(f"      #   - Verses: _verses/{collection}/")
     print(f"      #   - Covers: images/cover.png and images/{collection}/{theme}/cover.png")

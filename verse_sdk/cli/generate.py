@@ -2163,7 +2163,10 @@ def ensure_collection_overview_images(
 
     success = True
     for verse_id in missing:
-        ok, _ = generate_image(collection, 0, theme, verse_id=verse_id, verbose=verbose, quiet=quiet)
+        gen_result = generate_image(
+            collection, 0, theme, verse_id=verse_id, verbose=verbose, quiet=quiet
+        )
+        ok = gen_result[0] if isinstance(gen_result, tuple) else bool(gen_result)
         success = success and ok
 
     if success and collection_cover.exists() and not site_cover.exists():
