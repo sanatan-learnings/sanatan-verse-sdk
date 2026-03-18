@@ -82,9 +82,8 @@ defaults:
   # Collections can override by setting subject / subject_type in collections.yml.
 """
 
-GITIGNORE_CONTENT = """# Generated images (large DALL-E binaries).
+GITIGNORE_CONTENT = """# Project-generated images are required by the Jekyll templates (static hosting) (#149).
 # ElevenLabs MP3 output is not gitignored — commit for Jekyll/static hosting (#126).
-images/
 
 # Jekyll build output (local preview; regenerated each build) (#134)
 _site/

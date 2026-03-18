@@ -145,7 +145,7 @@ def test_gitignore_does_not_ignore_audio_dir(tmp_path):
     create_template_files(tmp_path, "my-project")
     content = (tmp_path / ".gitignore").read_text()
     assert "audio/" not in content
-    assert "images/" in content
+    assert "images/" not in content
 
 
 def test_env_example_includes_hf_token(tmp_path):
