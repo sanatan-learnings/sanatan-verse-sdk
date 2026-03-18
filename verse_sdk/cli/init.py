@@ -1945,6 +1945,8 @@ verse-03:
         verses_yaml.write_text(yaml_content)
         print(f"✓ Created data/verses/{collection}.yaml")
 
+    print("\n▶ Scaffolding collection data and config...")
+
     # Create sample theme
     theme_file = base_path / "data" / "themes" / collection / f"{active_theme}.yml"
     theme_file.parent.mkdir(parents=True, exist_ok=True)
@@ -1957,11 +1959,6 @@ verse-03:
     scenes_file.parent.mkdir(parents=True, exist_ok=True)
     if upsert_collection_scene_entries(scenes_file, collection):
         print(f"✓ Created data/scenes/{collection}.yml")
-
-    # Ensure canonical title/card images, preferring verse-images generation logic.
-    ensure_collection_images(base_path, collection, theme=active_theme)
-    if ensure_site_cover:
-        ensure_site_images(base_path, site_theme=active_theme, site_source_collection=collection)
 
     # Create canonical plain-text source placeholder for parse-source auto-discovery
     source_file = base_path / "data" / "sources" / f"{collection}.txt"
@@ -1994,6 +1991,12 @@ verse-03:
             encoding="utf-8"
         )
         print(f"✓ Created {collection}/index.html")
+
+    print("\n▶ Generating collection and site images (optional)...")
+    # Ensure canonical title/card images, preferring verse-images generation logic.
+    ensure_collection_images(base_path, collection, theme=active_theme)
+    if ensure_site_cover:
+        ensure_site_images(base_path, site_theme=active_theme, site_source_collection=collection)
 
     print(f"\n✅ Collection '{collection}' initialized (canonical placeholders: {num_verses})")
     return active_theme
