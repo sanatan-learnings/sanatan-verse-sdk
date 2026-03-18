@@ -897,7 +897,7 @@ def create_verse_file_with_content(verse_file: Path, content: dict, collection: 
             verse_id = verse_file.stem  # e.g., chaupai-02 from chaupai-02.md
 
         # Determine verse type and extract number from ID
-        verse_type = verse_id.split('-')[0] if '-' in verse_id else 'verse'  # chaupai, shloka, doha, etc.
+        verse_type = extract_verse_type_from_id(verse_id)
         id_number = extract_verse_number_from_id(verse_id) or verse_num
 
         # Extract chapter number for Bhagavad Gita format (chapter-XX-verse-YY)
@@ -1094,7 +1094,7 @@ def update_verse_file_with_content(verse_file: Path, content: dict) -> bool:
         verse_num = frontmatter.get('verse_number', 0)
         collection = frontmatter.get('collection_key') or frontmatter.get('collection', 'unknown')
         verse_id = verse_file.stem  # e.g., shloka-02
-        verse_type = verse_id.split('-')[0] if '-' in verse_id else 'verse'
+        verse_type = extract_verse_type_from_id(verse_id)
         id_number = extract_verse_number_from_id(verse_id) or verse_num
 
         # Get navigation from sequence
@@ -1352,6 +1352,46 @@ def extract_verse_number_from_id(verse_id: str) -> Optional[int]:
     if match:
         return int(match.group(1))
     return None
+
+
+def extract_verse_type_from_id(verse_id: str) -> str:
+    """
+    Extract verse_type from a verse identifier.
+
+    Supports chapter-based IDs like `chapter-01-shloka-01`:
+    - chapter-<chapter_no>-<verse_type>-<verse_no> => verse_type is 3rd segment
+    - shloka-01 / chaupai-05 / doha-03 => verse_type is 1st segment
+    """
+    if not verse_id or not isinstance(verse_id, str):
+        return "verse"
+
+    parts = re.split(r"[-_]", verse_id.strip())
+    if not parts:
+        return "verse"
+
+    if len(parts) >= 4 and parts[0].lower() == "chapter":
+        # chapter-<chapter_no>-<verse_type>-<verse_no>
+        return parts[2]
+
+    return parts[0]
+
+
+def strip_verse_prefix_from_title(title: str) -> str:
+    """
+    Remove leading "Shloka 1:", "Chaupai 2:", "Chapter 1:"-style prefixes.
+
+    Used to keep scene titles descriptive-only (issue #139).
+    """
+    if not title or not isinstance(title, str):
+        return title
+
+    stripped = re.sub(
+        r"^(shloka|chaupai|doha|verse|mantra|stanza|chapter)\s+\d+\s*:\s*",
+        "",
+        title.strip(),
+        flags=re.IGNORECASE,
+    )
+    return stripped.strip()
 
 
 def get_collection_permalink(collection: str, project_dir: Path = Path.cwd()) -> str:
@@ -1938,7 +1978,7 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
             scenes_file = scenes_file_yaml
 
     # Extract verse type and number from verse_id (e.g., "chaupai" and 5 from "chaupai-05")
-    verse_type = verse_id.split('-')[0] if '-' in verse_id else 'verse'
+    verse_type = extract_verse_type_from_id(verse_id)
     verse_type_title = verse_type.title()  # Capitalize: Chaupai, Shloka, Doha, etc.
     verse_number = extract_verse_number_from_id(verse_id) or verse_position  # Extract from ID, fallback to position
 
@@ -2013,7 +2053,8 @@ def ensure_scene_description_exists(collection: str, verse_position: int, verse_
         scenes_data['scenes'] = {}
 
     # Build scene entry
-    scene_title = title_en if title_en else f"{verse_type_title} {verse_number}"
+    # Keep titles descriptive-only for scenes: avoid "Shloka 1:" / "Chapter 1:" prefixes (#139).
+    scene_title = strip_verse_prefix_from_title(title_en) if title_en else f"Scene {verse_number}"
 
     # Add/update scene with AI-generated marker in title
     scenes_data['scenes'][verse_id] = {
