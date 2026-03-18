@@ -520,6 +520,11 @@ def test_collection_layout_references_title_image(tmp_path):
     assert "contains verse.chapter | append: '||'" not in layout
     assert "assign chapter_marker = verse.chapter | append: '||'" in layout
     assert "contains chapter_marker" in layout
+    # Issue #144: verse cards should never omit `<img>`; path normalization + fallback.
+    assert "remove_first: '/'" in layout
+    assert "assign verse_image_fallback" in layout
+    assert "append: '/cover.png'" in layout
+    assert "src=\"{{ verse_image_fallback }}\"" in layout
     assert "{% assign theme_name = collection_cfg.image_theme | default: collection_cfg.theme | default: collection_cfg.default_theme" in layout
     assert "/images/{{ collection_key }}/{{ theme_name }}/cover.png" in layout
     assert "this.src='/images/{{ collection_key }}/title.png'" not in layout

@@ -518,9 +518,11 @@ layout: default
           {% if verse_image == nil or verse_image == '' %}
             {% assign verse_image = '/images/' | append: collection_key | append: '/' | append: theme_name | append: '/' | append: verse_id | append: '.png' %}
           {% endif %}
+          {% assign verse_image_for_static = verse_image | remove_first: '/' %}
+          {% assign verse_image_fallback = '/images/' | append: collection_key | append: '/' | append: theme_name | append: '/cover.png' %}
           {% assign has_verse_image = false %}
           {% for static_file in site.static_files %}
-            {% if static_file.path == verse_image %}
+            {% if static_file.path == verse_image_for_static %}
               {% assign has_verse_image = true %}
               {% break %}
             {% endif %}
@@ -528,6 +530,8 @@ layout: default
           <a class="card verse-card" href="{{ verse.url }}">
             {% if has_verse_image %}
             <img class="verse-card-image" src="{{ verse_image }}" alt="{{ verse_label }} image" loading="lazy" />
+            {% else %}
+            <img class="verse-card-image" src="{{ verse_image_fallback }}" alt="{{ verse_label }} image" loading="lazy" />
             {% endif %}
             <div class="verse-card-label">
               {{ verse_type | upcase }} {{ verse_num }}
