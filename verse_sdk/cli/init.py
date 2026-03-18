@@ -324,10 +324,12 @@ title: __PROJECT_NAME__
     <img class="collection-hero-image" src="/images/cover.png" alt="{{ site.title }} title image" />
   </div>
   <div class="home-hero-copy">
+    {% if site.home_hero_title_en or site.home_hero_title_hi %}
     <h1>
-      <span data-lang="en">{{ site.banner_title | default: site.title }}</span>
-      <span data-lang="hi">{{ site.banner_title_hi | default: site.banner_title | default: site.title }}</span>
+      <span data-lang="en">{{ site.home_hero_title_en }}</span>
+      <span data-lang="hi">{{ site.home_hero_title_hi | default: site.home_hero_title_en }}</span>
     </h1>
+    {% endif %}
     <p class="home-hero-subtitle">
       <span data-lang="en">{{ site.home_hero_subtitle_en | default: site.banner_subtitle }}</span>
       <span data-lang="hi">{{ site.home_hero_subtitle_hi | default: site.banner_subtitle_hi | default: site.home_hero_subtitle_en | default: site.banner_subtitle }}</span>

@@ -258,6 +258,14 @@ def test_index_page_has_jekyll_frontmatter(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "my-project")
     content = (tmp_path / "index.html").read_text()
+    # Home hero should not duplicate the header banner title by default (#137).
+    assert "home_hero_title_en" in content
+    assert "site.banner_title | default: site.title" not in content
+
+
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+    content = (tmp_path / "index.html").read_text()
     assert content.startswith("---\n")
     assert "layout: home" in content
     assert "site.data.collections" in content
