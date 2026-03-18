@@ -259,6 +259,18 @@ def test_readme_human_title_and_jekyll_note(tmp_path):
     assert "_site/" in readme and "Jekyll output" in readme
 
 
+def test_readme_includes_extend_collection_workflow(tmp_path):
+    """#150: README template should document extending existing collections."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "awesome-project")
+    readme = (tmp_path / "README.md").read_text()
+    assert "data/sources/<collection>.txt" in readme
+    assert "verse-parse-source --collection <collection>" in readme
+    assert "verse-generate --collection <collection> --next" in readme
+    assert "verse-init --collection <new-collection>" in readme
+    assert "bundle exec jekyll serve" in readme
+
+
 def test_index_home_hero_uses_site_home_hero_subtitles(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "p")

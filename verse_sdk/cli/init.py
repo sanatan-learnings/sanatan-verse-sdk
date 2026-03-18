@@ -140,18 +140,28 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
    # Edit .env and add your API keys
    ```
 
-3. **Add your collections**
-   - Edit `_data/collections.yml` to define your collections
-   - Create verse files in `_verses/<collection-key>/`
-   - Add canonical text in `data/verses/<collection>.yaml`
+3. **Add/extend an existing collection (recommended workflow)**
+   - Put canonical plain-text input here:
+     - `data/sources/<collection>.txt` (or `data/sources/<collection>/*.txt`)
+   - Generate canonical YAML (from your source text):
+     - `verse-parse-source --collection <collection>`
+     - Output: `data/verses/<collection>.yaml`
+   - Generate the next missing verse(s) in the sequence:
+     - `verse-generate --collection <collection> --next`
+   - Review/edit the generated markdown in:
+     - `_verses/<collection>/`
+   - (Optional) Regenerate content/images/audio after review:
+     - `verse-generate --collection <collection> --verse <position> --regenerate-content`
 
-4. **Generate content**
+4. **Add a new collection**
+   - Scaffold the new collection structure with:
+     - `verse-init --collection <new-collection> --num-verses 3`
+   - Then follow the "Add/extend an existing collection" workflow above for that new collection.
+
+5. **Serve locally**
    ```bash
-   # List available collections
-   verse-generate --list-collections
-
-   # Generate multimedia content
-   verse-generate --collection <collection-key> --verse 1
+   bundle install
+   bundle exec jekyll serve
    ```
 
 ## Project Structure
