@@ -76,6 +76,19 @@ def test_creates_required_files(tmp_path):
     assert (tmp_path / "favicon.ico").stat().st_size >= 100
 
 
+def test_update_templates_overwrites_existing_scaffolded_files(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+
+    target = tmp_path / "_layouts" / "collection.html"
+    original = target.read_text(encoding="utf-8")
+    target.write_text("OLD TEMPLATE CONTENT", encoding="utf-8")
+
+    create_template_files(tmp_path, "my-project", update_templates=True)
+    updated = target.read_text(encoding="utf-8")
+    assert updated == original
+
+
 def test_default_layout_includes_favicon(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "p")

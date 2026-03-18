@@ -1674,7 +1674,13 @@ def _yaml_escape_double(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
-def create_template_files(base_path: Path, project_name: str, minimal: bool = False) -> None:
+def create_template_files(
+    base_path: Path,
+    project_name: str,
+    minimal: bool = False,
+    *,
+    update_templates: bool = False,
+) -> None:
     """
     Create template configuration files.
 
@@ -1723,9 +1729,13 @@ def create_template_files(base_path: Path, project_name: str, minimal: bool = Fa
     for file_path, content in files.items():
         full_path = base_path / file_path
         full_path.parent.mkdir(parents=True, exist_ok=True)
-        if not full_path.exists():
+        existed_before = full_path.exists()
+        if update_templates or not existed_before:
             full_path.write_text(content)
-            print(f"✓ Created {file_path}")
+            if existed_before and update_templates:
+                print(f"✓ Updated {file_path}")
+            else:
+                print(f"✓ Created {file_path}")
         else:
             print(f"⚠ Skipped {file_path} (already exists)")
 
@@ -2182,6 +2192,7 @@ def init_project(
     collections: Optional[List[str]] = None,
     num_verses: int = 3,
     assume_yes: bool = False,
+    update_templates: bool = False,
 ) -> None:
     """
     Initialize a new verse project.
@@ -2224,7 +2235,7 @@ def init_project(
     # Create template files
     print("Creating template files...")
     display_name = project_name if project_name else base_path.name
-    create_template_files(base_path, display_name, minimal)
+    create_template_files(base_path, display_name, minimal, update_templates=update_templates)
     print()
 
     # Create collections if requested
@@ -2337,6 +2348,12 @@ For more information:
         help="Assume yes for confirmation prompts (skip interactive input)"
     )
 
+    parser.add_argument(
+        "--update-templates",
+        action="store_true",
+        help="Overwrite existing SDK scaffolded templates/assets (layouts, CSS, JS, config templates)."
+    )
+
     args = parser.parse_args()
 
     # Handle deprecated --with-example flag
@@ -2352,6 +2369,7 @@ For more information:
             collections=collections if collections else None,
             num_verses=args.num_verses,
             assume_yes=args.yes,
+            update_templates=args.update_templates,
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

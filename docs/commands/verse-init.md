@@ -20,6 +20,7 @@ The `verse-init` command scaffolds a new verse collection project with the recom
 - `--collection NAME` - Create collection with template files (can be used multiple times)
 - `--num-verses N` - Number of canonical placeholder verse IDs per collection (default: 3)
 - `--minimal` - Create minimal structure without example files
+- `--update-templates` - Overwrite existing SDK scaffolded templates/assets for existing projects (safe default: no overwrites unless this flag is set)
 
 ## Examples
 
@@ -67,7 +68,7 @@ verse-init --collection sundar-kaand --collection bhagavad-gita
 - ✅ Appends to `_data/collections.yml` (preserves existing collections)
 - ✅ Creates templates for the new collection only
 
-**Safety**: Existing files are never overwritten.
+**Safety**: Existing scaffolded files are never overwritten by default. Use `--update-templates` to refresh SDK-managed templates/assets on an existing project.
 
 ### Initialize with Collections
 
