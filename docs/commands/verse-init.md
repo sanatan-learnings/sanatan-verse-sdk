@@ -21,6 +21,15 @@ The `verse-init` command scaffolds a new verse collection project with the recom
 - `--num-verses N` - Number of canonical placeholder verse IDs per collection (default: 3)
 - `--minimal` - Create minimal structure without example files
 - `--update-templates` - Overwrite existing SDK scaffolded templates/assets for existing projects (safe default: no overwrites unless this flag is set)
+- `--github-pages ORG REPO` - Set `_config.yml` for a GitHub Pages **project** site: `url: https://ORG.github.io`, `baseurl: /REPO`, and `project_repository_url`. Layouts already use `relative_url` for assets.
+
+## GitHub Pages
+
+New projects can pass **`--github-pages ORG REPO`** with `--project-name` (or after `verse-init` in a new dir). Templates use `relative_url` so images and collection links work under `baseurl`.
+
+Existing repos: run **[verse-site-pages](verse-site-pages.md)** to merge `url`/`baseurl` and refresh `index.html` + collection/verse layouts.
+
+Local preview: open `http://127.0.0.1:4000<BASEURL>/`, or use `_config.local.yml.example` for root-local serve (see project README).
 
 ## Examples
 

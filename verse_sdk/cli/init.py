@@ -89,6 +89,9 @@ GITIGNORE_CONTENT = """# Project-generated images are required by the Jekyll tem
 _site/
 .jekyll-cache/
 
+# Optional: local Jekyll overrides (root URL while keeping GH Pages in _config.yml) (#152)
+_config.local.yml
+
 # Environment
 .env
 .venv/
@@ -121,6 +124,17 @@ gem "webrick", "~> 1.8"
 gem "jekyll-seo-tag", "~> 2.8"
 """
 
+CONFIG_LOCAL_YML_EXAMPLE = """# Local Jekyll override: site root at http://127.0.0.1:4000/ while _config.yml keeps GitHub Pages url/baseurl.
+#
+#   cp _config.local.yml.example _config.local.yml
+#   bundle exec jekyll serve --config _config.yml,_config.local.yml
+#
+# _config.local.yml is gitignored.
+
+url: "http://127.0.0.1:4000"
+baseurl: ""
+"""
+
 README_TEMPLATE = """# {banner_title}
 
 Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanatan-learnings/sanatan-verse-sdk).
@@ -131,6 +145,10 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
 
 1. **Install dependencies**
    ```bash
+   # Always install inside a virtual environment (recommended)
+   python3 -m venv .venv
+   source .venv/bin/activate
+   # Windows: .venv\\Scripts\\activate
    pip install sanatan-verse-sdk
    ```
 
@@ -167,6 +185,30 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
    ```
    Keep this running and refresh the browser after generating/updating verses.
 
+## GitHub Pages (project site)
+
+For a **project site** (e.g. `https://YOUR_ORG.github.io/YOUR_REPO/`), set in `_config.yml`:
+
+- `url: "https://YOUR_ORG.github.io"`
+- `baseurl: "/YOUR_REPO"`
+
+Scaffolded Liquid uses `relative_url` so images and links work with `baseurl`. From an existing repo:
+
+```bash
+verse-site-pages --org <org> --repo <repo>
+```
+
+**Local preview (matches production paths):** after setting `url`/`baseurl`, open  
+`http://127.0.0.1:4000/YOUR_REPO/` (same path as on GitHub Pages).
+
+**Local preview at site root:** copy `_config.local.yml.example` to `_config.local.yml`, then:
+
+```bash
+bundle exec jekyll serve --config _config.yml,_config.local.yml
+```
+
+Open `http://127.0.0.1:4000/`. (`_config.local.yml` is gitignored.)
+
 ## Project Structure
 
 ```
@@ -202,7 +244,9 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
 MIT
 """
 
-JEKYLL_CONFIG_TEMPLATE = """title: "{banner_title}"
+JEKYLL_CONFIG_TEMPLATE = """url: "{jekyll_url}"
+baseurl: "{jekyll_baseurl}"
+title: "{banner_title}"
 description: "Verse collection project powered by Sanatan Verse SDK"
 banner_title: "{banner_title}"
 banner_subtitle: "Sacred verses & guided study"
@@ -333,7 +377,8 @@ title: __PROJECT_NAME__
 {% if featured_key != '' %}
 <section class="hero home-hero">
   <div class="home-hero-media">
-    <img class="collection-hero-image" src="/images/site/{{ featured_theme_name }}/cover.png" alt="{{ site.title }} title image" />
+    {% assign _home_hero_img = '/images/site/' | append: featured_theme_name | append: '/cover.png' %}
+    <img class="collection-hero-image" src="{{ _home_hero_img | relative_url }}" alt="{{ site.title }} title image" />
   </div>
   <div class="home-hero-copy">
     {% if site.home_hero_title_en or site.home_hero_title_hi %}
@@ -379,8 +424,10 @@ title: __PROJECT_NAME__
       {% assign generated_count = generated_count | plus: 1 %}
     {% endif %}
   {% endfor %}
-  <a class="home-collection-card" href="/{{ key }}/">
-    <div class="home-collection-card-bg" style="background-image: url('/images/{{ key }}/{{ theme_name }}/cover.png');"></div>
+  {% assign _coll_path = '/' | append: key | append: '/' %}
+  {% assign _coll_cover = '/images/' | append: key | append: '/' | append: theme_name | append: '/cover.png' %}
+  <a class="home-collection-card" href="{{ _coll_path | relative_url }}">
+    <div class="home-collection-card-bg" style="background-image: url('{{ _coll_cover | relative_url }}');"></div>
     <div class="home-collection-card-overlay">
       <div class="home-collection-card-header">
         <div class="home-collection-title">{{ cfg.name.en | default: key }}</div>
@@ -460,7 +507,8 @@ layout: default
     <span data-lang="hi">इस संग्रह के श्लोक, चित्र और भक्ति-संदर्भ देखें।</span>
   </p>
   <div class="collection-hero-media">
-    <img class="collection-hero-image" src="/images/{{ collection_key }}/{{ theme_name }}/cover.png" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
+    {% assign _collection_cover = '/images/' | append: collection_key | append: '/' | append: theme_name | append: '/cover.png' %}
+    <img class="collection-hero-image" src="{{ _collection_cover | relative_url }}" alt="{{ collection_cfg.name.en | default: collection_key }} title" />
   </div>
   {% assign verse_count = 0 %}
   {% for verse in site.verses %}
@@ -471,7 +519,7 @@ layout: default
   <p class="collection-meta">Total verses: {{ collection_cfg.total_verses | default: verse_count }}</p>
   {% if first_verse_url != '' %}
   <div class="button-row">
-    <a class="button" href="{{ first_verse_url }}">
+    <a class="button" href="{% if first_verse_url contains '://' %}{{ first_verse_url }}{% else %}{{ first_verse_url | relative_url }}{% endif %}">
       <span data-lang="en">Start Reading</span>
       <span data-lang="hi">पठन प्रारंभ करें</span>
     </a>
@@ -539,11 +587,11 @@ layout: default
               {% break %}
             {% endif %}
           {% endfor %}
-          <a class="card verse-card" href="{{ verse.url }}">
+          <a class="card verse-card" href="{% if verse.url contains '://' %}{{ verse.url }}{% else %}{{ verse.url | relative_url }}{% endif %}">
             {% if has_verse_image %}
-            <img class="verse-card-image" src="{{ verse_image }}" alt="{{ verse_label }} image" loading="lazy" />
+            <img class="verse-card-image" src="{% if verse_image contains '://' %}{{ verse_image }}{% else %}{{ verse_image | relative_url }}{% endif %}" alt="{{ verse_label }} image" loading="lazy" />
             {% else %}
-            <img class="verse-card-image" src="{{ verse_image_fallback }}" alt="{{ verse_label }} image" loading="lazy" />
+            <img class="verse-card-image" src="{{ verse_image_fallback | relative_url }}" alt="{{ verse_label }} image" loading="lazy" />
             {% endif %}
             <div class="verse-card-label">
               {{ verse_type | upcase }} {{ verse_num }}
@@ -620,8 +668,13 @@ layout: default
     {% endif %}
   </header>
 
+  {% assign _verse_hero_img = page.image | default: auto_image %}
   <figure class="verse-figure">
-    <img class="verse-hero-image" src="{{ page.image | default: auto_image }}" alt="{{ page.title_en | default: page.title | default: verse_slug }}" loading="lazy" />
+    {% if _verse_hero_img contains '://' %}
+    <img class="verse-hero-image" src="{{ _verse_hero_img }}" alt="{{ page.title_en | default: page.title | default: verse_slug }}" loading="lazy" />
+    {% else %}
+    <img class="verse-hero-image" src="{{ _verse_hero_img | relative_url }}" alt="{{ page.title_en | default: page.title | default: verse_slug }}" loading="lazy" />
+    {% endif %}
   </figure>
 
   {% if page.devanagari != blank %}
@@ -1687,12 +1740,102 @@ def _yaml_escape_double(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def github_pages_url_base(github_org: str, github_repo: str) -> tuple:
+    """Return (jekyll_url, jekyll_baseurl, project_repository_url) for a GitHub Pages project site."""
+    org = (github_org or "").strip().strip("/")
+    repo = (github_repo or "").strip().strip("/")
+    if not org or not repo:
+        raise ValueError("github_org and github_repo are required")
+    return (
+        f"https://{org}.github.io",
+        f"/{repo}",
+        f"https://github.com/{org}/{repo}",
+    )
+
+
+def merge_jekyll_github_pages_config(
+    base_path: Path,
+    *,
+    jekyll_url: str,
+    jekyll_baseurl: str,
+    project_repository_url: str = "",
+) -> None:
+    """Set url, baseurl, and optionally project_repository_url in _config.yml (idempotent)."""
+    cfg_path = base_path / "_config.yml"
+    data: dict = {}
+    if cfg_path.exists():
+        try:
+            data = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError as e:
+            raise RuntimeError(f"Could not parse {cfg_path}: {e}") from e
+    if not isinstance(data, dict):
+        data = {}
+    data["url"] = jekyll_url
+    data["baseurl"] = jekyll_baseurl
+    if project_repository_url:
+        data["project_repository_url"] = project_repository_url
+    cfg_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg_path.write_text(
+        yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=999),
+        encoding="utf-8",
+    )
+
+
+def _site_pages_index_title(base_path: Path, fallback_slug: str) -> str:
+    cfg_path = base_path / "_config.yml"
+    if cfg_path.exists():
+        try:
+            d = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+            if isinstance(d, dict):
+                t = d.get("banner_title") or d.get("title")
+                if isinstance(t, str) and t.strip():
+                    return _yaml_escape_double(t.strip())
+        except Exception:
+            pass
+    return _yaml_escape_double(human_readable_site_title(fallback_slug))
+
+
+def apply_github_pages_site(
+    base_path: Path,
+    *,
+    jekyll_url: str,
+    jekyll_baseurl: str,
+    project_repository_url: str = "",
+) -> None:
+    """
+    Merge GitHub Pages url/baseurl into _config.yml and rewrite index + collection/verse layouts
+    with relative_url-safe Liquid. Safe to run repeatedly (#152).
+    """
+    base_path = base_path.resolve()
+    if not base_path.is_dir():
+        raise RuntimeError(f"Not a directory: {base_path}")
+    merge_jekyll_github_pages_config(
+        base_path,
+        jekyll_url=jekyll_url,
+        jekyll_baseurl=jekyll_baseurl,
+        project_repository_url=project_repository_url or "",
+    )
+    idx_title = _site_pages_index_title(base_path, base_path.name)
+    updates = {
+        "index.html": INDEX_HTML_TEMPLATE.replace("__PROJECT_NAME__", idx_title),
+        "_layouts/collection.html": COLLECTION_LAYOUT_TEMPLATE,
+        "_layouts/verse.html": VERSE_LAYOUT_TEMPLATE,
+    }
+    for rel, content in updates.items():
+        dest = base_path / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(content, encoding="utf-8")
+
+
 def create_template_files(
     base_path: Path,
     project_name: str,
     minimal: bool = False,
     *,
     update_templates: bool = False,
+    jekyll_url: str = "",
+    jekyll_baseurl: str = "",
+    project_repository_url: Optional[str] = None,
 ) -> None:
     """
     Create template configuration files.
@@ -1703,7 +1846,8 @@ def create_template_files(
         minimal: If True, create minimal files only
     """
     # Always create these files
-    project_repository_url = detect_project_repository_url(base_path)
+    if project_repository_url is None:
+        project_repository_url = detect_project_repository_url(base_path)
     banner_title = _yaml_escape_double(human_readable_site_title(project_name))
     files = {
         ".env.example": ENV_EXAMPLE_CONTENT,
@@ -1716,7 +1860,10 @@ def create_template_files(
         "_config.yml": JEKYLL_CONFIG_TEMPLATE.format(
             banner_title=banner_title,
             project_repository_url=project_repository_url,
+            jekyll_url=_yaml_escape_double(jekyll_url),
+            jekyll_baseurl=_yaml_escape_double(jekyll_baseurl),
         ),
+        "_config.local.yml.example": CONFIG_LOCAL_YML_EXAMPLE,
         "_layouts/default.html": DEFAULT_LAYOUT_TEMPLATE,
         "_layouts/home.html": HOME_LAYOUT_TEMPLATE,
         "_layouts/collection.html": COLLECTION_LAYOUT_TEMPLATE,
@@ -2206,6 +2353,9 @@ def init_project(
     num_verses: int = 3,
     assume_yes: bool = False,
     update_templates: bool = False,
+    *,
+    github_org: Optional[str] = None,
+    github_repo: Optional[str] = None,
 ) -> None:
     """
     Initialize a new verse project.
@@ -2248,7 +2398,19 @@ def init_project(
     # Create template files
     print("Creating template files...")
     display_name = project_name if project_name else base_path.name
-    create_template_files(base_path, display_name, minimal, update_templates=update_templates)
+    jekyll_url, jekyll_baseurl = "", ""
+    proj_repo: Optional[str] = None
+    if github_org and github_repo:
+        jekyll_url, jekyll_baseurl, proj_repo = github_pages_url_base(github_org, github_repo)
+    create_template_files(
+        base_path,
+        display_name,
+        minimal,
+        update_templates=update_templates,
+        jekyll_url=jekyll_url,
+        jekyll_baseurl=jekyll_baseurl,
+        project_repository_url=proj_repo,
+    )
     print()
 
     # Create collections if requested
@@ -2316,6 +2478,9 @@ Examples:
   # Minimal structure (no examples)
   verse-init --minimal
 
+  # GitHub Pages project site (url/baseurl + repo link in _config.yml)
+  verse-init --project-name my-site --github-pages myorg my-repo
+
 For more information:
   https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md
         """
@@ -2367,6 +2532,13 @@ For more information:
         help="Overwrite existing SDK scaffolded templates/assets (layouts, CSS, JS, config templates)."
     )
 
+    parser.add_argument(
+        "--github-pages",
+        nargs=2,
+        metavar=("ORG", "REPO"),
+        help="GitHub Pages project site: set url=https://ORG.github.io, baseurl=/REPO, project_repository_url (with verse-init).",
+    )
+
     args = parser.parse_args()
 
     # Handle deprecated --with-example flag
@@ -2376,6 +2548,7 @@ For more information:
         collections.append(args.with_example)
 
     try:
+        gh = args.github_pages
         init_project(
             project_name=args.project_name,
             minimal=args.minimal,
@@ -2383,6 +2556,8 @@ For more information:
             num_verses=args.num_verses,
             assume_yes=args.yes,
             update_templates=args.update_templates,
+            github_org=gh[0] if gh else None,
+            github_repo=gh[1] if gh else None,
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

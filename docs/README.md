@@ -24,6 +24,7 @@ git init
 ### Project Setup
 
 - **[verse-init](commands/verse-init.md)** - Initialize new project with recommended structure
+- **[verse-site-pages](commands/verse-site-pages.md)** - GitHub Pages `url`/`baseurl` + `relative_url` layouts for existing projects
 - **[verse-validate](commands/verse-validate.md)** - Validate project structure and configuration
 
 ### Content Generation

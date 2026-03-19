@@ -12,6 +12,7 @@ COMMANDS = [
     "verse-sync",
     "verse-translate",
     "verse-init",
+    "verse-site-pages",
     "verse-validate",
     "verse-add",
     "verse-puranic-context",

@@ -1,10 +1,12 @@
 """Tests for verse_sdk/cli/init.py — project scaffolding."""
 
 import subprocess
+import yaml
 from pathlib import Path
 
 from verse_sdk.cli.init import (
     create_directory_structure,
+    apply_github_pages_site,
     create_example_collection,
     create_template_files,
     enrich_site_scenes_with_collection_context,
@@ -71,6 +73,7 @@ def test_creates_required_files(tmp_path):
         "index.html",
         "README.md",
         "favicon.ico",
+        "_config.local.yml.example",
     ]:
         assert (tmp_path / f).exists(), f"Missing file: {f}"
     assert (tmp_path / "favicon.ico").stat().st_size >= 100
@@ -150,6 +153,62 @@ def test_gitignore_excludes_env(tmp_path):
     create_template_files(tmp_path, "my-project")
     content = (tmp_path / ".gitignore").read_text()
     assert ".env" in content
+
+
+def test_config_yml_includes_url_baseurl_for_github_pages(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "p")
+    cfg = yaml.safe_load((tmp_path / "_config.yml").read_text(encoding="utf-8"))
+    assert cfg.get("url") == ""
+    assert cfg.get("baseurl") == ""
+
+
+def test_github_pages_init_sets_config(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    init_project(
+        project_name="gp152",
+        assume_yes=True,
+        github_org="myorg",
+        github_repo="myrepo",
+    )
+    cfg = yaml.safe_load((tmp_path / "gp152" / "_config.yml").read_text(encoding="utf-8"))
+    assert cfg["url"] == "https://myorg.github.io"
+    assert cfg["baseurl"] == "/myrepo"
+    assert "github.com/myorg/myrepo" in cfg.get("project_repository_url", "")
+
+
+def test_index_and_collection_layouts_use_relative_url(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "p")
+    index = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert "_home_hero_img | relative_url" in index
+    assert "_coll_path | relative_url" in index
+    assert "_coll_cover | relative_url" in index
+    coll = (tmp_path / "_layouts" / "collection.html").read_text(encoding="utf-8")
+    assert "_collection_cover | relative_url" in coll
+    assert "verse.url | relative_url" in coll
+    verse = (tmp_path / "_layouts" / "verse.html").read_text(encoding="utf-8")
+    assert "_verse_hero_img | relative_url" in verse
+
+
+def test_apply_github_pages_site_idempotent(tmp_path):
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "p")
+    apply_github_pages_site(
+        tmp_path,
+        jekyll_url="https://x.github.io",
+        jekyll_baseurl="/y",
+        project_repository_url="https://github.com/x/y",
+    )
+    cfg1 = (tmp_path / "_config.yml").read_text(encoding="utf-8")
+    apply_github_pages_site(
+        tmp_path,
+        jekyll_url="https://x.github.io",
+        jekyll_baseurl="/y",
+        project_repository_url="https://github.com/x/y",
+    )
+    cfg2 = (tmp_path / "_config.yml").read_text(encoding="utf-8")
+    assert yaml.safe_load(cfg1)["url"] == yaml.safe_load(cfg2)["url"]
 
 
 def test_gitignore_does_not_ignore_audio_dir(tmp_path):
@@ -271,6 +330,17 @@ def test_readme_includes_extend_collection_workflow(tmp_path):
     assert "docs/commands/verse-generate.md" in readme
     assert "verse-init --collection <new-collection>" in readme
     assert "bundle exec jekyll serve" in readme
+
+
+def test_readme_requires_venv_before_pip_install(tmp_path):
+    """#153: README template should guide users to install in a venv."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+    readme = (tmp_path / "README.md").read_text()
+    assert "python3 -m venv .venv" in readme
+    assert "source .venv/bin/activate" in readme
+    assert "pip install sanatan-verse-sdk" in readme
+    assert "Windows: .venv\\Scripts\\activate" in readme
 
 
 def test_index_home_hero_uses_site_home_hero_subtitles(tmp_path):
@@ -549,7 +619,7 @@ def test_collection_layout_references_title_image(tmp_path):
     index_content = (tmp_path / "index.html").read_text()
     assert "{% assign theme_name = cfg.image_theme | default: cfg.theme | default: cfg.default_theme" in index_content
     assert "{% assign generated_count = 0 %}" in index_content
-    assert "/images/{{ key }}/{{ theme_name }}/cover.png" in index_content
+    assert "_coll_cover | relative_url" in index_content
     assert "{{ generated_count }} of {{ cfg.total_verses }} verses" in index_content
     assert "{{ generated_count }} verses" in index_content
     assert "this.src='/images/{{ key }}/card.png'" not in index_content
@@ -564,9 +634,9 @@ def test_collection_layout_references_title_image(tmp_path):
     assert "remove_first: '/'" in layout
     assert "assign verse_image_fallback" in layout
     assert "append: '/cover.png'" in layout
-    assert "src=\"{{ verse_image_fallback }}\"" in layout
+    assert "verse_image_fallback | relative_url" in layout
     assert "{% assign theme_name = collection_cfg.image_theme | default: collection_cfg.theme | default: collection_cfg.default_theme" in layout
-    assert "/images/{{ collection_key }}/{{ theme_name }}/cover.png" in layout
+    assert "_collection_cover | relative_url" in layout
     assert "this.src='/images/{{ collection_key }}/title.png'" not in layout
     assert "verse.collection_key == collection_key" in layout
     assert "<span data-lang=\"en\">{{ collection_name_en }}</span>" in layout
@@ -587,7 +657,7 @@ def test_index_layout_orders_hero_then_sacred_text(tmp_path):
     create_template_files(tmp_path, "test")
     content = (tmp_path / "index.html").read_text()
     assert content.index("home-hero") < content.index("Sacred Text")
-    assert "/images/site/{{ featured_theme_name }}/cover.png" in content
+    assert "_home_hero_img | relative_url" in content
 
 
 def test_resolve_collection_theme_uses_project_default(tmp_path):

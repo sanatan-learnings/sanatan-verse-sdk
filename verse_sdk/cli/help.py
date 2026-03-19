@@ -569,6 +569,17 @@ verse-init
   Docs: docs/commands/verse-init.md
 
 
+verse-site-pages
+──────────────────────────────────────────────────────────────────────────────
+  Set GitHub Pages url/baseurl and refresh index + layouts for relative_url.
+
+  Examples:
+    verse-site-pages --org myorg --repo my-site
+
+  See: verse-site-pages --help
+  Docs: docs/commands/verse-site-pages.md
+
+
 verse-validate
 ──────────────────────────────────────────────────────────────────────────────
   Validate project structure and configuration.
