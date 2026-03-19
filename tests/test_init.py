@@ -14,6 +14,7 @@ from verse_sdk.cli.init import (
     init_project,
     normalize_repo_url,
     resolve_collection_theme,
+    ensure_site_images,
 )
 from verse_sdk.cli.init import main as init_main
 
@@ -356,6 +357,9 @@ def test_readme_includes_about_features_and_for_developers(tmp_path):
 
     # Developer sections should come before GitHub Pages subsection.
     assert readme.index("## For Developers") < readme.index("### GitHub Pages (project site)")
+
+    assert "data/scenes/site.yml" in readme
+    assert "images/site/<theme>/cover.png" in readme
 
 
 def test_index_home_hero_uses_site_home_hero_subtitles(tmp_path):
@@ -887,3 +891,33 @@ def test_enrich_site_scenes_is_idempotent(tmp_path):
 
     site_scenes = (tmp_path / "data" / "scenes" / "site.yml").read_text(encoding="utf-8")
     assert site_scenes.count("Home hero for Shiv Puran") == 1
+
+
+def test_ensure_site_images_does_not_inject_collection_context(tmp_path, monkeypatch):
+    """#155: verse-init should not inject first-collection-dependent wording into data/scenes/site.yml."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+
+    # Ensure the site theme can be resolved (ensure_site_images will copy this into data/themes/site/).
+    (tmp_path / "data" / "themes" / "shiv-puran" / "modern-minimalist.yml").parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "data" / "themes" / "shiv-puran" / "modern-minimalist.yml").write_text(
+        "banner_theme: shiva\n", encoding="utf-8"
+    )
+
+    # Trigger ensure_site_images' generation path without hitting external services.
+    monkeypatch.setattr("verse_sdk.cli.init.resolve_api_key", lambda *args, **kwargs: "dummy")
+    monkeypatch.setattr(
+        "verse_sdk.cli.init.generate_collection_images_with_verse_images",
+        lambda base_path, collection, theme="modern-minimalist": (
+            (base_path / "images" / collection / theme).mkdir(parents=True, exist_ok=True)
+            or (base_path / "images" / collection / theme / "cover.png").write_bytes(b"x")
+            or True
+        ),
+    )
+
+    before = (tmp_path / "data" / "scenes" / "site.yml").read_text(encoding="utf-8")
+    ensure_site_images(tmp_path, site_theme="modern-minimalist", site_source_collection="shiv-puran")
+    after = (tmp_path / "data" / "scenes" / "site.yml").read_text(encoding="utf-8")
+
+    assert before == after
+    assert "Home hero for" not in after

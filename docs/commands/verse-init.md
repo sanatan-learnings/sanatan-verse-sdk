@@ -102,6 +102,7 @@ verse-init --project-name my-project \
 - ✅ Source text placeholder: `data/sources/<collection>.txt`
 - ✅ Sample theme: `data/themes/<collection>/modern-minimalist.yml`
 - ✅ Site scenes template (`cover` prompt): `data/scenes/site.yml`
+  - Home page hero cover image is generated from `data/scenes/site.yml` into `images/site/<theme>/cover.png`.
 - ✅ Collection-aware scene descriptions template (`cover` prompt): `data/scenes/<collection>.yml`
 - ✅ Collection/site cover generation wiring (generate via `verse-images --verse cover`; output is normalized to 16:9)
 - ✅ Collection landing page: `<collection>/index.html`

@@ -197,6 +197,8 @@ This project is a verse-based devotional website scaffolded with **Sanatan Verse
    ```
    Keep this running and refresh the browser after generating/updating verses.
 
+Home page hero cover image is generated from `data/scenes/site.yml` into `images/site/<theme>/cover.png`.
+
 ### GitHub Pages (project site)
 
 For a **project site** (e.g. `https://YOUR_ORG.github.io/YOUR_REPO/`), set in `_config.yml`:
@@ -2169,8 +2171,9 @@ def ensure_site_images(base_path: Path, site_theme: str, site_source_collection:
             # Fallback to the example theme so generation can proceed.
             site_theme_file.write_text(EXAMPLE_THEME_YML, encoding="utf-8")
 
-    # Enrich site scenes with project/collection context before generating.
-    enrich_site_scenes_with_collection_context(base_path, site_source_collection)
+    # Note: `data/scenes/site.yml` is treated as the source of truth for the
+    # home page hero cover prompt. We intentionally do *not* inject
+    # first-collection-dependent wording here (see #155).
 
     try:
         generate_collection_images_with_verse_images(base_path, "site", theme=site_theme)
@@ -2330,7 +2333,10 @@ def print_collection_next_steps(
     print("      # Creates:")
     print(f"      #   - Verses: _verses/{collection}/")
     print(f"      #   - Covers: images/site/{theme}/cover.png and images/{collection}/{theme}/cover.png")
-    print(f"      #   - Scene prompts: data/scenes/site.yml and data/scenes/{collection}.yml")
+    print(
+        f"      #   - Home hero cover prompt: data/scenes/site.yml -> images/site/{theme}/cover.png"
+        f" (scene prompts also available at data/scenes/{collection}.yml)"
+    )
     print(f"   6. Review/edit generated verses in _verses/{collection}/ for quality")
     print("   7. Preview locally and verify output:")
     print("      bundle install")
