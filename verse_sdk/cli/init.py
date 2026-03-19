@@ -148,9 +148,11 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
      - Output: `data/verses/<collection>.yaml`
    - Generate the next missing verse(s) in the sequence:
      - `verse-generate --collection <collection> --next`
+     - For additional flags (including `--all`, `--image`, `--audio`, `--embeddings`, `--regenerate-content`), see
+       https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/commands/verse-generate.md
    - Review/edit the generated markdown in:
      - `_verses/<collection>/`
-   - (Optional) Regenerate content/images/audio after review:
+   - (Optional) Regenerate AI content after edits/review:
      - `verse-generate --collection <collection> --verse <position> --regenerate-content`
 
 4. **Add a new collection**
@@ -163,6 +165,7 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
    bundle install
    bundle exec jekyll serve
    ```
+   Keep this running and refresh the browser after generating/updating verses.
 
 ## Project Structure
 

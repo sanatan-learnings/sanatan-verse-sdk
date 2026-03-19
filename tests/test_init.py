@@ -267,6 +267,8 @@ def test_readme_includes_extend_collection_workflow(tmp_path):
     assert "data/sources/<collection>.txt" in readme
     assert "verse-parse-source --collection <collection>" in readme
     assert "verse-generate --collection <collection> --next" in readme
+    assert "verse-generate --collection <collection> --verse <position> --regenerate-content" in readme
+    assert "docs/commands/verse-generate.md" in readme
     assert "verse-init --collection <new-collection>" in readme
     assert "bundle exec jekyll serve" in readme
 
