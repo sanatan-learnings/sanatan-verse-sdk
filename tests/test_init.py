@@ -1,7 +1,7 @@
 """Tests for verse_sdk/cli/init.py — project scaffolding."""
 
-import subprocess
 from pathlib import Path
+import subprocess
 
 import yaml
 
