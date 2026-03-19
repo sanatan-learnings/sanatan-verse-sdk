@@ -103,7 +103,7 @@ Run from your verse project root (directory containing _config.yml).
     print("✓ Wrote index.html, _layouts/collection.html, _layouts/verse.html")
     print()
     print("Local preview (same paths as GitHub Pages):")
-    print(f"  bundle exec jekyll serve")
+    print("  bundle exec jekyll serve")
     print(f"  → http://127.0.0.1:4000{b}/")
     print()
     print("Optional root URL: copy _config.local.yml.example → _config.local.yml, then:")
