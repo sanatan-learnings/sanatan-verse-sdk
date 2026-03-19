@@ -139,9 +139,21 @@ README_TEMPLATE = """# {banner_title}
 
 Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanatan-learnings/sanatan-verse-sdk).
 
-**Jekyll output:** `bundle exec jekyll serve` / `jekyll build` writes the compiled site to `_site/` (and cache under `.jekyll-cache/`). Source of truth is this repo (`index.html`, `_verses/`, `images/`, `audio/`, etc.); `_site/` is regenerated each build and is gitignored.
+## About
 
-## Setup
+This project is a verse-based devotional website scaffolded with **Sanatan Verse SDK**. It renders bilingual verse reading (canonical text + structured/AI-assisted fields) and supports images and audio for guided study.
+
+## Features
+
+- Collection-based navigation (home + per-collection pages + verse pages)
+- Bilingual verse presentation for focused devotional reading
+- Themeable images (covers + verse cards) and optional pronunciation audio
+- Verse UX with previous/next navigation and pronunciation guidance
+- Jekyll output tailored for GitHub Pages hosting
+
+## For Developers
+
+**Jekyll output:** `bundle exec jekyll serve` / `jekyll build` writes the compiled site to `_site/` (and cache under `.jekyll-cache/`). Source of truth is this repo (`index.html`, `_verses/`, `images/`, `audio/`, etc.); `_site/` is regenerated each build and is gitignored.
 
 1. **Install dependencies**
    ```bash
@@ -185,7 +197,7 @@ Verse collection project powered by [Sanatan Verse SDK](https://github.com/sanat
    ```
    Keep this running and refresh the browser after generating/updating verses.
 
-## GitHub Pages (project site)
+### GitHub Pages (project site)
 
 For a **project site** (e.g. `https://YOUR_ORG.github.io/YOUR_REPO/`), set in `_config.yml`:
 
@@ -209,7 +221,7 @@ bundle exec jekyll serve --config _config.yml,_config.local.yml
 
 Open `http://127.0.0.1:4000/`. (`_config.local.yml` is gitignored.)
 
-## Project Structure
+### Project Structure
 
 ```
 {project_name}/
@@ -233,7 +245,7 @@ Open `http://127.0.0.1:4000/`. (`_config.local.yml` is gitignored.)
 └── .env                         # API keys (gitignored)
 ```
 
-## Documentation
+### Documentation
 
 - [Usage Guide](https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/usage.md)
 - [Commands Reference](https://github.com/sanatan-learnings/sanatan-verse-sdk/blob/main/docs/README.md)

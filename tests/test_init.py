@@ -343,6 +343,21 @@ def test_readme_requires_venv_before_pip_install(tmp_path):
     assert "Windows: .venv\\Scripts\\activate" in readme
 
 
+def test_readme_includes_about_features_and_for_developers(tmp_path):
+    """#154: README template should include About/Features and move Setup under For Developers."""
+    create_directory_structure(tmp_path)
+    create_template_files(tmp_path, "my-project")
+    readme = (tmp_path / "README.md").read_text()
+
+    assert "## About" in readme
+    assert "## Features" in readme
+    assert "## For Developers" in readme
+    assert "## Setup" not in readme
+
+    # Developer sections should come before GitHub Pages subsection.
+    assert readme.index("## For Developers") < readme.index("### GitHub Pages (project site)")
+
+
 def test_index_home_hero_uses_site_home_hero_subtitles(tmp_path):
     create_directory_structure(tmp_path)
     create_template_files(tmp_path, "p")
